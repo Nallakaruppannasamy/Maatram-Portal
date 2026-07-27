@@ -1,0 +1,4 @@
+/* Tailwind CSS imports and global styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

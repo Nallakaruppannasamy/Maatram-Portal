@@ -1,0 +1,1 @@
+// Global providers wrapper (QueryClient, Auth, Theme)
