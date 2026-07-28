@@ -4,3 +4,11 @@ dist/
 *.log
 server/prisma/*.db
 server/prisma/*.db-journal
+
+# Ignore Stitch design folder and UI images
+design/
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.webp

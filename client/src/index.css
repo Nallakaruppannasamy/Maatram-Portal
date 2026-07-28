@@ -1,4 +1,64 @@
-/* Tailwind CSS imports and global styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: 'Inter', sans-serif;
+  }
+  
+  body {
+    font-family: var(--font-sans);
+    background-color: #FCF8FA;
+    color: #111827;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom Utilities for Timeless Altruism Design System */
+.luxury-shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.02);
+}
+
+.luxury-card {
+  background-color: #ffffff;
+  border: 1px solid #E5E7EB;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #FCF8FA;
+}
+::-webkit-scrollbar-thumb {
+  background: #DCD9DB;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #76777D;
+}
+
+/* Print Styles for Resume Generator */
+@media print {
+  body {
+    background-color: #ffffff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-area {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
