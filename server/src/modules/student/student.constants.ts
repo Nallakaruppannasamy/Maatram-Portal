@@ -1,0 +1,13 @@
+/**
+ * @file src/modules/student/student.constants.ts
+ * @description Constants for the Student Management module.
+ */
+
+export const STUDENT_AUDIT_ACTIONS = {
+  STUDENT_CREATED: 'STUDENT_CREATED',
+  STUDENT_UPDATED: 'STUDENT_UPDATED',
+  STUDENT_IMPORTED: 'STUDENT_IMPORTED',
+  STUDENT_STATUS_CHANGED: 'STUDENT_STATUS_CHANGED',
+  STUDENT_ACTIVATED: 'STUDENT_ACTIVATED',
+  STUDENT_DEACTIVATED: 'STUDENT_DEACTIVATED',
+} as const;

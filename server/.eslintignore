@@ -1,0 +1,9 @@
+# ESLint ignore patterns
+node_modules/
+dist/
+coverage/
+prisma/seed.ts
+*.config.js
+*.config.ts
+src/tests/
+src/**/__tests__/

@@ -1,1 +1,0 @@
-// Resume Worker processor
