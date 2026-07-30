@@ -11,6 +11,7 @@ import { zoneRepository } from '../zone/zone.repository';
 import { prisma } from '@/config/database';
 import { hashPassword } from '@/utils/password';
 import { generateTempPassword } from '@/utils/password-generator';
+import { notificationService } from '@/utils/notification';
 import { CreateUserDTO, UpdateUserDTO } from './user.types';
 import { USER_LOGS } from './user.constants';
 import { createAuditLog } from '@/utils/audit';
@@ -83,13 +84,30 @@ export class UserService {
       details: `Created administrative user: ${user.email} (${user.role})`,
     });
 
-    // In a real system, the temporary password would be sent by email.
-    // For now we log it securely in the server environment.
+    // Send temporary password credentials email
+    await notificationService.sendEmail({
+      to: user.email || '',
+      subject: 'Maatram Foundation — Welcome & Account Credentials',
+      body: `Hello ${user.userProfile?.fullName || 'User'},\n\nYour account has been provisioned on the Maatram Foundation Portal.\n\nEmail: ${user.email}\nTemporary Password: ${tempPassword}\n\nPlease log in and update your password immediately.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #1a56db;">Welcome to Maatram Foundation</h2>
+          <p>Hello <strong>${user.userProfile?.fullName || 'User'}</strong>,</p>
+          <p>Your account has been provisioned on the Maatram Foundation Portal.</p>
+          <div style="background: #f3f4f6; padding: 15px; border-radius: 6px; margin: 15px 0;">
+            <p style="margin: 0;"><strong>Email:</strong> ${user.email}</p>
+            <p style="margin: 5px 0 0 0;"><strong>Temporary Password:</strong> <code style="font-size: 16px; color: #d97706;">${tempPassword}</code></p>
+          </div>
+          <p>Please log in and update your password immediately upon first login.</p>
+        </div>
+      `,
+    });
+
     logger.info(`[USER PROVISIONED] Email: ${user.email} | Temp Password: ${tempPassword}`);
 
     return {
       user,
-      tempPassword, // Return so testing script or admin can see it in output response
+      tempPassword,
     };
   }
 

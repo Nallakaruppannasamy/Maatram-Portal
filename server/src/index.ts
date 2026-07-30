@@ -2,7 +2,7 @@ import app from './app';
 import { env } from '@/config/env';
 import { logger } from '@/config/logger';
 import { checkDatabaseConnection } from '@/config/database';
-
+import { verifyMailConnection } from '@/config/mail';
 
 const PORT = env.PORT;
 
@@ -11,6 +11,9 @@ const bootstrap = async () => {
 
   // 1. Establish & verify database connection
   await checkDatabaseConnection();
+
+  // 2. Establish & verify SMTP mail connection
+  await verifyMailConnection();
 
   const server = app.listen(PORT, () => {
     logger.info(`✨ Server listening on port ${PORT} in ${env.NODE_ENV} mode.`);

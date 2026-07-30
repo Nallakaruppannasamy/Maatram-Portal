@@ -19,6 +19,8 @@ export class AuthRepository {
         ],
       },
       include: {
+        userProfile: true,
+        zone: true,
         student: {
           include: {
             zone: true,
@@ -43,6 +45,8 @@ export class AuthRepository {
     return prisma.user.findUnique({
       where: { id },
       include: {
+        userProfile: true,
+        zone: true,
         student: {
           include: {
             zone: true,

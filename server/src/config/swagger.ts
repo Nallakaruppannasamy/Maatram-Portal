@@ -45,6 +45,16 @@ const swaggerDocument = {
         },
       },
     },
+    '/health/mail': {
+      get: {
+        summary: 'SMTP Mail Server Connectivity Check',
+        responses: {
+          200: {
+            description: 'SMTP Mail Server is connected',
+          },
+        },
+      },
+    },
   },
 };
 

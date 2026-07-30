@@ -15,7 +15,7 @@ import { AUTH_LOGS } from './auth.constants';
 import jwt from 'jsonwebtoken';
 import { TokenPayload } from '@/types';
 
-import { User, Student, Zone, College, Department, Program } from '@prisma/client';
+import { User, Student, Zone, College, Department, Program, UserProfile } from '@prisma/client';
 
 type StudentWithRelations = Student & {
   zone?: Zone | null;
@@ -25,6 +25,8 @@ type StudentWithRelations = Student & {
 };
 
 type UserWithRelations = User & {
+  userProfile?: UserProfile | null;
+  zone?: Zone | null;
   student?: StudentWithRelations | null;
   zoneIncharge?: Zone | null;
 };
@@ -39,8 +41,8 @@ export class AuthService {
    * Helper to map a user model with loaded relations to a UserAuthProfile.
    */
   private mapToProfile(user: UserWithRelations): UserAuthProfile {
-    let fullName = 'System User';
-    let mobile: string | null = null;
+    let fullName = user.userProfile?.fullName || (user.email ? user.email.split('@')[0] : 'User');
+    let mobile: string | null = user.userProfile?.mobile || null;
     let zone: { id: string; name: string; code: string } | null = null;
     let college: { id: string; name: string; code: string } | null = null;
 
@@ -59,15 +61,15 @@ export class AuthService {
             code: user.student.college.code,
           }
         : null;
-    } else if (user.role === 'zone' && user.zoneIncharge) {
-      fullName = 'Dr. Ramesh Kumar'; // Fallback / Mock name for Zone 1 Incharge
-      zone = {
-        id: user.zoneIncharge.id,
-        name: user.zoneIncharge.name,
-        code: user.zoneIncharge.code,
-      };
-    } else if (user.role === 'admin') {
-      fullName = 'Super Administrator';
+    } else if (user.role === 'zone') {
+      const activeZone = user.zoneIncharge || user.zone;
+      if (activeZone) {
+        zone = {
+          id: activeZone.id,
+          name: activeZone.name,
+          code: activeZone.code,
+        };
+      }
     }
 
     return {
@@ -247,12 +249,23 @@ export class AuthService {
 
     await authRepository.createPasswordResetToken(user.id, tokenHash, expiresAt);
 
-    // Send mock email
+    // Send password reset email
     const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
     await mockNotificationService.sendEmail({
-      to: user.email || 'student@maatram.org',
+      to: user.email || '',
       subject: 'Maatram Foundation — Password Reset Request',
       body: `You requested a password reset. Please click the following link to reset your password within 1 hour:\n\n${resetLink}\n\nIf you did not request this, please ignore this email.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #1a56db;">Password Reset Request</h2>
+          <p>You requested a password reset for your Maatram Foundation account.</p>
+          <p style="margin: 20px 0;">
+            <a href="${resetLink}" style="background-color: #1a56db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+          </p>
+          <p>This link is valid for 1 hour.</p>
+          <p style="color: #666; font-size: 12px;">If you did not request a password reset, you can safely ignore this email.</p>
+        </div>
+      `,
     });
 
     logger.info(
