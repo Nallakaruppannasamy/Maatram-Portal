@@ -1,8 +1,664 @@
+// ─── Prisma Schema ───
+// Maatram Foundation Student & Volunteer Management System (Enterprise SIS)
+
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  student
+  zone
+  admin
+}
+
+enum AccountStatus {
+  pending_first_login
+  activated
+  password_changed
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DROPPED
+  GRADUATED
+  ALUMNI
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum BloodGroup {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+}
+
+enum VolunteerCategory {
+  Education
+  Healthcare
+  Environment
+  DisasterRelief
+  CommunityOutreach
+}
+
+enum VolunteerStatus {
+  pending
+  approved
+  rejected
+}
+
+enum NotificationType {
+  approved
+  rejected
+  pending
+  info
+  alert
+}
+
+enum AuditActorRole {
+  student
+  zone
+  admin
+  system
+}
+
+enum ImportStatus {
+  processing
+  completed
+  failed
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email          String?   @unique @db.VarChar(255)
+  registerNumber String?   @unique @db.VarChar(20)
+  employeeId     String?   @unique @db.VarChar(50)
+  passwordHash   String    @db.Text
+  tempPassword   String?   @db.Text
+  role           UserRole
+  isFirstLogin   Boolean   @default(true)
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime? @db.Timestamptz
+  createdAt      DateTime  @default(now()) @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @db.Timestamptz
+
+  // Relations
+  student             Student?
+  zoneIncharge        Zone?                 @relation("ZoneIncharge")
+  reviewedSubmissions VolunteerSubmission[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  enrollmentImports   EnrollmentImport[]
+  passwordResetTokens PasswordResetToken[]
+  refreshTokens       RefreshToken[]
+  userProfile         UserProfile?
+  organizationId      String?               @db.Uuid
+  organization        Organization?         @relation(fields: [organizationId], references: [id])
+  zoneId              String?               @db.Uuid
+  zone                Zone?                 @relation("UserZone", fields: [zoneId], references: [id])
+
+  @@map("users")
+  @@index([role])
+  @@index([isActive])
+  @@index([organizationId])
+  @@index([zoneId])
+}
+
+model Student {
+  id                    String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String        @unique @db.Uuid
+  registrationNumber    String        @unique @db.VarChar(50)
+  firstName             String        @db.VarChar(100)
+  middleName            String?       @db.VarChar(100)
+  lastName              String        @db.VarChar(100)
+  gender                Gender
+  dateOfBirth           DateTime      @db.Date
+  bloodGroup            BloodGroup?
+  nationality           String?       @db.VarChar(50)
+  community             String?       @db.VarChar(50)
+  religion              String?       @db.VarChar(50)
+  mobile                String?       @db.VarChar(15)
+  alternateMobile       String?       @db.VarChar(15)
+  parentName            String        @db.VarChar(100)
+  parentMobile          String        @db.VarChar(15)
+  parentOccupation      String?       @db.VarChar(100)
+  guardianName          String?       @db.VarChar(100)
+  guardianMobile        String?       @db.VarChar(15)
+  addressLine1          String        @db.VarChar(255)
+  addressLine2          String?       @db.VarChar(255)
+  city                  String        @db.VarChar(100)
+  district              String        @db.VarChar(100)
+  state                 String        @db.VarChar(100)
+  country               String        @db.VarChar(100)
+  pincode               String        @db.VarChar(10)
+  organizationId        String        @db.Uuid
+  zoneId                String        @db.Uuid
+  collegeId             String        @db.Uuid
+  departmentId          String        @db.Uuid
+  programId             String        @db.Uuid
+  course                String        @db.VarChar(100)
+  batch                 String        @db.VarChar(10)
+  academicYear          String        @db.VarChar(10)
+  semester              String?       @db.VarChar(20)
+  section               String?       @db.VarChar(10)
+  verificationCode      String        @unique @db.VarChar(30)
+  resumeLastGeneratedAt DateTime?     @db.Timestamptz
+  accountStatus         AccountStatus @default(pending_first_login)
+  status                StudentStatus @default(ACTIVE)
+
+  // Relations
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id])
+  zone         Zone         @relation(fields: [zoneId], references: [id])
+  college      College      @relation(fields: [collegeId], references: [id])
+  department   Department   @relation(fields: [departmentId], references: [id])
+  program      Program      @relation(fields: [programId], references: [id])
+
+  semesterGrades       SemesterGrade[]
+  volunteerSubmissions VolunteerSubmission[]
+  skills               Skill[]
+  projects             Project[]
+  certifications       Certification[]
+  resumes              Resume[]
+  placements           Placement[]
+  volunteerAssignments VolunteerAssignment[]
+  mentoringSessions    StudentMentoring[]
+  resumeReviews        ResumeReview[]
+  mockInterviews       MockInterview[]
+
+  @@map("students")
+  @@index([userId])
+  @@index([zoneId])
+  @@index([collegeId])
+  @@index([departmentId])
+  @@index([programId])
+  @@index([accountStatus])
+  @@index([status])
+  @@index([organizationId])
+  @@index([registrationNumber])
+  @@index([zoneId, collegeId])
+  @@index([accountStatus, zoneId])
+}
+
+model Zone {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String        @db.VarChar(100)
+  code           String        @unique @db.VarChar(20) // e.g. ZONE-1
+  regionLabel    String        @db.VarChar(150)
+  inchargeId     String?       @unique @db.Uuid
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now()) @db.Timestamptz
+  organizationId String        @db.Uuid
+
+  // Relations
+  incharge             User?                 @relation("ZoneIncharge", fields: [inchargeId], references: [id])
+  organization         Organization          @relation(fields: [organizationId], references: [id])
+  staffUsers           User[]                @relation("UserZone")
+  students             Student[]
+  colleges             College[]
+  volunteerSubmissions VolunteerSubmission[]
+  volunteers           Volunteer[]
+
+  @@map("zones")
+  @@index([inchargeId])
+  @@index([organizationId])
+}
+
+model College {
+  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name     String  @db.VarChar(150)
+  code     String  @unique @db.VarChar(20) // e.g. MIT-CHE
+  location String  @db.VarChar(200)
+  zoneId   String  @db.Uuid
+  isActive Boolean @default(true)
+
+  // Relations
+  zone        Zone         @relation(fields: [zoneId], references: [id])
+  departments Department[]
+  students    Student[]
+
+  @@map("colleges")
+  @@index([zoneId])
+}
+
+model Department {
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String @db.VarChar(100)
+  collegeId String @db.Uuid
+
+  // Relations
+  college  College   @relation(fields: [collegeId], references: [id])
+  programs Program[]
+  students Student[]
+
+  @@map("departments")
+  @@index([collegeId])
+}
+
+model Program {
+  id            String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String @db.VarChar(100)
+  departmentId  String @db.Uuid
+  durationYears Int    @default(4)
+
+  // Relations
+  department Department @relation(fields: [departmentId], references: [id])
+  students   Student[]
+
+  @@map("programs")
+  @@index([departmentId])
+}
+
+model SemesterGrade {
+  id             String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId      String  @db.Uuid
+  semesterNumber Int // CHECK (1-10)
+  gpa            Decimal @db.Decimal(4, 2)
+
+  // Relations
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, semesterNumber])
+  @@map("semester_grades")
+  @@index([studentId])
+}
+
+model VolunteerSubmission {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  submissionCode     String            @unique @db.VarChar(30) // VLOG-XXXX-XX
+  studentId          String            @db.Uuid
+  zoneId             String            @db.Uuid
+  title              String            @db.VarChar(200)
+  category           VolunteerCategory
+  organization       String            @db.VarChar(200)
+  hours              Decimal           @db.Decimal(5, 1)
+  eventDate          DateTime          @db.Date
+  description        String            @db.Text
+  proofFileUrl       String?           @db.Text
+  proofFileName      String?           @db.VarChar(255)
+  proofFileSizeBytes Int?
+  status             VolunteerStatus   @default(pending)
+  reviewerComment    String?           @db.Text
+  reviewedById       String?           @db.Uuid
+  reviewedAt         DateTime?         @db.Timestamptz
+  createdAt          DateTime          @default(now()) @db.Timestamptz
+  updatedAt          DateTime          @updatedAt @db.Timestamptz
+
+  // Relations
+  student  Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  zone     Zone    @relation(fields: [zoneId], references: [id])
+  reviewer User?   @relation(fields: [reviewedById], references: [id])
+
+  @@map("volunteer_submissions")
+  @@index([studentId])
+  @@index([zoneId])
+  @@index([reviewedById])
+  @@index([status])
+  @@index([eventDate])
+  @@index([zoneId, status, createdAt(sort: Desc)])
+  @@index([studentId, status, eventDate(sort: Desc)])
+  @@index([zoneId, eventDate, status])
+}
+
+model Skill {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId String   @db.Uuid
+  skillName String   @db.VarChar(50)
+  addedAt   DateTime @default(now()) @db.Timestamptz
+
+  // Relations
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("skills")
+  @@index([studentId])
+}
+
+model Project {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId   String   @db.Uuid
+  title       String   @db.VarChar(200)
+  description String   @db.Text
+  techStack   String   @db.VarChar(500) // comma-separated values
+  githubUrl   String?  @db.VarChar(500)
+  demoUrl     String?  @db.VarChar(500)
+  createdAt   DateTime @default(now()) @db.Timestamptz
+
+  // Relations
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("projects")
+  @@index([studentId])
+}
+
+model Certification {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId      String   @db.Uuid
+  title          String   @db.VarChar(200)
+  issuer         String   @db.VarChar(200)
+  issueDate      DateTime @db.Date
+  isVerified     Boolean  @default(false)
+  certificateUrl String?  @db.Text
+
+  // Relations
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("certifications")
+  @@index([studentId])
+}
+
+model Notification {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipientId        String           @db.Uuid
+  title              String           @db.VarChar(255)
+  message            String           @db.Text
+  type               NotificationType
+  isRead             Boolean          @default(false)
+  relatedEntityType  String?          @db.VarChar(50)
+  relatedEntityId    String?          @db.Uuid
+  createdAt          DateTime         @default(now()) @db.Timestamptz
+
+  // Relations
+  recipient User @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+  @@index([recipientId])
+  @@index([recipientId, isRead])
+}
+
+model AuditLog {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  logCode          String         @unique @db.VarChar(20) // e.g. AUD-9021
+  actorId          String         @db.Uuid
+  actorRole        AuditActorRole
+  action           String         @db.VarChar(100)
+  targetEntityType String         @db.VarChar(50)
+  targetEntityId   String?        @db.Uuid
+  targetLabel      String         @db.VarChar(200)
+  details          String         @db.Text
+  ipAddress        String         @db.VarChar(45)
+  userAgent        String?        @db.VarChar(500)
+  createdAt        DateTime       @default(now()) @db.Timestamptz
+
+  // Relations
+  actor User @relation(fields: [actorId], references: [id])
+
+  @@map("audit_logs")
+  @@index([actorId])
+  @@index([createdAt])
+  @@index([action, createdAt(sort: Desc)])
+  @@index([actorId, createdAt(sort: Desc)])
+}
+
+model EnrollmentImport {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  importedById   String       @db.Uuid
+  fileName       String       @db.VarChar(255)
+  totalRows      Int
+  successCount   Int
+  duplicateCount Int
+  errorCount     Int
+  status         ImportStatus
+  importedAt     DateTime     @default(now()) @db.Timestamptz
+
+  // Relations
+  importedBy User @relation(fields: [importedById], references: [id])
+
+  @@map("enrollment_imports")
+  @@index([importedById])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @db.Text
+  expiresAt DateTime  @db.Timestamptz
+  usedAt    DateTime? @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+  @@index([userId])
+  @@index([userId, expiresAt])
+}
+
+model RefreshToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @db.Text
+  expiresAt DateTime  @db.Timestamptz
+  revokedAt DateTime? @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+  @@index([userId])
+  @@index([revokedAt])
+}
+
+model Organization {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar(100)
+  code        String   @unique @db.VarChar(20)
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+
+  zones       Zone[]
+  users       User[]
+  students    Student[]
+  volunteers  Volunteer[]
+
+  @@map("organizations")
+  @@index([isActive])
+}
+
+model UserProfile {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String   @unique @db.Uuid
+  fullName     String   @db.VarChar(100)
+  mobile       String?  @db.VarChar(15)
+  designation  String?  @db.VarChar(100)
+  profileImage String?  @db.VarChar(255)
+  bio          String?  @db.Text
+  createdAt    DateTime @default(now()) @db.Timestamptz
+  updatedAt    DateTime @updatedAt @db.Timestamptz
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model Resume {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId String   @db.Uuid
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  fileUrl   String   @db.Text
+  title     String   @db.VarChar(200)
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@map("resumes")
+  @@index([studentId])
+}
+
+model Placement {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId   String   @db.Uuid
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  companyName String   @db.VarChar(200)
+  designation String   @db.VarChar(100)
+  packageLpa  Decimal? @db.Decimal(5, 2)
+  placedAt    DateTime @db.Date
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+
+  @@map("placements")
+  @@index([studentId])
+}
+
+model VolunteerAssignment {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId   String   @db.Uuid
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  title       String   @db.VarChar(200)
+  description String   @db.Text
+  status      String   @db.VarChar(50)
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+
+  @@map("volunteer_assignments")
+  @@index([studentId])
+}
+
+enum VolunteerProfileStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  SUSPENDED
+  EXITED
+}
+
+model Volunteer {
+  id               String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  volunteerId      String                 @unique @db.VarChar(50)
+  firstName        String                 @db.VarChar(100)
+  middleName       String?                @db.VarChar(100)
+  lastName         String                 @db.VarChar(100)
+  gender           Gender
+  dateOfBirth      DateTime               @db.Date
+  email            String                 @unique @db.VarChar(255)
+  mobile           String                 @db.VarChar(15)
+  alternateMobile  String?                @db.VarChar(15)
+  organizationId   String                 @db.Uuid
+  zoneId           String                 @db.Uuid
+  volunteerType    String                 @db.VarChar(100)
+  joiningDate      DateTime               @db.Date
+  experience       String?                @db.Text
+  availability     String?                @db.VarChar(100)
+  emergencyContact String?                @db.VarChar(150)
+  status           VolunteerProfileStatus @default(ACTIVE)
+  createdAt        DateTime               @default(now()) @db.Timestamptz
+  updatedAt        DateTime               @updatedAt @db.Timestamptz
+  deletedAt        DateTime?              @db.Timestamptz
+
+  // Relations
+  organization     Organization           @relation(fields: [organizationId], references: [id])
+  zone             Zone                   @relation(fields: [zoneId], references: [id])
+  skills           VolunteerSkill[]
+
+  // Future relationships (placeholders)
+  mentoredStudents StudentMentoring[]
+  eventVolunteers  EventVolunteer[]
+  activityLogs     ActivityLog[]
+  resumeReviews    ResumeReview[]
+  mockInterviews   MockInterview[]
+
+  @@map("volunteers")
+  @@index([volunteerId])
+  @@index([email])
+  @@index([organizationId])
+  @@index([zoneId])
+  @@index([status])
+}
+
+model VolunteerSkill {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  volunteerId String    @db.Uuid
+  skillName   String    @db.VarChar(100)
+  volunteer   Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  @@unique([volunteerId, skillName])
+  @@map("volunteer_skills")
+}
+
+// ─── Future Relationship Placeholder Models ───
+
+model StudentMentoring {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  volunteerId String    @db.Uuid
+  studentId   String    @db.Uuid
+  volunteer   Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+
+  @@map("student_mentoring")
+  @@index([volunteerId])
+  @@index([studentId])
+}
+
+model EventVolunteer {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  volunteerId String    @db.Uuid
+  volunteer   Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  eventName   String    @db.VarChar(200)
+  eventDate   DateTime  @db.Date
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+
+  @@map("event_volunteers")
+  @@index([volunteerId])
+}
+
+model ActivityLog {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  volunteerId  String    @db.Uuid
+  volunteer    Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  activityName String    @db.VarChar(200)
+  description  String?   @db.Text
+  activityDate DateTime  @db.Date
+  createdAt    DateTime  @default(now()) @db.Timestamptz
+
+  @@map("volunteer_activity_logs")
+  @@index([volunteerId])
+}
+
+model ResumeReview {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  volunteerId String    @db.Uuid
+  volunteer   Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  studentId   String    @db.Uuid
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  comments    String?   @db.Text
+  reviewedAt  DateTime  @default(now()) @db.Timestamptz
+
+  @@map("resume_reviews")
+  @@index([volunteerId])
+  @@index([studentId])
+}
+
+model MockInterview {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  volunteerId String    @db.Uuid
+  volunteer   Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  studentId   String    @db.Uuid
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  feedback    String?   @db.Text
+  conductedAt DateTime  @default(now()) @db.Timestamptz
+
+  @@map("mock_interviews")
+  @@index([volunteerId])
+  @@index([studentId])
 }
