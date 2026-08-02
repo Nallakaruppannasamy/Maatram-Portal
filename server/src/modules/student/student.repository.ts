@@ -70,8 +70,7 @@ export class StudentRepository {
    */
   async createStudent(
     data: CreateStudentDTO,
-    tempPasswordHashed: string,
-    tempPasswordPlain: string
+    tempPasswordHashed: string
   ): Promise<StudentWithRelations> {
     const verificationCode = `MTM-${data.batch.split('-')[0] || new Date().getFullYear()}-${data.registrationNumber.trim().toUpperCase()}`;
 
@@ -83,7 +82,6 @@ export class StudentRepository {
           registerNumber: data.registrationNumber.trim(),
           role: UserRole.student,
           passwordHash: tempPasswordHashed,
-          tempPassword: tempPasswordPlain,
           isFirstLogin: true,
           isActive: true,
           organizationId: data.organizationId,
@@ -283,7 +281,6 @@ export class StudentRepository {
         registerNumber: string;
         role: UserRole;
         passwordHash: string;
-        tempPassword: string;
         isFirstLogin: boolean;
         isActive: boolean;
         organizationId: string;

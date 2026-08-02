@@ -113,7 +113,6 @@ app.get('/health/mail', async (req: Request, res: Response, next: NextFunction) 
   }
 });
 
-
 // 8. 404 Fallback for Undefined Routes
 app.use('*', (req: Request, res: Response, next: NextFunction) => {
   next(ApiError.notFound(`Route ${req.baseUrl} not found`));

@@ -149,18 +149,13 @@ export class AuthRepository {
   /**
    * Updates a user's password, first login state, and temporary password.
    */
-  async updatePassword(
-    userId: string,
-    passwordHash: string,
-    isFirstLogin = false,
-    tempPassword: string | null = null
-  ): Promise<void> {
+  async updatePassword(userId: string, passwordHash: string, isFirstLogin = false): Promise<void> {
     await prisma.user.update({
       where: { id: userId },
       data: {
         passwordHash,
         isFirstLogin,
-        tempPassword,
+        tempPassword: null,
       },
     });
   }

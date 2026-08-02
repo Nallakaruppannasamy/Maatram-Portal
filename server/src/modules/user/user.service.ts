@@ -71,7 +71,7 @@ export class UserService {
 
     // Run transaction
     const user = await prisma.$transaction(async (tx) => {
-      return userRepository.create(data, pwHash, tempPassword, tx);
+      return userRepository.create(data, pwHash, tx);
     });
 
     await createAuditLog({
@@ -103,12 +103,9 @@ export class UserService {
       `,
     });
 
-    logger.info(`[USER PROVISIONED] Email: ${user.email} | Temp Password: ${tempPassword}`);
+    logger.info(`[USER PROVISIONED] Email: ${user.email}`);
 
-    return {
-      user,
-      tempPassword,
-    };
+    return user;
   }
 
   /**

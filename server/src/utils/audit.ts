@@ -23,7 +23,7 @@ interface AuditLogParams {
  * Creates an audit log entry inside the database.
  */
 export const createAuditLog = async (params: AuditLogParams): Promise<void> => {
-  const logCode = `AUD-${crypto.randomInt(10000, 99999)}`;
+  const logCode = `AUD-${crypto.randomUUID().slice(0, 12).toUpperCase()}`;
 
   await prisma.auditLog.create({
     data: {
