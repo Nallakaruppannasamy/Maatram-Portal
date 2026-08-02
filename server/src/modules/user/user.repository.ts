@@ -14,7 +14,6 @@ export class UserRepository {
   async create(
     data: CreateUserDTO,
     passwordHash: string,
-    tempPassword: string,
     tx: Prisma.TransactionClient = prisma as unknown as Prisma.TransactionClient
   ) {
     return tx.user.create({
@@ -23,7 +22,6 @@ export class UserRepository {
         role: data.role,
         employeeId: data.employeeId || null,
         passwordHash,
-        tempPassword,
         isFirstLogin: true,
         isActive: true,
         organizationId: data.organizationId || null,

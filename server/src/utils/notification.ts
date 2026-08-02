@@ -32,7 +32,9 @@ export class NotificationService {
       const info = await transporter.sendMail(mailOptions);
       logger.info(`📧 [EMAIL SENT] MessageId: ${info.messageId} | Recipient: ${payload.to}`);
     } catch (error) {
-      logger.error(`❌ [EMAIL FAILURE] Failed to send email to ${payload.to}: ${(error as Error).message}`);
+      logger.error(
+        `❌ [EMAIL FAILURE] Failed to send email to ${payload.to}: ${(error as Error).message}`
+      );
       logger.info(`✉️ [EMAIL FALLBACK LOG]
         To: ${payload.to}
         Subject: ${payload.subject}

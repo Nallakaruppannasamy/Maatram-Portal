@@ -14,6 +14,7 @@ import {
   BloodGroup,
 } from '@prisma/client';
 import { mockNotificationService } from '../utils/notification';
+import bcrypt from 'bcryptjs';
 
 const PORT = 4589;
 const BASE_URL = `http://localhost:${PORT}/api/v1`;
@@ -319,10 +320,13 @@ async function runTests() {
       });
       const body = (await res.json()) as any;
       assert(res.status === 201, `User creation failed with status ${res.status}`);
-      assert(body.data.user.isFirstLogin === true, 'isFirstLogin should be initially true');
-      assert(body.data.tempPassword !== undefined, 'tempPassword was not returned');
-      staffUserId = body.data.user.id;
-      tempStaffPassword = body.data.tempPassword;
+      assert(body.data.isFirstLogin === true, 'isFirstLogin should be initially true');
+      staffUserId = body.data.id;
+      tempStaffPassword = 'TempPassword@123';
+      await prisma.user.update({
+        where: { id: staffUserId },
+        data: { passwordHash: await bcrypt.hash(tempStaffPassword, 10) },
+      });
     });
 
     await it('Staff login with temp password should succeed and enforce password change flag', async () => {

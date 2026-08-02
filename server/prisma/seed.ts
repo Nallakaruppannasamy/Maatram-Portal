@@ -23,8 +23,8 @@ const prisma = new PrismaClient({
   }
 });
 
-function hashPassword(password: string): string {
-  return bcrypt.hashSync(password, 12);
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 12);
 }
 
 async function main() {
@@ -192,13 +192,14 @@ async function main() {
   console.log('  ✅ Programs created');
 
   // ─── 5. USERS ──────────────────────────────────────────────────────────────
+  console.log('👥 Creating Users...');
 
-  // Super Admin
+  const adminPasswordHash = await hashPassword('Admin@123');
   const adminUser = await prisma.user.create({
     data: {
       email: 'arun.s@maatram.org',
       role: UserRole.admin,
-      passwordHash: hashPassword('Admin@123'),
+      passwordHash: adminPasswordHash,
       isFirstLogin: false,
       isActive: true,
       organizationId: org.id,
@@ -213,12 +214,32 @@ async function main() {
     },
   });
 
-  // Zone Incharge — Zone 1
+  const sysAdminPasswordHash = await hashPassword('admin@123');
+  await prisma.user.create({
+    data: {
+      email: 'admin@maatram.com',
+      role: UserRole.admin,
+      passwordHash: sysAdminPasswordHash,
+      isFirstLogin: false,
+      isActive: true,
+      organizationId: org.id,
+      employeeId: 'EMP-0002-ADMIN',
+      userProfile: {
+        create: {
+          fullName: 'Super Admin',
+          designation: 'System Administrator',
+          mobile: '9876543210',
+        },
+      },
+    },
+  });
+
+  const zonePasswordHash = await hashPassword('Zone@123');
   const zoneUser = await prisma.user.create({
     data: {
       email: 'ramesh.kumar@zone1.maatram.org',
       role: UserRole.zone,
-      passwordHash: hashPassword('Zone@123'),
+      passwordHash: zonePasswordHash,
       isFirstLogin: false,
       isActive: true,
       organizationId: org.id,
@@ -234,33 +255,30 @@ async function main() {
     },
   });
 
-  // Update Zone 1 to assign incharge
   await prisma.zone.update({
     where: { id: zone1.id },
     data: { inchargeId: zoneUser.id },
   });
 
-  // Student User 1 — Ananya Sharma
+  const student1PasswordHash = await hashPassword('Mtm#9021');
   const studentUser1 = await prisma.user.create({
     data: {
       email: 'ananya.sharma@student.maatram.org',
       registerNumber: '2024CS1092',
       role: UserRole.student,
-      passwordHash: hashPassword('Mtm#9021'),
-      tempPassword: 'Mtm#9021',
+      passwordHash: student1PasswordHash,
       isFirstLogin: false,
       isActive: true,
     },
   });
 
-  // Student User 2 — Karthik Raja
+  const student2PasswordHash = await hashPassword('Mtm#4412');
   const studentUser2 = await prisma.user.create({
     data: {
       email: 'karthik.raja@student.maatram.org',
       registerNumber: '2024ME1105',
       role: UserRole.student,
-      passwordHash: hashPassword('Mtm#4412'),
-      tempPassword: 'Mtm#4412',
+      passwordHash: student2PasswordHash,
       isFirstLogin: false,
       isActive: true,
     },

@@ -58,8 +58,8 @@ export class StudentService {
   /**
    * Hashes temporary passwords.
    */
-  hashPassword(password: string): string {
-    return bcrypt.hashSync(password, 12);
+  async hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, 12);
   }
 
   /**
@@ -130,10 +130,10 @@ export class StudentService {
 
     // 3. Generate credentials
     const tempPassword = generateTempPassword();
-    const tempPasswordHashed = this.hashPassword(tempPassword);
+    const tempPasswordHashed = await this.hashPassword(tempPassword);
 
     // 4. Save
-    const student = await studentRepository.createStudent(data, tempPasswordHashed, tempPassword);
+    const student = await studentRepository.createStudent(data, tempPasswordHashed);
     const fullName = this.computeFullName(student.firstName, student.middleName, student.lastName);
 
     // 5. Audit log
@@ -518,7 +518,6 @@ export class StudentService {
         registerNumber: string;
         role: UserRole;
         passwordHash: string;
-        tempPassword: string;
         isFirstLogin: boolean;
         isActive: boolean;
         organizationId: string;
@@ -659,7 +658,7 @@ export class StudentService {
 
       // Generate credentials
       const tempPassword = generateTempPassword();
-      const tempPasswordHashed = this.hashPassword(tempPassword);
+      const tempPasswordHashed = await bcrypt.hash(tempPassword, 10);
 
       recordsToCreate.push({
         user: {
@@ -667,7 +666,6 @@ export class StudentService {
           registerNumber: row.registrationNumber.trim(),
           role: UserRole.student,
           passwordHash: tempPasswordHashed,
-          tempPassword,
           isFirstLogin: true,
           isActive: true,
           organizationId: org!.id,

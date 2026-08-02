@@ -6,6 +6,7 @@
 import { Server } from 'http';
 import app from '../app';
 import { prisma } from '../config/database';
+import bcrypt from 'bcryptjs';
 
 const PORT = 4567;
 const BASE_URL = `http://localhost:${PORT}/api/v1`;
@@ -193,11 +194,15 @@ async function runTests() {
     if (!createUserRes.ok) {
       throw new Error(`Create User failed: ${JSON.stringify(createUserData)}`);
     }
-    testUserId = createUserData.data.user.id;
-    tempPassword = createUserData.data.tempPassword;
+    testUserId = createUserData.data.id;
+    // For integration testing of first-time login, set a test password hash in DB
+    tempPassword = 'TempPassword@123';
+    await prisma.user.update({
+      where: { id: testUserId },
+      data: { passwordHash: await bcrypt.hash(tempPassword, 10) },
+    });
     console.log(`✅ User created and provisioned successfully.`);
     console.log(`   User ID: ${testUserId}`);
-    console.log(`   Temp Password generated: ${tempPassword}`);
 
     // List Users & Search
     const listUsersRes = await fetch(`${BASE_URL}/users?search=Phase&organizationId=${testOrgId}`, {

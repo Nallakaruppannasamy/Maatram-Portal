@@ -219,7 +219,7 @@ export class AuthService {
     }
 
     const newHash = await hashPassword(newPassword);
-    await authRepository.updatePassword(userId, newHash, false, null);
+    await authRepository.updatePassword(userId, newHash, false);
 
     // Revoke all other sessions
     await authRepository.revokeAllRefreshTokens(userId);
@@ -287,7 +287,7 @@ export class AuthService {
     const newHash = await hashPassword(newPassword);
 
     // Begin database transaction changes
-    await authRepository.updatePassword(resetEntry.userId, newHash, false, null);
+    await authRepository.updatePassword(resetEntry.userId, newHash, false);
     await authRepository.markPasswordResetUsed(resetEntry.id);
     await authRepository.revokeAllRefreshTokens(resetEntry.userId);
 

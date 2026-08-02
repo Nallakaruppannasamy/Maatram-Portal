@@ -21,42 +21,35 @@ An enterprise-grade, production-ready Student & Volunteer Management System (SVM
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, Shadcn/UI, React Router v6, TanStack Query v5, Zustand, React Hook Form, Zod, Axios, Recharts, Framer Motion |
-| **Backend** | Node.js (v20 LTS), Express.js, TypeScript, Prisma ORM, Zod, Multer, Cloudinary SDK, Nodemailer, BullMQ, Redis |
-| **Database** | PostgreSQL 16 (Primary Store), Redis (Cache & Queue Broker) |
-| **Testing** | Vitest, Supertest, React Testing Library, Playwright |
-| **DevOps / Infra** | Docker, Docker Compose, Nginx (Reverse Proxy & Static Server), GitHub Actions |
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, React Router v6, Lucide React |
+| **Backend** | Node.js (v20 LTS), Express.js, TypeScript, Prisma ORM, Zod, Multer, Cloudinary SDK, Nodemailer |
+| **Database** | PostgreSQL (Primary Store via Prisma) |
+| **Testing** | Node.js / Express Integration Test Runner (`npm run test:complete`) |
+| **Security** | Helmet, Rate Limiting (express-rate-limit), Bcryptjs, JWT Access/Refresh Token Rotation |
 
 ---
 
 ## 📁 Repository Structure
 
-The project follows a **Feature-First Monorepo Monolith** architecture where both client and server are organized around isolated business domains.
+The project follows a **Feature-First Monorepo Monolith** architecture:
 
 ```
 maatram/
-├── .github/workflows/       # GitHub Actions CI/CD workflows
 ├── client/                  # Frontend SPA application (Vite + React)
-│   ├── public/              # Static public assets
 │   └── src/
-│       ├── app/             # Global core setup & entrypoints
-│       ├── components/      # Shared UI component library (ui, shared, charts, etc.)
-│       ├── features/        # Feature-first modular slices (auth, student, volunteer, etc.)
-│       │   └── <feature>/   # components, pages, hooks, services, schemas, index.ts
-│       ├── providers/       # Global context providers (Query, Auth, Theme)
-│       └── routes/          # Layout configurations and route tree definitions
+│       ├── components/      # Shared UI components
+│       ├── context/         # AuthContext provider
+│       ├── features/        # Feature slices (auth, student, volunteer, etc.)
+│       └── routes/          # Router definitions
 ├── server/                  # Backend API application (Express.js)
 │   ├── prisma/              # Prisma schema & migration definitions
 │   └── src/
-│       ├── bootstrap/       # Application bootstrap loaders
-│       ├── common/          # Reusable middleware, custom exceptions, responses, guards
-│       ├── config/          # Core environment & library configurations
-│       ├── jobs/            # BullMQ queues, workers, and schedulers
-│       └── modules/         # Feature-first backend slices (auth, students, volunteers, etc.)
-│           └── <module>/    # controller, service, repository, validator, routes, DTOs, tests
-├── docker/                  # Dockerfiles and Nginx reverse proxy configurations
-├── docs/                    # Architecture blueprints, API specs, database designs
-└── scripts/                 # Administration utility scripts (seeding, bulk imports, migrations)
+│       ├── common/          # Middleware, custom exceptions, responses, guards
+│       ├── config/          # Environment & service configurations
+│       ├── modules/         # Business domain modules (auth, student, volunteer, etc.)
+│       ├── tests/           # Backend integration test suite
+│       └── utils/           # Utilities (audit, jwt, password, query helpers)
+└── README.md                # Project documentation
 ```
 
 ---
@@ -65,9 +58,8 @@ maatram/
 
 ### Prerequisites
 
-*   **Node.js** (v20 LTS or higher)
-*   **Docker & Docker Compose**
-*   **NPM / PNPM** (Workspace managers)
+*   **Node.js** (v18 LTS or higher)
+*   **PostgreSQL Database**
 
 ### Setup Steps
 
@@ -79,37 +71,38 @@ maatram/
 
 2.  **Install Dependencies:**
     ```bash
-    # Install dependencies across all workspaces
-    npm install
+    # Install dependencies for client and server
+    cd server && npm install
+    cd ../client && npm install
     ```
 
 3.  **Environment Configuration:**
-    Configure environment variables for the backend and frontend services.
-    ```bash
-    # Create backend environment variables
-    cp server/.env.example server/.env
-
-    # Create frontend environment variables
-    cp client/.env.example client/.env
+    Configure environment variables for the server service (`server/.env`).
+    ```env
+    PORT=5000
+    DATABASE_URL="postgresql://user:password@localhost:5432/maatram_db?schema=public"
+    DIRECT_URL="postgresql://user:password@localhost:5432/maatram_db?schema=public"
+    JWT_ACCESS_SECRET="your-access-secret"
+    JWT_REFRESH_SECRET="your-refresh-secret"
+    CLOUDINARY_CLOUD_NAME="your-cloudinary-name"
+    CLOUDINARY_API_KEY="your-cloudinary-key"
+    CLOUDINARY_API_SECRET="your-cloudinary-secret"
+    SMTP_USER="smtp-user"
+    SMTP_PASS="smtp-pass"
     ```
 
-4.  **Launch Infrastructure Dependencies:**
-    Use Docker Compose to launch PostgreSQL, Redis, and Mailpit (local SMTP mail catcher).
-    ```bash
-    docker compose up -d
-    ```
-
-5.  **Initialize Database:**
+4.  **Initialize Database:**
     Run migrations and seed the database with core organizational data and test user accounts.
     ```bash
     cd server
-    npx prisma migrate dev
-    npm run db:seed
+    npm run prisma:generate
+    npm run prisma:migrate
+    npm run prisma:seed
     ```
 
-6.  **Start Services in Development Mode:**
+5.  **Start Backend Server:**
     ```bash
-    # Start both client and server development servers simultaneously from the root
+    cd server
     npm run dev
     ```
 
@@ -117,17 +110,9 @@ maatram/
 
 ## 🧪 Testing
 
-The codebase maintains strict quality gates through isolated testing structures.
-
 ```bash
-# Run backend unit and integration tests
-cd server && npm run test
-
-# Run frontend unit and component tests
-cd client && npm run test
-
-# Run End-to-End browser tests (Playwright)
-npm run test:e2e
+# Run complete backend integration suite
+cd server && npm run test:complete
 ```
 
 ---
