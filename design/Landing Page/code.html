@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+
+<html class="scroll-smooth" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Maatram Foundation | Student &amp; Volunteer Management System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary": "#000000",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#141b2b",
+                        "surface-container": "#f0edee",
+                        "on-secondary-container": "#745c00",
+                        "tertiary-container": "#261906",
+                        "on-surface": "#1b1b1d",
+                        "secondary-container": "#fed65b",
+                        "on-primary-container": "#7d8497",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#e9c349",
+                        "on-secondary-fixed": "#241a00",
+                        "inverse-primary": "#c0c6db",
+                        "on-tertiary-container": "#968065",
+                        "secondary": "#D4AF37",
+                        "on-primary-fixed-variant": "#404758",
+                        "surface": "#fcf8fa",
+                        "on-secondary-fixed-variant": "#574500",
+                        "on-background": "#1b1b1d",
+                        "outline": "#76777d",
+                        "on-error": "#ffffff",
+                        "background": "#fcf8fa",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed": "#261906",
+                        "inverse-on-surface": "#f3f0f1",
+                        "surface-container-high": "#eae7e9",
+                        "on-primary": "#ffffff",
+                        "primary-fixed-dim": "#c0c6db",
+                        "on-tertiary-fixed-variant": "#55442d",
+                        "secondary-fixed": "#ffe088",
+                        "tertiary-fixed-dim": "#dcc2a4",
+                        "surface-bright": "#fcf8fa",
+                        "on-tertiary": "#ffffff",
+                        "primary": "#000000",
+                        "surface-tint": "#575e70",
+                        "tertiary-fixed": "#f9debf",
+                        "surface-dim": "#dcd9db",
+                        "on-surface-variant": "#45464c",
+                        "surface-container-low": "#f6f3f4",
+                        "inverse-surface": "#303031",
+                        "error": "#ba1a1a",
+                        "primary-fixed": "#dce2f7",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#e5e2e3",
+                        "outline-variant": "#c6c6cd",
+                        "primary-container": "#141b2b",
+                        "surface-variant": "#e5e2e3"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "card": "16px",
+                        "btn": "12px"
+                    },
+                    "spacing": {
+                        "margin": "32px",
+                        "base": "8px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "xl": "32px",
+                        "gutter": "24px",
+                        "md": "16px",
+                        "sm": "8px",
+                        "xxl": "48px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "title-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-xl": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "display-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "title-md": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                        "headline-lg": ["30px", {"lineHeight": "1.25", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                        "headline-xl": ["36px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .fill-icon { font-variation-settings: 'FILL' 1; }
+        .transition-soft { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .gold-border-gradient { border-image: linear-gradient(to bottom, #D4AF37, transparent) 1; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- Header (Shared Component Mapping) -->
+<header class="sticky top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant/30 h-20 transition-soft">
+<div class="max-w-7xl mx-auto px-margin flex justify-between items-center h-full">
+<div class="flex items-center gap-4">
+<img alt="Maatram Foundation Logo" class="h-12 w-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWKeQDXtG7hfbEpg-Am6BKNWE2im50OlsQ4OBpdQ1rtf27MfbpfyBS_glx6aX_sqVhFHDhAh36oZMVyK3eFqgmFDHwkgy4drTfIKCOPEGYpoBCWfLWLZ-0PLf3v7cNTg_joKP_A349TgsMBv7quBQjie_PMFPxDzixGc861LkvV4M2rh8gSPv8AGtpPpfK_yNp3VXGoKK5P2k4LxwFEgyVL2xB8Q5qftr6r077aOYtikhHN6RSoyssuhTFuOr7QZum0X9WlTbbfow"/>
+</div>
+<nav class="hidden md:flex items-center gap-xl">
+<a class="text-secondary font-semibold border-b-2 border-secondary pb-1 font-body-md text-body-md" href="#">Home</a>
+<a class="text-on-surface-variant font-medium hover:text-secondary transition-colors font-body-md text-body-md" href="#">About</a>
+<a class="text-on-surface-variant font-medium hover:text-secondary transition-colors font-body-md text-body-md" href="#">Impact</a>
+<a class="text-on-surface-variant font-medium hover:text-secondary transition-colors font-body-md text-body-md" href="#">Features</a>
+<a class="text-on-surface-variant font-medium hover:text-secondary transition-colors font-body-md text-body-md" href="#">Contact</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="hidden lg:block text-on-surface font-medium px-md py-sm hover:opacity-70 transition-opacity font-body-md text-body-md">Learn More</button>
+<button class="bg-secondary text-on-secondary px-lg py-sm rounded-btn font-label-md text-label-md hover:shadow-lg transition-all active:scale-95">Login</button>
+</div>
+</div>
+</header>
+<main>
+<!-- Section 2: Hero Section -->
+<section class="relative pt-xxl pb-xxl overflow-hidden">
+<div class="max-w-7xl mx-auto px-margin grid grid-cols-1 lg:grid-cols-2 gap-xxl items-center">
+<div class="z-10">
+<h1 class="font-display-lg text-display-lg text-primary mb-md">
+                        Empowering Every Student Through <span class="text-secondary">Verified Volunteering.</span>
+</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-xl max-w-lg">
+                        A robust digital ecosystem designed to streamline student outreach, volunteer engagement, and impact reporting with enterprise-grade security.
+                    </p>
+<div class="flex flex-wrap gap-md">
+<button class="bg-secondary text-on-secondary px-xxl py-md rounded-btn font-title-md text-title-md hover:brightness-110 transition-all shadow-md">Get Started</button>
+<button class="border border-outline px-xxl py-md rounded-btn font-title-md text-title-md hover:bg-surface-container transition-all">Explore Platform</button>
+</div>
+</div>
+<div class="relative">
+<div class="rounded-card border border-outline-variant bg-surface-container-lowest shadow-xl overflow-hidden p-xs">
+<img class="w-full rounded-lg" data-alt="A clean, minimalist high-fidelity enterprise dashboard UI showing data visualizations like bar charts for student engagement, a list of recent volunteer activities, and profile completion progress bars. The interface uses a professional white background with charcoal text and elegant gold accents, reflecting a sophisticated management system." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAD1OAu9KzdTPBWHeAQzhYw8NhVXYZUuOgob-worgzuiRfWA8ibaBSa99mFXSYZXZFZuzYj2K6ckjzcnMtRWl1nd7rW5QGGC-tuY9-nEgcG1pzkb7k55uRJfReiYplavuwkbYJgzrYH3fu7yp7HFH78i-7yAtfVl8eNLOLLw6uuDgsnO1mWRYH4zovdfmqh4GR89C_FDKESbVjwv9sPulnPnU_S_uduYs_vyJ4VvK6-EqShmBIfbcGmJJ_JcWD2erS-J9vfCFNwb2c"/>
+</div>
+<!-- Floating Stat Detail -->
+<div class="absolute -bottom-6 -left-6 bg-surface p-md rounded-xl border border-outline-variant shadow-lg hidden md:block">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary text-headline-lg" style="font-variation-settings: 'FILL' 1;">stars</span>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Top Achievement</p>
+<p class="font-title-md text-title-md font-bold">98% Success Rate</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Social Impact Stats -->
+<section class="bg-surface-container-low py-xxl">
+<div class="max-w-7xl mx-auto px-margin">
+<div class="text-center mb-xxl">
+<h2 class="font-headline-xl text-headline-xl mb-sm">Building Verified Student Impact</h2>
+<div class="w-20 h-1 bg-secondary mx-auto rounded-full"></div>
+</div>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-gutter">
+<!-- Stat Card 1 -->
+<div class="bg-surface p-xl rounded-card border border-outline-variant text-center hover:shadow-md transition-soft">
+<span class="material-symbols-outlined text-secondary text-4xl mb-md">school</span>
+<h3 class="font-display-lg text-display-lg font-bold">10k+</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Active Students</p>
+</div>
+<!-- Stat Card 2 -->
+<div class="bg-surface p-xl rounded-card border border-outline-variant text-center hover:shadow-md transition-soft">
+<span class="material-symbols-outlined text-secondary text-4xl mb-md">volunteer_activism</span>
+<h3 class="font-display-lg text-display-lg font-bold">500+</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Verified Activities</p>
+</div>
+<!-- Stat Card 3 -->
+<div class="bg-surface p-xl rounded-card border border-outline-variant text-center hover:shadow-md transition-soft">
+<span class="material-symbols-outlined text-secondary text-4xl mb-md">corporate_fare</span>
+<h3 class="font-display-lg text-display-lg font-bold">50+</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Corporate Partners</p>
+</div>
+<!-- Stat Card 4 -->
+<div class="bg-surface p-xl rounded-card border border-outline-variant text-center hover:shadow-md transition-soft">
+<span class="material-symbols-outlined text-secondary text-4xl mb-md">account_balance</span>
+<h3 class="font-display-lg text-display-lg font-bold">100+</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Programs Launched</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 4: Why Maatram (2-column) -->
+<section class="py-xxl">
+<div class="max-w-7xl mx-auto px-margin grid grid-cols-1 lg:grid-cols-2 gap-xxl items-center">
+<div class="order-2 lg:order-1">
+<img class="w-full" data-alt="A professional minimalist illustration in thin gray and gold lines showing multiple diverse people collaborating around a central digital core. The style is clean and corporate, using negative space effectively to represent trust and interconnectivity in an educational context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXHp4DPpnrUUFBOKWW-E2cdoaTWvgS_SHhVmxiSjDJDZsrEzN7_pHHG54-ebKuCgxl0PhHs8gWln5xTpxTTmsXHFDqVHxGzebEgdoOBhRGPyr4dkCMu2AsGwPUSR6oXHT9zCoLL6Dw85uznMnP8oGA5MhKILemmCanNTsED6RmzGiu5-Ntl64QOmO8wCmrn48sgpMBONQk21JZsR3-s36gSS5BPTgWhQt-9mPV8tDTmoTLpAxQxyyuG0A2c4oMHwFUbQC7Y7Wl_lY"/>
+</div>
+<div class="order-1 lg:order-2">
+<span class="text-secondary font-bold font-label-md text-label-md tracking-widest uppercase mb-sm block">Core Philosophy</span>
+<h2 class="font-headline-xl text-headline-xl mb-md">Designed for Students. <br/>Built for Organisations.</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-xl">
+                        Our platform bridges the gap between individual aspiration and institutional oversight, providing tools for every stakeholder.
+                    </p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-y-md gap-x-xl">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">verified_user</span>
+<span class="font-body-md text-body-md font-medium">Verified Records</span>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">description</span>
+<span class="font-body-md text-body-md font-medium">Resume Gen</span>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">shield_person</span>
+<span class="font-body-md text-body-md font-medium">Role Based Access</span>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">insights</span>
+<span class="font-body-md text-body-md font-medium">Advanced Analytics</span>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">work_history</span>
+<span class="font-body-md text-body-md font-medium">Student Portfolio</span>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">task_alt</span>
+<span class="font-body-md text-body-md font-medium">Approval Workflow</span>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">lock_open</span>
+<span class="font-body-md text-body-md font-medium">Secure Auth</span>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">architecture</span>
+<span class="font-body-md text-body-md font-medium">Enterprise Arch</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 5: How it Works (Timeline) -->
+<section class="bg-primary text-on-primary py-xxl">
+<div class="max-w-7xl mx-auto px-margin">
+<div class="text-center mb-xxl">
+<h2 class="font-headline-xl text-headline-xl mb-md">Seamless Onboarding Process</h2>
+<p class="font-body-md text-body-md text-on-primary-container max-w-2xl mx-auto">Follow these four simple steps to begin building your verified legacy within the Maatram ecosystem.</p>
+</div>
+<div class="relative flex flex-col md:flex-row justify-between items-start gap-gutter">
+<!-- Connector Line -->
+<div class="absolute top-10 left-0 w-full h-0.5 bg-on-primary-container/20 hidden md:block"></div>
+<!-- Step 1 -->
+<div class="relative z-10 flex-1 text-center md:text-left">
+<div class="w-20 h-20 bg-secondary rounded-full flex items-center justify-center mb-md mx-auto md:mx-0 shadow-lg">
+<span class="text-on-secondary font-bold text-headline-lg">1</span>
+</div>
+<h4 class="font-title-md text-title-md mb-xs">Registration</h4>
+<p class="font-body-md text-body-md text-on-primary-container">Securely register your institutional or individual profile.</p>
+</div>
+<!-- Step 2 -->
+<div class="relative z-10 flex-1 text-center md:text-left">
+<div class="w-20 h-20 bg-secondary rounded-full flex items-center justify-center mb-md mx-auto md:mx-0 shadow-lg">
+<span class="text-on-secondary font-bold text-headline-lg">2</span>
+</div>
+<h4 class="font-title-md text-title-md mb-xs">Profile Verification</h4>
+<p class="font-body-md text-body-md text-on-primary-container">Submit credentials for our automated verification engine.</p>
+</div>
+<!-- Step 3 -->
+<div class="relative z-10 flex-1 text-center md:text-left">
+<div class="w-20 h-20 bg-secondary rounded-full flex items-center justify-center mb-md mx-auto md:mx-0 shadow-lg">
+<span class="text-on-secondary font-bold text-headline-lg">3</span>
+</div>
+<h4 class="font-title-md text-title-md mb-xs">Submit Activities</h4>
+<p class="font-body-md text-body-md text-on-primary-container">Log your volunteer hours and extracurricular achievements.</p>
+</div>
+<!-- Step 4 -->
+<div class="relative z-10 flex-1 text-center md:text-left">
+<div class="w-20 h-20 bg-secondary rounded-full flex items-center justify-center mb-md mx-auto md:mx-0 shadow-lg">
+<span class="text-on-secondary font-bold text-headline-lg">4</span>
+</div>
+<h4 class="font-title-md text-title-md mb-xs">Generate Portfolio</h4>
+<p class="font-body-md text-body-md text-on-primary-container">Export your verified resume and impact report instantly.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 6: Platform Modules -->
+<section class="py-xxl">
+<div class="max-w-7xl mx-auto px-margin">
+<div class="flex justify-between items-end mb-xxl">
+<div>
+<h2 class="font-headline-xl text-headline-xl mb-xs">Integrated Platform Modules</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Explore the core features of the management suite.</p>
+</div>
+<button class="hidden md:block text-secondary font-bold font-label-md text-label-md flex items-center gap-xs">View Documentation <span class="material-symbols-outlined">arrow_forward</span></button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Module 1 -->
+<div class="p-xl bg-surface border border-outline-variant rounded-card transition-all hover:-translate-y-1 hover:shadow-lg">
+<span class="material-symbols-outlined text-secondary mb-md text-4xl">person_pin</span>
+<h3 class="font-title-md text-title-md mb-sm">Student Portal</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-md">Personalized dashboards for students to track progress, download certificates, and find new opportunities.</p>
+<div class="h-1 w-12 bg-secondary/30 rounded-full"></div>
+</div>
+<!-- Module 2 -->
+<div class="p-xl bg-surface border border-outline-variant rounded-card transition-all hover:-translate-y-1 hover:shadow-lg">
+<span class="material-symbols-outlined text-secondary mb-md text-4xl">diversity_3</span>
+<h3 class="font-title-md text-title-md mb-sm">Volunteer Mgmt</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-md">Tools for organizations to manage recruitment, shifts, and verification workflows effortlessly.</p>
+<div class="h-1 w-12 bg-secondary/30 rounded-full"></div>
+</div>
+<!-- Module 3 -->
+<div class="p-xl bg-surface border border-outline-variant rounded-card transition-all hover:-translate-y-1 hover:shadow-lg">
+<span class="material-symbols-outlined text-secondary mb-md text-4xl">analytics</span>
+<h3 class="font-title-md text-title-md mb-sm">Impact Analytics</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-md">Granular data insights on community impact, volunteer hours, and geographical reaching.</p>
+<div class="h-1 w-12 bg-secondary/30 rounded-full"></div>
+</div>
+<!-- Module 4 -->
+<div class="p-xl bg-surface border border-outline-variant rounded-card transition-all hover:-translate-y-1 hover:shadow-lg">
+<span class="material-symbols-outlined text-secondary mb-md text-4xl">auto_stories</span>
+<h3 class="font-title-md text-title-md mb-sm">Report Engine</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-md">Automated generation of CSR reports, annual summaries, and regulatory filings.</p>
+<div class="h-1 w-12 bg-secondary/30 rounded-full"></div>
+</div>
+<!-- Module 5 -->
+<div class="p-xl bg-surface border border-outline-variant rounded-card transition-all hover:-translate-y-1 hover:shadow-lg">
+<span class="material-symbols-outlined text-secondary mb-md text-4xl">event_available</span>
+<h3 class="font-title-md text-title-md mb-sm">Event Planner</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-md">Coordinate large-scale foundation events with RSVP tracking and automated reminders.</p>
+<div class="h-1 w-12 bg-secondary/30 rounded-full"></div>
+</div>
+<!-- Module 6 -->
+<div class="p-xl bg-surface border border-outline-variant rounded-card transition-all hover:-translate-y-1 hover:shadow-lg">
+<span class="material-symbols-outlined text-secondary mb-md text-4xl">hub</span>
+<h3 class="font-title-md text-title-md mb-sm">API Integration</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-md">Seamlessly connect Maatram data with external institutional management systems.</p>
+<div class="h-1 w-12 bg-secondary/30 rounded-full"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 7: User Roles -->
+<section class="bg-surface-container-low py-xxl">
+<div class="max-w-7xl mx-auto px-margin">
+<div class="text-center mb-xxl">
+<h2 class="font-headline-xl text-headline-xl mb-sm">Tailored Experiences by Role</h2>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-xl mx-auto">Every user gets a curated interface designed for their specific objectives and permissions.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- Student -->
+<div class="bg-surface rounded-card border-l-4 border-l-secondary p-xl shadow-sm">
+<h4 class="font-title-md text-title-md mb-md flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">person</span> Student
+                        </h4>
+<ul class="space-y-sm font-body-md text-body-md text-on-surface-variant">
+<li class="flex items-start gap-xs"><span class="material-symbols-outlined text-sm pt-1">done</span> Access activity marketplace</li>
+<li class="flex items-start gap-xs"><span class="material-symbols-outlined text-sm pt-1">done</span> Log volunteer hours</li>
+<li class="flex items-start gap-xs"><span class="material-symbols-outlined text-sm pt-1">done</span> Download verified resume</li>
+</ul>
+</div>
+<!-- Zone Incharge -->
+<div class="bg-surface rounded-card border-l-4 border-l-secondary p-xl shadow-sm">
+<h4 class="font-title-md text-title-md mb-md flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">admin_panel_settings</span> Zone Incharge
+                        </h4>
+<ul class="space-y-sm font-body-md text-body-md text-on-surface-variant">
+<li class="flex items-start gap-xs"><span class="material-symbols-outlined text-sm pt-1">done</span> Moderate local activities</li>
+<li class="flex items-start gap-xs"><span class="material-symbols-outlined text-sm pt-1">done</span> Approve student hours</li>
+<li class="flex items-start gap-xs"><span class="material-symbols-outlined text-sm pt-1">done</span> Regional impact reporting</li>
+</ul>
+</div>
+<!-- Super Admin -->
+<div class="bg-surface rounded-card border-l-4 border-l-secondary p-xl shadow-sm">
+<h4 class="font-title-md text-title-md mb-md flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">security</span> Super Admin
+                        </h4>
+<ul class="space-y-sm font-body-md text-body-md text-on-surface-variant">
+<li class="flex items-start gap-xs"><span class="material-symbols-outlined text-sm pt-1">done</span> System-wide configuration</li>
+<li class="flex items-start gap-xs"><span class="material-symbols-outlined text-sm pt-1">done</span> User &amp; Partner mgmt</li>
+<li class="flex items-start gap-xs"><span class="material-symbols-outlined text-sm pt-1">done</span> Global data exports</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 8: Feature Highlight (Resume Gen) -->
+<section class="py-xxl">
+<div class="max-w-7xl mx-auto px-margin grid grid-cols-1 lg:grid-cols-2 gap-xxl items-center">
+<div>
+<h2 class="font-headline-xl text-headline-xl mb-md">Professional Resume Generator</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-xl">
+                        Instantly transform your volunteer hours and academic achievements into a professional, industry-standard resume. No more manual tracking; the platform compiles your verified history with a single click.
+                    </p>
+<div class="space-y-md">
+<div class="flex gap-md p-md bg-surface-container-low rounded-xl">
+<span class="material-symbols-outlined text-secondary text-3xl">picture_as_pdf</span>
+<div>
+<p class="font-title-md text-title-md">Verified PDF Export</p>
+<p class="font-body-md text-body-md text-on-surface-variant">Resumes include QR codes for instant institutional verification.</p>
+</div>
+</div>
+<div class="flex gap-md p-md bg-surface-container-low rounded-xl">
+<span class="material-symbols-outlined text-secondary text-3xl">style</span>
+<div>
+<p class="font-title-md text-title-md">Premium Templates</p>
+<p class="font-body-md text-body-md text-on-surface-variant">Choose from several ATS-friendly designs tailored for corporate applications.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="rounded-card border border-outline-variant bg-surface overflow-hidden p-md shadow-2xl rotate-2">
+<img class="w-full h-auto" data-alt="A clean, minimalist enterprise-grade resume design preview. It features a professional header, a section for 'Verified Volunteer Impact' with a gold Maatram Foundation seal, and organized lists of extracurricular skills. The overall style is modern corporate, using Inter typography and subtle golden horizontal dividers." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmEciIw6uOcW-IzxrDgJx_LwN8bnQtNCP19T6viiLv3uczI7NORGlGTb9b2jO0a2uqM9U7dHViLxAsD9YU-ZwZsrvj1oxjHSkVbN-ChoVG2xEjbuRzZFH-OaJyxe66FTDeuFiDC02r5LolFtks4UYZfsyrZr9TwcnmojzRNpcROmw-Nll9nn9WMmAGyY0wtVt3irOR-2QqD-hl73NVMqcjEQATNjLsE1Sk-uBtA1CWDsaFAeAj4CirFOIQLrUuOFq8xpRtN6N0Exo"/>
+</div>
+</div>
+</section>
+<!-- Section 9: Analytics Showcase -->
+<section class="py-xxl bg-primary text-on-primary">
+<div class="max-w-7xl mx-auto px-margin">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-xxl items-center">
+<div class="order-2 lg:order-1">
+<div class="bg-[#1a1a1a] p-lg rounded-card border border-on-primary-container/20">
+<div class="flex justify-between items-center mb-xl">
+<h3 class="font-title-md text-title-md">Impact Analytics Overview</h3>
+<span class="bg-secondary/20 text-secondary-fixed px-sm py-xs rounded text-xs font-bold uppercase tracking-widest">Real-time</span>
+</div>
+<!-- Mock Chart Representation -->
+<div class="space-y-lg">
+<div>
+<div class="flex justify-between mb-sm font-label-md">
+<span>Volunteer Hours Progress</span>
+<span>75,400 / 100,000</span>
+</div>
+<div class="w-full h-4 bg-on-primary-container/10 rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[75%]"></div>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-md">
+<div class="bg-primary-container p-md rounded-lg border border-outline-variant/10 text-center">
+<p class="text-xs text-on-primary-container uppercase">Students</p>
+<p class="text-xl font-bold">12.4k</p>
+</div>
+<div class="bg-primary-container p-md rounded-lg border border-outline-variant/10 text-center">
+<p class="text-xs text-on-primary-container uppercase">Hours</p>
+<p class="text-xl font-bold">8.2k</p>
+</div>
+<div class="bg-primary-container p-md rounded-lg border border-outline-variant/10 text-center">
+<p class="text-xs text-on-primary-container uppercase">Cities</p>
+<p class="text-xl font-bold">24</p>
+</div>
+</div>
+<img class="w-full rounded-lg mt-md opacity-80" data-alt="A sophisticated data visualization dashboard showing a combination of line graphs and radar charts representing 'Academic Growth' and 'Community Reach'. The color scheme is strictly black, white, gray, and gold, with high contrast and minimalist line work. The overall aesthetic is professional and analytical." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDILdpW7lLDL5zlpCJ2qBHs22vxOrnkMNUfPHzUCz-Low-Wy_V6OEwGzBHYDvQHZg85iVGltHfS81__q1dDDGbej07EU9bsRUK3Lab_sDKT0kiETxqcSiMlRoqgOix_UNNglrKqKtSjPkBYUkxvU_KOMX9t9SUN9TlKKEK0tYzDyRbD66HckQFUMYuMoWUnDC5Y_jjU0J8WGibWa2EkTkn-Bi2GczVB8hH9qGO3xKgeRJmpz-J2NKCZZQx8qp0kZNnNDXgV28u76sg"/>
+</div>
+</div>
+</div>
+<div class="order-1 lg:order-2">
+<h2 class="font-headline-xl text-headline-xl mb-md">Data-Driven Decision Making</h2>
+<p class="font-body-lg text-body-lg text-on-primary-container mb-xl">
+                            Empower your foundation leaders with deep insights into student performance and regional impact. Our analytics engine translates complex data into actionable strategies.
+                        </p>
+<ul class="space-y-md">
+<li class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">trending_up</span>
+<span class="font-body-md text-body-md">Track long-term academic and social progress.</span>
+</li>
+<li class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">query_stats</span>
+<span class="font-body-md text-body-md">Heatmaps of volunteer concentration across zones.</span>
+</li>
+<li class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">download</span>
+<span class="font-body-md text-body-md">One-click exports for board meetings.</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 10: Testimonials -->
+<section class="py-xxl">
+<div class="max-w-7xl mx-auto px-margin">
+<div class="text-center mb-xxl">
+<h2 class="font-headline-xl text-headline-xl mb-sm">Voice of Our Community</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Hear from those who are actively shaping the future through Maatram.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- Student Testimonial -->
+<div class="bg-surface p-xl rounded-card border border-outline-variant shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex gap-1 mb-md">
+<span class="material-symbols-outlined text-secondary fill-icon">star</span>
+<span class="material-symbols-outlined text-secondary fill-icon">star</span>
+<span class="material-symbols-outlined text-secondary fill-icon">star</span>
+<span class="material-symbols-outlined text-secondary fill-icon">star</span>
+<span class="material-symbols-outlined text-secondary fill-icon">star</span>
+</div>
+<p class="font-body-md text-body-md italic text-on-surface-variant mb-xl">"The resume generator changed my life. I had years of volunteering experience but didn't know how to present it. Maatram made it professional and verified."</p>
+</div>
+<div class="flex items-center gap-md">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="A portrait of a smiling young student in professional attire, looking confident. The lighting is soft and natural, against a clean neutral background, embodying success and ambition in a modern educational context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCEHpM-4KBww17iQn_tCb0Opm1MQ0Qk_4m3W6AujKrrNPI0wwF7MIOIZUnAsJ5mb6y-hEp2cpRFX3a3UY36j3uWcSTuJiFc_dP8xXgWPv1ALM5BzC4hiUmXy63z8FeH32n0IlAZJAFwqcjlJhtfXLYPcWCxlUNlw4xmVrlLKxlvL3ocTaENqEXRuDBJEX9obeKLp8YuHA6TVGcVfpI1evWY9JbhEYvHYgqT0Sp6pTYIhUXbxPmuX51_VM9_xz-vZr3sjWupYSzWb4"/>
+<div>
+<p class="font-label-md text-label-md font-bold">Rahul Verma</p>
+<p class="text-xs text-on-surface-variant">Active Student</p>
+</div>
+</div>
+</div>
+<!-- Zone Coordinator -->
+<div class="bg-surface p-xl rounded-card border border-outline-variant shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex gap-1 mb-md">
+<span class="material-symbols-outlined text-secondary fill-icon">star</span>
+<span class="material-symbols-outlined text-secondary fill-icon">star</span>
+<span class="material-symbols-outlined text-secondary fill-icon">star</span>
+<span class="material-symbols-outlined text-secondary fill-icon">star</span>
+<span class="material-symbols-outlined text-secondary fill-icon">star</span>
+</div>
+<p class="font-body-md text-body-md italic text-on-surface-variant mb-xl">"Managing 200+ students across three zones was impossible until we integrated this system. Verification that used to take weeks now takes seconds."</p>
+</div>
+<div class="flex items-center gap-md">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="A professional portrait of a woman in her late 30s, dressed in business casual attire. She has a warm, authoritative smile, reflecting her role as a successful regional coordinator in a social foundation." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC90jGdKQe_uiwXTyQPblXFKp0ITPqlRSor1iYji3k-iSBpEe-3raT6yuQqhrp5r44Ibhlw1rJZdnX0tvpWYp163NOVsiySeHAkvFkB75Ic--76E7TP3TBYqc8Nzy-s9sZOt1paxKiF4SplgYR9mLrCDOtYrj5BUScYg75y_mkYNhgd6LJiGcCTas6T7vmUDB4pBkExitTFna9JqyvrKoKidNHII7cn4Qk-kliQdHSPLqQK9d8vbmGIg1bjBwfOATXbsQP70pJLtj0"/>
+<div>
+<p class="font-label-md text-label-md font-bold">Meera Krishnan</p>
+<p class="text-xs text-on-surface-variant">Zone Coordinator</p>
+</div>
+</div>
+</div>
+<!-- Admin -->
+<div class="bg-surface p-xl rounded-card border border-outline-variant shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex gap-1 mb-md">
+<span class="material-symbols-outlined text-secondary fill-icon">star</span>
+<span class="material-symbols-outlined text-secondary fill-icon">star</span>
+<span class="material-symbols-outlined text-secondary fill-icon">star</span>
+<span class="material-symbols-outlined text-secondary fill-icon">star</span>
+<span class="material-symbols-outlined text-secondary fill-icon">star</span>
+</div>
+<p class="font-body-md text-body-md italic text-on-surface-variant mb-xl">"As an admin, the audit logs and enterprise security give me complete peace of mind. The data integrity within Maatram is second to none."</p>
+</div>
+<div class="flex items-center gap-md">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="A portrait of a senior professional male executive in a well-lit modern office environment. He conveys a sense of wisdom and institutional authority, looking directly at the camera with a calm, reassured expression." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMhwMuWjvKZ9TT13oUh6woTSrqhBGhlzhxdXbZoSaBPWOXtq5O0jDhDkFpxEvbZyD07k0q-rMMMtdTbijO0mKg3LarNfRdRUtBxniDfxevpPZevovsYoLDeqmLs933OyNr03KL6uZBgXcb6CkkaL-Q9a6jq758UmazT7fd4h8_nlgZClT5JC2QwpqpU1cHO1nd21FNgfC2DN0KFLASVV6ngKsBEBgCO_2gAY3dHkxNUA5IzaYt6FlcmbO_VDPgQFkUxtjW1qcLDf8"/>
+<div>
+<p class="font-label-md text-label-md font-bold">Dr. Arvind Swami</p>
+<p class="text-xs text-on-surface-variant">Foundation Admin</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 11: Mission & Final CTA -->
+<section class="py-xxl relative overflow-hidden">
+<div class="absolute inset-0 bg-secondary/5 -z-10"></div>
+<div class="max-w-4xl mx-auto px-margin text-center">
+<div class="bg-surface p-xxl rounded-card shadow-xl border border-secondary/20 mb-xxl">
+<span class="text-secondary font-bold font-label-md text-label-md tracking-widest uppercase mb-md block">Our Mission</span>
+<h2 class="font-display-lg text-display-lg mb-md text-primary">To catalyze social transformation by empowering the youth through education and active community engagement.</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">
+                        Maatram is more than a platform; it is a movement to digitize trust and accelerate human impact across every corner of the nation.
+                    </p>
+</div>
+<h3 class="font-headline-xl text-headline-xl mb-xl">Ready to Begin Your Journey?</h3>
+<div class="flex flex-col sm:flex-row justify-center gap-md">
+<button class="bg-secondary text-on-secondary px-xxl py-md rounded-btn font-title-md text-title-md hover:brightness-110 transition-all shadow-md">Join as Student</button>
+<button class="bg-primary text-on-primary px-xxl py-md rounded-btn font-title-md text-title-md hover:opacity-90 transition-all shadow-md">Partner with Us</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer (Shared Component Mapping) -->
+<footer class="bg-surface-container-lowest border-t border-outline-variant">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter max-w-7xl mx-auto px-margin py-xxl">
+<!-- Brand Column -->
+<div class="col-span-1">
+<h2 class="font-headline-lg text-headline-lg font-bold text-primary mb-md">Maatram Foundation</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-md">Empowering through education. Building a verified ecosystem for student social impact.</p>
+<div class="flex gap-md">
+<a class="w-8 h-8 bg-surface-container flex items-center justify-center rounded-full text-on-surface hover:text-secondary transition-all" href="#"><span class="material-symbols-outlined text-sm">public</span></a>
+<a class="w-8 h-8 bg-surface-container flex items-center justify-center rounded-full text-on-surface hover:text-secondary transition-all" href="#"><span class="material-symbols-outlined text-sm">mail</span></a>
+<a class="w-8 h-8 bg-surface-container flex items-center justify-center rounded-full text-on-surface hover:text-secondary transition-all" href="#"><span class="material-symbols-outlined text-sm">call</span></a>
+</div>
+</div>
+<!-- Quick Links -->
+<div>
+<h4 class="font-label-md text-label-md font-bold uppercase mb-md">Resources</h4>
+<ul class="space-y-sm">
+<li><a class="font-body-md text-body-md text-on-surface-variant hover:text-secondary hover:underline transition-all" href="#">Privacy Policy</a></li>
+<li><a class="font-body-md text-body-md text-on-surface-variant hover:text-secondary hover:underline transition-all" href="#">Terms of Service</a></li>
+<li><a class="font-body-md text-body-md text-on-surface-variant hover:text-secondary hover:underline transition-all" href="#">Cookie Policy</a></li>
+</ul>
+</div>
+<!-- Support -->
+<div>
+<h4 class="font-label-md text-label-md font-bold uppercase mb-md">Governance</h4>
+<ul class="space-y-sm">
+<li><a class="font-body-md text-body-md text-on-surface-variant hover:text-secondary hover:underline transition-all" href="#">Annual Reports</a></li>
+<li><a class="font-body-md text-body-md text-on-surface-variant hover:text-secondary hover:underline transition-all" href="#">CSR Partners</a></li>
+<li><a class="font-body-md text-body-md text-on-surface-variant hover:text-secondary hover:underline transition-all" href="#">Contact Support</a></li>
+</ul>
+</div>
+<!-- Newsletter -->
+<div>
+<h4 class="font-label-md text-label-md font-bold uppercase mb-md">Stay Informed</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mb-md">Subscribe for impact updates.</p>
+<form class="flex gap-xs">
+<input class="bg-surface border border-outline-variant rounded-btn px-md py-sm font-body-md text-body-md w-full focus:ring-2 focus:ring-secondary focus:border-transparent outline-none" placeholder="Email" type="email"/>
+<button class="bg-secondary text-on-secondary p-sm rounded-btn transition-transform active:scale-90"><span class="material-symbols-outlined">send</span></button>
+</form>
+</div>
+</div>
+<!-- Bottom Bar -->
+<div class="border-t border-outline-variant/30 py-md">
+<div class="max-w-7xl mx-auto px-margin flex flex-col md:row justify-between items-center">
+<p class="font-body-md text-body-md text-on-surface-variant">© 2024 Maatram Foundation. Empowering through education.</p>
+<div class="flex items-center gap-sm mt-sm md:mt-0">
+<span class="w-2 h-2 bg-green-500 rounded-full"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Systems Operational</span>
+</div>
+</div>
+</div>
+</footer>
+<script>
+        // Simple header scroll interaction
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('header');
+            if (window.scrollY > 20) {
+                header.classList.add('shadow-md');
+                header.classList.remove('h-20');
+                header.classList.add('h-16');
+            } else {
+                header.classList.remove('shadow-md');
+                header.classList.add('h-20');
+                header.classList.remove('h-16');
+            }
+        });
+
+        // Add smooth interactions to buttons
+        const buttons = document.querySelectorAll('button');
+        buttons.forEach(btn => {
+            btn.addEventListener('mouseenter', () => {
+                btn.style.transform = 'translateY(-1px)';
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body></html>

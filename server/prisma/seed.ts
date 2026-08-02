@@ -193,7 +193,7 @@ async function main() {
 
   // ─── 5. USERS ──────────────────────────────────────────────────────────────
 
-  // Super Admin
+  // Super Admin 1
   const adminUser = await prisma.user.create({
     data: {
       email: 'arun.s@maatram.org',
@@ -208,6 +208,26 @@ async function main() {
           fullName: 'Arun Sundaram',
           designation: 'Super Administrator',
           mobile: '9876543219',
+        },
+      },
+    },
+  });
+
+  // Super Admin 2
+  await prisma.user.create({
+    data: {
+      email: 'admin@maatram.com',
+      role: UserRole.admin,
+      passwordHash: hashPassword('admin@123'),
+      isFirstLogin: false,
+      isActive: true,
+      organizationId: org.id,
+      employeeId: 'EMP-0002-ADMIN',
+      userProfile: {
+        create: {
+          fullName: 'Super Admin',
+          designation: 'System Administrator',
+          mobile: '9876543210',
         },
       },
     },
