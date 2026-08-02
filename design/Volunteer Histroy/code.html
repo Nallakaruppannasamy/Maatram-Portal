@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Volunteer History | Maatram Foundation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed": "#241a00",
+                        "on-error": "#ffffff",
+                        "primary": "#000000",
+                        "on-primary": "#ffffff",
+                        "surface-dim": "#dcd9db",
+                        "secondary-fixed-dim": "#e9c349",
+                        "on-primary-fixed": "#141b2b",
+                        "secondary-fixed": "#ffe088",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#575e70",
+                        "on-tertiary-fixed": "#261906",
+                        "primary-fixed": "#dce2f7",
+                        "on-surface-variant": "#45464c",
+                        "on-primary-container": "#7d8497",
+                        "surface-variant": "#e5e2e3",
+                        "on-secondary-fixed-variant": "#574500",
+                        "surface-container-high": "#eae7e9",
+                        "outline-variant": "#c6c6cd",
+                        "outline": "#76777d",
+                        "surface": "#fcf8fa",
+                        "surface-container-highest": "#e5e2e3",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#1b1b1d",
+                        "inverse-primary": "#c0c6db",
+                        "on-background": "#1b1b1d",
+                        "surface-container-low": "#f6f3f4",
+                        "on-tertiary-container": "#968065",
+                        "error": "#ba1a1a",
+                        "surface-container": "#f0edee",
+                        "inverse-surface": "#303031",
+                        "background": "#fcf8fa",
+                        "tertiary-fixed": "#f9debf",
+                        "primary-fixed-dim": "#c0c6db",
+                        "surface-bright": "#fcf8fa",
+                        "error-container": "#ffdad6",
+                        "secondary": "#D4AF37", /* Custom Brand Gold */
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "secondary-container": "#fed65b",
+                        "primary-container": "#141b2b",
+                        "on-tertiary-fixed-variant": "#55442d",
+                        "on-primary-fixed-variant": "#404758",
+                        "tertiary-container": "#261906",
+                        "inverse-on-surface": "#f3f0f1",
+                        "tertiary-fixed-dim": "#dcc2a4",
+                        "tertiary": "#000000",
+                        "on-secondary-container": "#745c00"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "12px",
+                        "2xl": "16px",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "margin": "32px",
+                        "sm": "8px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "xl": "32px",
+                        "base": "8px",
+                        "xxl": "48px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-xl": ["Inter"],
+                        "title-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #fcf8fa; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .luxury-shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); }
+        .active-nav-indicator { position: absolute; right: 0; top: 0; bottom: 0; width: 4px; background-color: #D4AF37; }
+        .chart-container { height: 200px; width: 100%; position: relative; }
+        .drawer-transition { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body class="flex overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="flex flex-col h-screen fixed left-0 top-0 bg-surface dark:bg-background font-label-md text-label-md border-r border-outline-variant dark:border-outline w-64 z-50">
+<div class="p-lg">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 bg-primary flex items-center justify-center rounded-lg">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">foundation</span>
+</div>
+<div>
+<h1 class="font-headline-lg text-headline-lg font-bold text-primary leading-tight">Maatram</h1>
+<p class="text-[10px] uppercase tracking-widest text-outline">Foundation</p>
+</div>
+</div>
+</div>
+<nav class="mt-md flex-1 px-sm">
+<div class="mb-xs group">
+<a class="flex items-center gap-md px-md py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+</div>
+<div class="mb-xs relative group">
+<a class="flex items-center gap-md px-md py-3 rounded-lg text-secondary font-bold bg-surface-container-low transition-colors duration-200 scale-95 active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">history</span>
+<span>Volunteer History</span>
+<div class="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-secondary rounded-l-full"></div>
+</a>
+</div>
+<div class="mb-xs group">
+<a class="flex items-center gap-md px-md py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">map</span>
+<span>Zone Map</span>
+</a>
+</div>
+<div class="mb-xs group">
+<a class="flex items-center gap-md px-md py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">assessment</span>
+<span>Impact Reports</span>
+</a>
+</div>
+<div class="mb-xs group">
+<a class="flex items-center gap-md px-md py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">person</span>
+<span>Profile Settings</span>
+</a>
+</div>
+</nav>
+<div class="p-md border-t border-outline-variant space-y-xs">
+<a class="flex items-center gap-md px-md py-2 text-on-surface-variant hover:text-on-surface" href="#">
+<span class="material-symbols-outlined">help</span>
+<span>Support</span>
+</a>
+<a class="flex items-center gap-md px-md py-2 text-on-surface-variant hover:text-on-surface" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</a>
+<button class="w-full mt-md flex items-center justify-center gap-sm py-2 px-4 rounded-xl border border-outline-variant text-primary font-medium hover:bg-surface-container-highest transition-all">
+<span class="material-symbols-outlined">logout</span>
+<span>Log Out</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-64 flex-1 h-screen overflow-y-auto bg-background">
+<!-- Top Navigation Bar -->
+<header class="flex justify-between items-center h-16 px-gutter bg-surface dark:bg-background border-b border-outline-variant sticky top-0 z-40 luxury-shadow">
+<div class="flex items-center gap-xl">
+<h2 class="font-title-md text-title-md text-primary font-bold">Volunteer History</h2>
+<nav class="hidden md:flex gap-lg items-center h-full">
+<a class="text-primary border-b-2 border-secondary h-16 flex items-center px-sm font-medium" href="#">All Activities</a>
+<a class="text-on-surface-variant hover:text-primary h-16 flex items-center px-sm font-medium" href="#">Pending Verification</a>
+<a class="text-on-surface-variant hover:text-primary h-16 flex items-center px-sm font-medium" href="#">Impact Analysis</a>
+</nav>
+</div>
+<div class="flex items-center gap-md">
+<button class="p-2 hover:bg-surface-container-high rounded-full transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 hover:bg-surface-container-high rounded-full transition-all">
+<span class="material-symbols-outlined">apps</span>
+</button>
+<div class="h-8 w-px bg-outline-variant mx-2"></div>
+<div class="flex items-center gap-sm">
+<img class="w-8 h-8 rounded-full border border-outline-variant object-cover" data-alt="A professional headshot of a female executive in a modern business suit, softly lit with high-key corporate lighting against a clean, minimalist off-white background. The image has a sharp, high-end editorial feel with natural skin textures and a confident expression. Sophisticated and reliable." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDimjP1WuwnRm7DR3TsF2ky3OYIxJsCbex6R6FtGMvIqwA2K6hWUX7cCN6gpACy0xHQq14Awln2bX3O5ntV4-iouF_m_EntzuIjzXSoW3ZkfDqvUPMGt64iZAlGlR7HK9-H0ZRHG9VMAhUPvWjaAqfhoKdwEUrOWO5iUdTLSrmTmiexgzAVzlXATJ8SBh_srVu0vxvwoDFuA3g04IgTIVIoUIL0TonRVimQb3PsyNOi1vO8pp8ByFEuP4P5r2LgfETZEhaCs_2Jzoc"/>
+<span class="text-label-md font-medium text-on-surface">Aruna Devi</span>
+</div>
+</div>
+</header>
+<div class="p-gutter max-w-7xl mx-auto">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-xl gap-md">
+<div>
+<h1 class="font-headline-xl text-headline-xl text-primary">Volunteer Activity History</h1>
+<p class="text-body-md text-on-surface-variant mt-1">Review and track your contributions to the Maatram community initiatives.</p>
+</div>
+<div class="flex gap-sm">
+<button class="flex items-center gap-sm px-lg py-3 bg-white border border-outline-variant text-primary rounded-xl font-medium hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined">file_download</span>
+<span>Export Report</span>
+</button>
+<button class="flex items-center gap-sm px-lg py-3 bg-primary text-white rounded-xl font-medium hover:opacity-90 transition-all shadow-lg shadow-primary/10">
+<span class="material-symbols-outlined">add</span>
+<span>Submit New Activity</span>
+</button>
+</div>
+</div>
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-lg mb-xl">
+<div class="bg-white p-lg rounded-2xl border border-outline-variant luxury-shadow group hover:border-secondary transition-all">
+<div class="flex justify-between items-start mb-md">
+<div class="p-2 bg-surface-container-low rounded-lg text-primary">
+<span class="material-symbols-outlined">assignment</span>
+</div>
+<span class="text-xs font-bold text-secondary">+12% vs last month</span>
+</div>
+<p class="text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Total Activities</p>
+<h3 class="text-display-lg font-headline-xl text-primary">24</h3>
+</div>
+<div class="bg-white p-lg rounded-2xl border border-outline-variant luxury-shadow group hover:border-secondary transition-all">
+<div class="flex justify-between items-start mb-md">
+<div class="p-2 bg-surface-container-low rounded-lg text-secondary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="text-xs font-bold text-green-600">75% Approval Rate</span>
+</div>
+<p class="text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Approved Activities</p>
+<h3 class="text-display-lg font-headline-xl text-primary">18</h3>
+</div>
+<div class="bg-white p-lg rounded-2xl border border-outline-variant luxury-shadow group hover:border-secondary transition-all">
+<div class="flex justify-between items-start mb-md">
+<div class="p-2 bg-surface-container-low rounded-lg text-amber-600">
+<span class="material-symbols-outlined">pending_actions</span>
+</div>
+</div>
+<p class="text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Pending Reviews</p>
+<h3 class="text-display-lg font-headline-xl text-primary">04</h3>
+</div>
+<div class="bg-white p-lg rounded-2xl border border-outline-variant luxury-shadow group hover:border-secondary transition-all">
+<div class="flex justify-between items-start mb-md">
+<div class="p-2 bg-surface-container-low rounded-lg text-primary">
+<span class="material-symbols-outlined">timer</span>
+</div>
+<span class="text-xs font-bold text-secondary">Elite Volunteer</span>
+</div>
+<p class="text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Total Verified Hours</p>
+<h3 class="text-display-lg font-headline-xl text-primary">124</h3>
+</div>
+</div>
+<!-- Analytics & Top Actions Row -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-lg mb-xl">
+<!-- Monthly Trend Chart Placeholder -->
+<div class="lg:col-span-2 bg-white p-lg rounded-2xl border border-outline-variant luxury-shadow">
+<div class="flex justify-between items-center mb-lg">
+<h4 class="font-title-md text-primary">Monthly Volunteer Hours</h4>
+<select class="bg-transparent border-none text-label-md text-on-surface-variant focus:ring-0">
+<option>Last 6 Months</option>
+<option>Year 2024</option>
+</select>
+</div>
+<div class="chart-container flex items-end justify-between px-md pb-xs">
+<!-- Simple CSS-based bar/line visual for impact -->
+<div class="w-12 bg-surface-container-high rounded-t-md h-[40%] hover:bg-secondary transition-all relative group">
+<span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">12h</span>
+</div>
+<div class="w-12 bg-surface-container-high rounded-t-md h-[55%] hover:bg-secondary transition-all relative group">
+<span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">18h</span>
+</div>
+<div class="w-12 bg-surface-container-high rounded-t-md h-[75%] hover:bg-secondary transition-all relative group">
+<span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">24h</span>
+</div>
+<div class="w-12 bg-surface-container-high rounded-t-md h-[65%] hover:bg-secondary transition-all relative group">
+<span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">20h</span>
+</div>
+<div class="w-12 bg-secondary rounded-t-md h-[90%] relative group">
+<span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-2 py-1 rounded opacity-100">32h</span>
+</div>
+<div class="w-12 bg-surface-container-high rounded-t-md h-[70%] hover:bg-secondary transition-all relative group">
+<span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">22h</span>
+</div>
+</div>
+<div class="flex justify-between mt-sm text-label-sm text-on-surface-variant px-md">
+<span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span>
+</div>
+</div>
+<!-- View Switcher & Quick Links -->
+<div class="bg-primary text-white p-lg rounded-2xl border border-primary luxury-shadow flex flex-col justify-between relative overflow-hidden">
+
+<div class="relative z-10">
+<h4 class="font-title-md mb-2">Volunteer Ranking</h4>
+<p class="text-label-sm text-primary-container leading-relaxed">You are in the top 5% of volunteers in the Chennai Central Zone this quarter.</p>
+</div>
+<div class="mt-lg relative z-10">
+<div class="w-full bg-white/10 h-1.5 rounded-full mb-md overflow-hidden">
+<div class="h-full bg-secondary w-4/5"></div>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-label-sm text-on-primary-container">Next Reward: Diamond Badge</span>
+<span class="font-bold">80%</span>
+</div>
+</div>
+<button class="mt-xl w-full bg-white text-primary py-3 rounded-xl font-bold flex items-center justify-center gap-sm relative z-10 hover:bg-secondary transition-all">
+<span>View Achievements</span>
+<span class="material-symbols-outlined">trending_up</span>
+</button>
+</div>
+</div>
+<!-- Main Data Table Container -->
+<div class="bg-white rounded-2xl border border-outline-variant luxury-shadow overflow-hidden">
+<!-- Filter Toolbar -->
+<div class="p-md border-b border-outline-variant flex flex-col md:flex-row gap-md items-center justify-between">
+<div class="flex items-center gap-md w-full md:w-auto">
+<div class="relative w-full md:w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 rounded-xl border border-outline-variant bg-surface-container-low focus:ring-secondary focus:border-secondary transition-all" placeholder="Search activities..." type="text"/>
+</div>
+<button class="p-2 border border-outline-variant rounded-xl hover:bg-surface-container-high transition-all flex items-center gap-xs">
+<span class="material-symbols-outlined">filter_list</span>
+<span class="text-label-sm hidden md:inline">Filters</span>
+</button>
+</div>
+<div class="flex items-center gap-sm">
+<div class="bg-surface-container-low p-1 rounded-xl flex">
+<button class="p-2 bg-white shadow-sm rounded-lg text-primary">
+<span class="material-symbols-outlined">table_chart</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary rounded-lg transition-all">
+<span class="material-symbols-outlined">view_timeline</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary rounded-lg transition-all">
+<span class="material-symbols-outlined">grid_view</span>
+</button>
+</div>
+<div class="h-6 w-px bg-outline-variant mx-2"></div>
+<select class="rounded-xl border border-outline-variant py-2 pl-3 pr-10 text-label-sm font-medium focus:ring-secondary">
+<option>Status: All</option>
+<option>Approved</option>
+<option>Pending</option>
+<option>Rejected</option>
+</select>
+<select class="rounded-xl border border-outline-variant py-2 pl-3 pr-10 text-label-sm font-medium focus:ring-secondary">
+<option>Year: 2024</option>
+<option>Year: 2023</option>
+</select>
+</div>
+</div>
+<!-- Table Content -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant">
+<th class="px-gutter py-4 text-label-sm font-bold text-on-surface-variant uppercase tracking-wider">Activity Title</th>
+<th class="px-gutter py-4 text-label-sm font-bold text-on-surface-variant uppercase tracking-wider">Category</th>
+<th class="px-gutter py-4 text-label-sm font-bold text-on-surface-variant uppercase tracking-wider">Organisation</th>
+<th class="px-gutter py-4 text-label-sm font-bold text-on-surface-variant uppercase tracking-wider text-center">Hours</th>
+<th class="px-gutter py-4 text-label-sm font-bold text-on-surface-variant uppercase tracking-wider">Date</th>
+<th class="px-gutter py-4 text-label-sm font-bold text-on-surface-variant uppercase tracking-wider">Status</th>
+<th class="px-gutter py-4 text-label-sm font-bold text-on-surface-variant uppercase tracking-wider text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/50">
+<!-- Row 1: Approved & Detail Trigger -->
+<tr class="hover:bg-surface-container-lowest cursor-pointer transition-colors group" onclick="toggleDrawer()">
+<td class="px-gutter py-4">
+<div class="flex items-center gap-md">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[20px]">school</span>
+</div>
+<span class="font-medium text-primary">Digital Literacy Training</span>
+</div>
+</td>
+<td class="px-gutter py-4"><span class="text-on-surface-variant">Education</span></td>
+<td class="px-gutter py-4"><span class="text-on-surface-variant">Maatram Center</span></td>
+<td class="px-gutter py-4 text-center font-bold text-primary">4.5</td>
+<td class="px-gutter py-4"><span class="text-on-surface-variant text-label-sm">Oct 24, 2024</span></td>
+<td class="px-gutter py-4">
+<span class="inline-flex items-center gap-1.5 py-1 px-3 rounded-full bg-green-50 text-green-700 text-xs font-bold ring-1 ring-inset ring-green-600/20">
+<span class="w-1.5 h-1.5 rounded-full bg-green-600"></span>
+                                        Approved
+                                    </span>
+</td>
+<td class="px-gutter py-4 text-right">
+<button class="p-2 opacity-0 group-hover:opacity-100 hover:bg-surface-container-high rounded-lg transition-all">
+<span class="material-symbols-outlined text-outline">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 2: Approved -->
+<tr class="hover:bg-surface-container-lowest cursor-pointer transition-colors group">
+<td class="px-gutter py-4">
+<div class="flex items-center gap-md">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">nature_people</span>
+</div>
+<span class="font-medium text-primary">Community Clean-up Drive</span>
+</div>
+</td>
+<td class="px-gutter py-4"><span class="text-on-surface-variant">Environment</span></td>
+<td class="px-gutter py-4"><span class="text-on-surface-variant">City Green</span></td>
+<td class="px-gutter py-4 text-center font-bold text-primary">3.0</td>
+<td class="px-gutter py-4"><span class="text-on-surface-variant text-label-sm">Oct 20, 2024</span></td>
+<td class="px-gutter py-4">
+<span class="inline-flex items-center gap-1.5 py-1 px-3 rounded-full bg-green-50 text-green-700 text-xs font-bold ring-1 ring-inset ring-green-600/20">
+<span class="w-1.5 h-1.5 rounded-full bg-green-600"></span>
+                                        Approved
+                                    </span>
+</td>
+<td class="px-gutter py-4 text-right">
+<button class="p-2 opacity-0 group-hover:opacity-100 hover:bg-surface-container-high rounded-lg transition-all">
+<span class="material-symbols-outlined text-outline">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: Pending -->
+<tr class="hover:bg-surface-container-lowest cursor-pointer transition-colors group">
+<td class="px-gutter py-4">
+<div class="flex items-center gap-md">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">library_books</span>
+</div>
+<span class="font-medium text-primary">Library Cataloging Project</span>
+</div>
+</td>
+<td class="px-gutter py-4"><span class="text-on-surface-variant">Education</span></td>
+<td class="px-gutter py-4"><span class="text-on-surface-variant">Village Library</span></td>
+<td class="px-gutter py-4 text-center font-bold text-primary">6.0</td>
+<td class="px-gutter py-4"><span class="text-on-surface-variant text-label-sm">Oct 15, 2024</span></td>
+<td class="px-gutter py-4">
+<span class="inline-flex items-center gap-1.5 py-1 px-3 rounded-full bg-amber-50 text-amber-700 text-xs font-bold ring-1 ring-inset ring-amber-600/20">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                                        Pending
+                                    </span>
+</td>
+<td class="px-gutter py-4 text-right">
+<button class="p-2 opacity-0 group-hover:opacity-100 hover:bg-surface-container-high rounded-lg transition-all">
+<span class="material-symbols-outlined text-outline">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 4: Rejected -->
+<tr class="hover:bg-surface-container-lowest cursor-pointer transition-colors group">
+<td class="px-gutter py-4">
+<div class="flex items-center gap-md">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">medical_services</span>
+</div>
+<span class="font-medium text-primary">Blood Donation Camp</span>
+</div>
+</td>
+<td class="px-gutter py-4"><span class="text-on-surface-variant">Healthcare</span></td>
+<td class="px-gutter py-4"><span class="text-on-surface-variant">Red Cross</span></td>
+<td class="px-gutter py-4 text-center font-bold text-primary">4.0</td>
+<td class="px-gutter py-4"><span class="text-on-surface-variant text-label-sm">Sep 30, 2024</span></td>
+<td class="px-gutter py-4">
+<span class="inline-flex items-center gap-1.5 py-1 px-3 rounded-full bg-red-50 text-red-700 text-xs font-bold ring-1 ring-inset ring-red-600/20">
+<span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                                        Rejected
+                                    </span>
+</td>
+<td class="px-gutter py-4 text-right">
+<button class="p-2 opacity-0 group-hover:opacity-100 hover:bg-surface-container-high rounded-lg transition-all">
+<span class="material-symbols-outlined text-outline">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Placeholder -->
+<div class="p-md bg-surface-container-low border-t border-outline-variant flex justify-between items-center">
+<span class="text-label-sm text-on-surface-variant">Showing 1 to 4 of 24 entries</span>
+<div class="flex gap-sm">
+<button class="px-4 py-2 border border-outline-variant bg-white rounded-xl text-label-sm font-medium hover:bg-surface-container-high disabled:opacity-50" disabled="">Previous</button>
+<button class="px-4 py-2 border border-outline-variant bg-white rounded-xl text-label-sm font-medium hover:bg-surface-container-high">Next</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Detail Drawer Overlay -->
+<div class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] hidden opacity-0 transition-opacity duration-300" id="drawerOverlay" onclick="toggleDrawer()"></div>
+<!-- Detail Drawer -->
+<aside class="fixed right-0 top-0 h-screen w-[420px] bg-white border-l border-outline-variant z-[70] translate-x-full drawer-transition shadow-2xl flex flex-col" id="detailDrawer">
+<div class="p-lg border-b border-outline-variant flex justify-between items-center">
+<h3 class="font-title-md text-primary">Activity Details</h3>
+<button class="p-2 hover:bg-surface-container-high rounded-full" onclick="toggleDrawer()">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto p-lg space-y-xl">
+<!-- Header Info -->
+<section>
+<div class="flex items-center gap-md mb-md">
+<div class="w-12 h-12 rounded-xl bg-surface-container-low flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[28px]">school</span>
+</div>
+<div>
+<h4 class="font-headline-lg-mobile text-primary">Digital Literacy Training</h4>
+<span class="text-label-sm text-secondary font-bold">Approved</span>
+</div>
+</div>
+<p class="text-body-md text-on-surface-variant leading-relaxed">Conducted a basic computer skills workshop for 15 elderly residents at the community center. Covered internet safety and video calling.</p>
+</section>
+<!-- Quick Meta -->
+<div class="grid grid-cols-2 gap-md bg-surface-container-low p-md rounded-xl">
+<div>
+<p class="text-[10px] uppercase text-outline tracking-wider">Date</p>
+<p class="font-medium text-on-surface">Oct 24, 2024</p>
+</div>
+<div>
+<p class="text-[10px] uppercase text-outline tracking-wider">Duration</p>
+<p class="font-medium text-on-surface">4.5 Hours</p>
+</div>
+<div>
+<p class="text-[10px] uppercase text-outline tracking-wider">Category</p>
+<p class="font-medium text-on-surface">Education</p>
+</div>
+<div>
+<p class="text-[10px] uppercase text-outline tracking-wider">Organisation</p>
+<p class="font-medium text-on-surface">Maatram Center</p>
+</div>
+</div>
+<!-- Evidence Section -->
+<section>
+<h5 class="text-label-sm font-bold uppercase text-on-surface-variant mb-md">Evidence Thumbnails</h5>
+<div class="grid grid-cols-3 gap-sm">
+<div class="aspect-square rounded-lg border border-outline-variant overflow-hidden group relative">
+<img class="w-full h-full object-cover" data-alt="A candid photograph of a volunteer helping an elderly student use a laptop in a bright, modern classroom. Warm lighting, focused atmosphere, high professional resolution. Elegant, purposeful aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAR77YZgiq2OAwqwMA-6C51pYg1REa98u9ot-FrL1IWxgcqIttTLOxdv7FKQ0knBsxqGCgkOkNux9UcNcMtMIoLe7xNPDY70-Yas6lFet-Gi5-Wcn3hQ0wQGX-fRflOH17O_EU2J6dwFQW_-csl7WgmJ2bOZ3dsOtiTliWRxiYNg7HUfdmnY73u8EaaXufB6yIS2RIg43sYXE0O9QzYipEV89GQfNovJDuAUxgtjcNARu14Zokvsif1bfVsSoE9vpnBrWI-Ewnx6w8"/>
+<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in">
+<span class="material-symbols-outlined text-white">zoom_in</span>
+</div>
+</div>
+<div class="aspect-square rounded-lg border border-outline-variant overflow-hidden group relative">
+<img class="w-full h-full object-cover" data-alt="A close-up shot of a signed attendance sheet on a minimalist wooden table. Soft shadows, professional corporate photography style, sharp focus on the handwritten signatures. Clean and documentary." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1Fcg6sDJ4CmdQ-YhzDnKJHXM342a_zFtpwKkqfkzNqWXEUXyFBNTnGgL4xARJzEWO9SIVcmhWv6dE_MNrzMCFjym5jcs4ZVU8mHWnkGqEJi-X7bjHl5NhM7CeF1xhlxKDbCssrTV0yomrohJrXgwlGcoFbXSaqL_p237nxeBRSscC4mqC4d38pmxrIX69uGpM2YqW4egy6R3yJIdBoW5L5cu35DQx_ocQehF7BmSEdQ4xInFXLsPyNOfaUl0vtv4sdp5oYgabmnQ"/>
+<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in">
+<span class="material-symbols-outlined text-white">zoom_in</span>
+</div>
+</div>
+<div class="aspect-square rounded-lg border border-outline-variant bg-surface-container-low flex flex-col items-center justify-center text-outline cursor-pointer hover:bg-surface-container-high">
+<span class="material-symbols-outlined">add_photo_alternate</span>
+<span class="text-[10px] mt-1">Add More</span>
+</div>
+</div>
+</section>
+<!-- Workflow Timeline -->
+<section>
+<h5 class="text-label-sm font-bold uppercase text-on-surface-variant mb-md">Verification History</h5>
+<div class="space-y-lg relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-outline-variant">
+<div class="relative pl-lg">
+<div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center border-4 border-white">
+<div class="w-2 h-2 rounded-full bg-green-600"></div>
+</div>
+<div>
+<p class="text-label-md font-bold text-primary">Activity Approved</p>
+<p class="text-label-sm text-on-surface-variant">Oct 26, 2024 · 02:30 PM</p>
+<div class="mt-md p-md bg-green-50/50 rounded-xl border border-green-100 text-label-sm text-green-900 italic">
+                                "Excellent documentation. Activity verified successfully." — <span class="font-bold">Karthik Raja</span>, Zone Incharge
+                            </div>
+</div>
+</div>
+<div class="relative pl-lg">
+<div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center border-4 border-white">
+<div class="w-2 h-2 rounded-full bg-amber-600"></div>
+</div>
+<div>
+<p class="text-label-md font-medium text-primary">Pending Review</p>
+<p class="text-label-sm text-on-surface-variant">Oct 24, 2024 · 06:15 PM</p>
+</div>
+</div>
+<div class="relative pl-lg">
+<div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center border-4 border-white">
+<div class="w-2 h-2 rounded-full bg-white"></div>
+</div>
+<div>
+<p class="text-label-md font-medium text-primary">Submitted</p>
+<p class="text-label-sm text-on-surface-variant">Oct 24, 2024 · 05:45 PM</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+<div class="p-lg border-t border-outline-variant flex gap-sm">
+<button class="flex-1 py-3 px-4 border border-outline-variant rounded-xl font-bold hover:bg-surface-container-low transition-all">Edit Activity</button>
+<button class="flex-1 py-3 px-4 bg-primary text-white rounded-xl font-bold hover:opacity-90 transition-all">Download Certificate</button>
+</div>
+</aside>
+<script>
+        function toggleDrawer() {
+            const drawer = document.getElementById('detailDrawer');
+            const overlay = document.getElementById('drawerOverlay');
+            
+            if (drawer.classList.contains('translate-x-full')) {
+                drawer.classList.remove('translate-x-full');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.add('opacity-100'), 10);
+            } else {
+                drawer.classList.add('translate-x-full');
+                overlay.classList.remove('opacity-100');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+    </script>
+</body></html>

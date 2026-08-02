@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Forgot Password | Maatram Foundation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .luxury-gold-glow:focus-within {
+            box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+            border-color: #D4AF37;
+        }
+        .pattern-bg {
+            background-color: #fcf8fa;
+            background-image: radial-gradient(#e5e7eb 0.75px, transparent 0.75px);
+            background-size: 24px 24px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid #E5E7EB;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#e9c349",
+                        "outline": "#76777d",
+                        "surface": "#fcf8fa",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed-dim": "#dcc2a4",
+                        "surface-container-high": "#eae7e9",
+                        "on-secondary-fixed": "#241a00",
+                        "on-primary-container": "#7d8497",
+                        "surface-variant": "#e5e2e3",
+                        "tertiary-fixed": "#f9debf",
+                        "secondary-container": "#fed65b",
+                        "on-tertiary-fixed": "#261906",
+                        "inverse-surface": "#303031",
+                        "surface-container-low": "#f6f3f4",
+                        "surface-bright": "#fcf8fa",
+                        "on-surface": "#1b1b1d",
+                        "on-secondary-fixed-variant": "#574500",
+                        "outline-variant": "#c6c6cd",
+                        "on-error-container": "#93000a",
+                        "secondary": "#735c00",
+                        "primary-fixed": "#dce2f7",
+                        "on-secondary-container": "#745c00",
+                        "on-tertiary-fixed-variant": "#55442d",
+                        "primary-container": "#141b2b",
+                        "on-primary-fixed": "#141b2b",
+                        "background": "#fcf8fa",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#575e70",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-container": "#261906",
+                        "on-tertiary-container": "#968065",
+                        "tertiary": "#000000",
+                        "surface-container": "#f0edee",
+                        "primary-fixed-dim": "#c0c6db",
+                        "primary": "#000000",
+                        "secondary-fixed": "#ffe088",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#1b1b1d",
+                        "on-primary": "#ffffff",
+                        "inverse-primary": "#c0c6db",
+                        "surface-dim": "#dcd9db",
+                        "surface-container-highest": "#e5e2e3",
+                        "on-surface-variant": "#45464c",
+                        "on-primary-fixed-variant": "#404758",
+                        "inverse-on-surface": "#f3f0f1"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "12px",
+                        "2xl": "16px",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "margin": "32px",
+                        "gutter": "24px",
+                        "base": "8px",
+                        "lg": "24px",
+                        "sm": "8px",
+                        "xl": "32px",
+                        "xxl": "48px",
+                        "xs": "4px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "headline-xl": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "title-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "headline-xl": ["36px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                        "headline-lg": ["30px", {"lineHeight": "1.25", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "title-md": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-body-md selection:bg-secondary-fixed selection:text-on-secondary-fixed min-h-screen flex flex-col overflow-x-hidden">
+<!-- Top Navigation Header (Suppressed as per rules for transactional page, but including simplified brand logo for identity) -->
+<main class="flex-grow flex flex-col md:flex-row w-full min-h-screen">
+<!-- Left Side: Content Canvas -->
+<section class="w-full md:w-1/2 lg:w-[45%] flex items-center justify-center p-6 md:p-12 xl:p-16 pattern-bg relative">
+<div class="w-full max-w-[480px] z-10">
+<!-- Branding -->
+<div class="flex items-center gap-3 mb-10">
+<img alt="Maatram Foundation Logo" class="h-10 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnZWp3ssJBEfm3s6BBQCfJMA4zo6MltUXUnLqBktwxyqfyBB9QToFMiomRUp8gGOL5SagXTfuHydp4YBd9np-LCnzRevXMt8RrEyHmqPeiGQ9wHSs8_CtIvBQO6ebHMh_Q1G18a223xt9XNRwj9O_KcFmw8JcDiSxScnKojPclqUWarYJM6Zgz42hyntUcxZqqsb0vu6bYjkJv9ihD0yRewN3yq04tIsLvJ6akTgINFgDD_UBw-Srs0w6pGAlQBH-4Y__Z98inhQE"/>
+<span class="font-headline-lg text-headline-lg font-bold text-primary tracking-tight">MAATRAM FOUNDATION</span>
+</div>
+<!-- Header Content -->
+<div class="mb-8">
+<h1 class="font-headline-xl text-headline-xl text-on-surface mb-3">Forgot Your Password?</h1>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                        Enter your registered email address to receive a secure password reset link and regain access to your account.
+                    </p>
+</div>
+<!-- Auth Type Selector -->
+<div class="mb-8">
+<div class="inline-flex p-1 bg-surface-container rounded-xl w-full">
+<button class="flex-1 py-2 text-label-md rounded-lg transition-all duration-200 bg-surface text-primary shadow-sm font-semibold" id="btn-student" onclick="setType('student')">Student</button>
+<button class="flex-1 py-2 text-label-md rounded-lg transition-all duration-200 text-on-surface-variant hover:text-primary" id="btn-zone" onclick="setType('zone')">Zone Incharge</button>
+<button class="flex-1 py-2 text-label-md rounded-lg transition-all duration-200 text-on-surface-variant hover:text-primary" id="btn-admin" onclick="setType('admin')">Super Admin</button>
+</div>
+</div>
+<!-- Reset Form -->
+<form class="space-y-6" onsubmit="event.preventDefault();">
+<div class="space-y-2">
+<label class="font-label-md text-label-md text-on-surface-variant px-1" for="email">Registered Email Address</label>
+<div class="relative luxury-gold-glow rounded-xl transition-all">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">mail</span>
+<input class="w-full pl-12 pr-4 py-3.5 bg-surface-container-lowest border border-outline-variant rounded-xl focus:ring-0 focus:outline-none transition-all placeholder:text-outline" id="email" placeholder="Enter your email address" type="email"/>
+</div>
+<p class="text-[12px] text-on-surface-variant/70 italic px-1">
+                            We'll send a secure password reset link to this email if an account exists.
+                        </p>
+</div>
+<div class="flex flex-col gap-4 pt-2">
+<button class="w-full bg-primary text-on-primary py-4 rounded-xl font-bold text-label-md hover:bg-primary/90 transition-all active:scale-[0.98]" type="submit">
+                            Send Reset Link
+                        </button>
+<button class="group flex items-center justify-center gap-2 w-full py-3 text-label-md text-on-surface-variant font-medium hover:text-primary transition-all" type="button">
+<span class="material-symbols-outlined text-[20px] transition-transform group-hover:-translate-x-1">arrow_back</span>
+                            Back to Login
+                        </button>
+</div>
+</form>
+<!-- Security Protection Card -->
+<div class="mt-12 p-5 rounded-2xl border border-outline-variant bg-surface-container-low flex gap-4 items-start">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-secondary-fixed text-[24px]">shield</span>
+</div>
+<div>
+<h4 class="font-title-md text-label-md font-bold text-on-surface mb-1">Secure Password Recovery</h4>
+<p class="text-label-sm font-normal text-on-surface-variant leading-tight">
+                            Password reset links are encrypted, time-limited, and can only be used once for your protection.
+                        </p>
+</div>
+</div>
+<!-- Support Section -->
+<div class="mt-12 pt-8 border-t border-outline-variant/50">
+<p class="text-label-md text-on-surface-variant text-center">
+                        Need help accessing your account? Contact your institution or Maatram Foundation administrator.
+                        <a class="text-secondary font-bold hover:underline block mt-2" href="#">Contact Support</a>
+</p>
+</div>
+</div>
+</section>
+<!-- Right Side Panel: Visual Identity -->
+<section class="hidden md:flex w-full md:w-1/2 lg:w-[55%] bg-primary-container relative overflow-hidden items-center justify-center">
+<!-- Animated Shader Background (Subtle movement for high-end feel) -->
+
+<div class="relative z-10 w-full h-full flex flex-col items-center justify-center p-12 text-center">
+<!-- Abstract Illustration Container -->
+<div class="w-full max-w-lg mb-12 transform hover:scale-[1.02] transition-transform duration-700">
+<div class="relative aspect-square">
+<div class="absolute inset-0 rounded-full border border-secondary-fixed/20 animate-pulse"></div>
+<div class="w-full h-full rounded-2xl shadow-2xl bg-cover bg-center" data-alt="A sophisticated digital workspace illustration for an enterprise system, featuring floating glass layers, abstract data nodes, and golden lock icons representing identity verification. The style is minimalist and high-end, utilizing a palette of deep blacks, soft greys, and luxury gold accents (#D4AF37) on a clean white background. The lighting is editorial and soft, creating a sense of professional security and institutional authority." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC_BvsAVT9fZX5k8ITA3QzOkozqhi5eEocRh67fxOMKYAk15XTv74y26pIDrx-kSiGE12t9kr55UPxhIxL0b0mKKpxbS8qtJS3Iygkv0tBkxrPlV5aI_57L5AZseGeobdxWB7IMufa4NOVAAjao-U69fyY9RpgOJ5rcZaWJSuyTm7UHThcdRoFpchdWRib4--Dl5E_CX5_SLmWV6ykYm5s4vyC28swNEUGpEn4OC849LRQlHaDHFzvN01NOZJvdv-PfYM1fN0lqzlo')"></div>
+</div>
+</div>
+<!-- Floating Quote Card -->
+<div class="glass-card p-8 rounded-2xl max-w-md shadow-lg border border-white/20 transform hover:-translate-y-2 transition-transform duration-300">
+<span class="material-symbols-outlined text-secondary-fixed-dim text-[40px] mb-4" style="font-variation-settings: 'FILL' 1;">format_quote</span>
+<p class="text-title-md font-body-lg italic text-primary leading-relaxed mb-4">
+                        "Secure access ensures every student's verified journey remains protected."
+                    </p>
+<div class="flex items-center justify-center gap-2">
+<div class="w-8 h-[2px] bg-secondary-fixed-dim"></div>
+<p class="font-label-md font-bold tracking-wider text-primary">MAATRAM FOUNDATION</p>
+</div>
+</div>
+</div>
+<!-- Subtle Decorative Elements -->
+<div class="absolute bottom-10 right-10 text-white/5 font-display-lg select-none pointer-events-none">
+                SECURITY
+            </div>
+</section>
+</main>
+<!-- Footer Component -->
+<footer class="bg-surface-container-low border-t border-outline-variant py-8 px-margin">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex flex-col gap-1 items-center md:items-start">
+<span class="font-title-md text-on-surface font-bold">Maatram Foundation</span>
+<p class="font-label-sm text-on-surface-variant">© 2024 Maatram Foundation. Secure Enterprise Portal.</p>
+</div>
+<div class="flex flex-wrap justify-center gap-x-8 gap-y-2">
+<a class="font-label-sm text-outline hover:text-secondary hover:underline transition-colors" href="#">Privacy Policy</a>
+<a class="font-label-sm text-outline hover:text-secondary hover:underline transition-colors" href="#">Terms of Service</a>
+<a class="font-label-sm text-outline hover:text-secondary hover:underline transition-colors" href="#">Security Audit</a>
+<a class="font-label-sm text-outline hover:text-secondary hover:underline transition-colors" href="#">Contact Support</a>
+</div>
+</div>
+</footer>
+<script>
+        function setType(type) {
+            const buttons = {
+                student: document.getElementById('btn-student'),
+                zone: document.getElementById('btn-zone'),
+                admin: document.getElementById('btn-admin')
+            };
+            
+            Object.keys(buttons).forEach(key => {
+                if(key === type) {
+                    buttons[key].classList.add('bg-surface', 'text-primary', 'shadow-sm', 'font-semibold');
+                    buttons[key].classList.remove('text-on-surface-variant');
+                } else {
+                    buttons[key].classList.remove('bg-surface', 'text-primary', 'shadow-sm', 'font-semibold');
+                    buttons[key].classList.add('text-on-surface-variant');
+                }
+            });
+        }
+    </script>
+</body></html>

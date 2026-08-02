@@ -9,7 +9,7 @@ import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage'
 import { ChangePasswordPage } from '@/features/auth/pages/ChangePasswordPage'
 
 // Student Portal Pages
-import { StudentDashboardPage } from '@/features/student/pages/StudentDashboardPage'
+import { StudentDashboardPage } from '@/features/dashboard/pages/StudentDashboardPage'
 import { StudentProfilePage } from '@/features/student/pages/StudentProfilePage'
 import { VolunteerSubmissionPage } from '@/features/student/pages/VolunteerSubmissionPage'
 import { VolunteerHistoryPage } from '@/features/student/pages/VolunteerHistoryPage'
@@ -18,20 +18,20 @@ import { VolunteerHistoryPage } from '@/features/student/pages/VolunteerHistoryP
 import { ResumeGeneratorPage } from '@/features/resume/pages/ResumeGeneratorPage'
 
 // Zone Incharge Portal Pages
-import { ZoneDashboardPage } from '@/features/organization/pages/ZoneDashboardPage'
-import { VolunteerApprovalPage } from '@/features/organization/pages/VolunteerApprovalPage'
-import { ZoneStudentManagementPage } from '@/features/organization/pages/ZoneStudentManagementPage'
-import { ZoneManagementPage } from '@/features/organization/pages/ZoneManagementPage'
-import { ZoneAnalyticsPage } from '@/features/organization/pages/ZoneAnalyticsPage'
-import { ZoneProfilePage } from '@/features/organization/pages/ZoneProfilePage'
+import { ZoneDashboardPage } from '@/features/dashboard/pages/ZoneDashboardPage'
+import { VolunteerApprovalPage } from '@/features/organization/incharge/VolunteerApprovalPage'
+import { ZoneStudentManagementPage } from '@/features/organization/incharge/ZoneStudentManagementPage'
+import { ZoneManagementPage } from '@/features/organization/admin/ZoneManagementPage'
+import { ZoneAnalyticsPage } from '@/features/analytics/pages/ZoneAnalyticsPage'
+import { ZoneProfilePage } from '@/features/organization/incharge/ZoneProfilePage'
 
 // Super Admin Portal Pages
-import { SuperAdminDashboardPage } from '@/features/organization/pages/SuperAdminDashboardPage'
-import { StudentProvisioningPage } from '@/features/organization/pages/StudentProvisioningPage'
-import { SuperAdminStudentDirectoryPage } from '@/features/organization/pages/SuperAdminStudentDirectoryPage'
-import { OrganizationHierarchyPage } from '@/features/organization/pages/OrganizationHierarchyPage'
-import { TeamManagementPage } from '@/features/organization/pages/TeamManagementPage'
-import { SuperAdminAnalyticsPage } from '@/features/organization/pages/SuperAdminAnalyticsPage'
+import { SuperAdminDashboardPage } from '@/features/dashboard/pages/SuperAdminDashboardPage'
+import { StudentProvisioningPage } from '@/features/organization/admin/StudentProvisioningPage'
+import { SuperAdminStudentDirectoryPage } from '@/features/organization/admin/SuperAdminStudentDirectoryPage'
+import { OrganizationHierarchyPage } from '@/features/organization/admin/OrganizationHierarchyPage'
+import { TeamManagementPage } from '@/features/organization/admin/TeamManagementPage'
+import { SuperAdminAnalyticsPage } from '@/features/analytics/pages/SuperAdminAnalyticsPage'
 import { AuditLogsPage } from '@/features/organization/pages/AuditLogsPage'
 
 // Shared Tools

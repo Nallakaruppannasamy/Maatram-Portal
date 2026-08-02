@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Maatram Portal | Volunteer Reviews</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary": "#ffffff",
+                    "outline": "#76777d",
+                    "tertiary-fixed-dim": "#dcc2a4",
+                    "error-container": "#ffdad6",
+                    "on-surface-variant": "#45464c",
+                    "on-tertiary-fixed-variant": "#55442d",
+                    "on-primary-fixed-variant": "#404758",
+                    "tertiary-fixed": "#f9debf",
+                    "on-tertiary-fixed": "#261906",
+                    "on-surface": "#1b1b1d",
+                    "on-secondary": "#ffffff",
+                    "primary-fixed-dim": "#c0c6db",
+                    "surface-dim": "#dcd9db",
+                    "inverse-primary": "#c0c6db",
+                    "surface": "#fcf8fa",
+                    "error": "#ba1a1a",
+                    "on-primary-container": "#7d8497",
+                    "secondary": "#D4AF37", /* Overriding with Brand Gold as per prompt */
+                    "on-secondary-fixed-variant": "#574500",
+                    "on-secondary-container": "#745c00",
+                    "on-primary": "#ffffff",
+                    "on-tertiary-container": "#968065",
+                    "inverse-on-surface": "#f3f0f1",
+                    "surface-bright": "#fcf8fa",
+                    "outline-variant": "#E5E7EB", /* Overriding with prompt's minimal border color */
+                    "primary-fixed": "#dce2f7",
+                    "background": "#fcf8fa",
+                    "surface-variant": "#e5e2e3",
+                    "primary": "#000000",
+                    "on-error-container": "#93000a",
+                    "surface-container": "#f0edee",
+                    "on-background": "#1b1b1d",
+                    "on-primary-fixed": "#141b2b",
+                    "on-error": "#ffffff",
+                    "surface-tint": "#575e70",
+                    "surface-container-low": "#f6f3f4",
+                    "primary-container": "#141b2b",
+                    "on-secondary-fixed": "#241a00",
+                    "tertiary-container": "#261906",
+                    "surface-container-highest": "#e5e2e3",
+                    "surface-container-high": "#eae7e9",
+                    "secondary-container": "#fed65b",
+                    "secondary-fixed": "#ffe088",
+                    "inverse-surface": "#303031",
+                    "secondary-fixed-dim": "#e9c349",
+                    "tertiary": "#000000",
+                    "surface-container-lowest": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xs": "4px",
+                    "lg": "24px",
+                    "md": "16px",
+                    "margin": "32px",
+                    "gutter": "24px",
+                    "sm": "8px",
+                    "base": "8px",
+                    "xxl": "48px",
+                    "xl": "32px"
+            },
+            "fontFamily": {
+                    "headline-xl": ["Inter"],
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "title-md": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "display-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-xl": ["36px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "title-md": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "headline-lg": ["30px", {"lineHeight": "1.25", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .glass-panel { backdrop-filter: blur(8px); background: rgba(255, 255, 255, 0.8); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .selected-card { border: 2px solid #D4AF37 !important; }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- FIXED LEFT SIDE NAV -->
+<aside class="fixed left-0 top-0 h-full w-64 bg-surface border-r border-outline-variant flex flex-col py-lg z-50">
+<div class="px-lg mb-xl">
+<h1 class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">Maatram</h1>
+<p class="text-on-surface-variant font-label-sm uppercase tracking-widest opacity-60">Enterprise Portal</p>
+</div>
+<nav class="flex-1 space-y-1">
+<!-- Navigation Items Mapping from JSON -->
+<a class="flex items-center gap-3 px-lg py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-lg py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">school</span>
+<span class="font-body-md">Students</span>
+</a>
+<!-- Active State: Volunteer Reviews -->
+<a class="flex items-center gap-3 px-lg py-3 text-secondary font-bold border-r-4 border-secondary bg-surface-container-high" href="#">
+<span class="material-symbols-outlined">rate_review</span>
+<span class="font-body-md">Volunteer Reviews</span>
+</a>
+<a class="flex items-center gap-3 px-lg py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">apartment</span>
+<span class="font-body-md">Colleges</span>
+</a>
+<a class="flex items-center gap-3 px-lg py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-body-md">Analytics</span>
+</a>
+<a class="flex items-center gap-3 px-lg py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-body-md">Reports</span>
+</a>
+<div class="mt-xl pt-xl border-t border-outline-variant">
+<a class="flex items-center gap-3 px-lg py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">notifications</span>
+<span class="font-body-md">Notifications</span>
+</a>
+<a class="flex items-center gap-3 px-lg py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md">Settings</span>
+</a>
+</div>
+</nav>
+<div class="px-lg mt-auto">
+<button class="w-full bg-primary text-on-primary py-3 rounded-xl font-label-md flex items-center justify-center gap-2 hover:opacity-90 transition-all">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                New Application
+            </button>
+</div>
+</aside>
+<!-- MAIN CONTENT AREA -->
+<main class="ml-64 flex flex-col h-screen overflow-hidden">
+<!-- TOP NAV BAR -->
+<header class="h-16 flex items-center justify-between px-margin bg-surface/80 backdrop-blur-md border-b border-outline-variant sticky top-0 z-40">
+<div class="flex items-center gap-base flex-1">
+<div class="relative w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant rounded-full text-label-md focus:outline-none focus:ring-1 focus:ring-secondary transition-all" placeholder="Search student ID, name or activity..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-lg">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">location_on</span>
+<span class="font-label-md">Regional Zone: North</span>
+</div>
+<div class="w-px h-6 bg-outline-variant"></div>
+<div class="flex items-center gap-3 cursor-pointer group">
+<div class="text-right">
+<p class="font-label-md font-bold text-on-surface">Admin Reviewer</p>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-tighter">North Hub Supervisor</p>
+</div>
+<img class="w-10 h-10 rounded-full border border-outline-variant group-hover:ring-2 group-hover:ring-secondary transition-all" data-alt="A professional headshot of a middle-aged male administrator in a light grey business suit, smiling confidently. He is set against a clean, minimalist studio background with soft natural lighting and a warm, corporate enterprise aesthetic. The image is crisp, with a premium, trustworthy feel." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKYnJ4MXjN0FcaqxWIRGAmEgI8TfG-bKLZaglpckidKI3mHwfEhTtWoxQrOPb1YDJNAdNkhlK8uQk-4SddnMR11LU_z9qjvnfF9FZmKHQ_7CGc6pbja5EDkeWqxyDHUCiuYyzMc-6odhKWEiA6AiF-F7jvNtHDUAYzOx2CUX9GvgNPc8oCYDZLNA5vLCxnIMbUcfASMN4Nkkf6b_bKYAmivMdAIu8Cw1X9atVKuIRifxXmgd9XJTfjX8ZgPLuyBDksGS4YOTkTdM4"/>
+</div>
+</div>
+</header>
+<!-- KPI HEADER & WORKSPACE SPLIT -->
+<div class="flex-1 flex flex-col overflow-hidden">
+<!-- KPI CARDS SECTION -->
+<section class="p-lg grid grid-cols-4 gap-lg bg-surface/50 border-b border-outline-variant">
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-sm flex items-center gap-md">
+<div class="w-12 h-12 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">pending_actions</span>
+</div>
+<div>
+<p class="text-on-surface-variant font-label-sm">Pending Approval</p>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-primary">124</h3>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-sm flex items-center gap-md">
+<div class="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<div>
+<p class="text-on-surface-variant font-label-sm">Approved Today</p>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-primary">42</h3>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-sm flex items-center gap-md">
+<div class="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+<span class="material-symbols-outlined">timer</span>
+</div>
+<div>
+<p class="text-on-surface-variant font-label-sm">Avg. Review Time</p>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-primary">4.2m</h3>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-sm flex items-center gap-md">
+<div class="w-12 h-12 rounded-lg bg-red-50 flex items-center justify-center text-red-600">
+<span class="material-symbols-outlined">error</span>
+</div>
+<div>
+<p class="text-on-surface-variant font-label-sm">Flagged Today</p>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-primary">12</h3>
+</div>
+</div>
+</section>
+<!-- SPLIT PANE WORKSPACE -->
+<div class="flex-1 flex overflow-hidden">
+<!-- LEFT PANEL: SUBMISSION QUEUE (35%) -->
+<aside class="w-[35%] border-r border-outline-variant flex flex-col bg-surface">
+<div class="p-md border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between">
+<div class="flex items-center gap-sm">
+<span class="font-title-md text-title-md">Queue</span>
+<span class="bg-secondary/10 text-secondary px-2 py-0.5 rounded text-[10px] font-bold uppercase">Priority</span>
+</div>
+<div class="flex gap-2">
+<button class="p-2 hover:bg-surface-container-high rounded-lg text-outline transition-colors">
+<span class="material-symbols-outlined text-[20px]">filter_list</span>
+</button>
+<button class="p-2 hover:bg-surface-container-high rounded-lg text-outline transition-colors">
+<span class="material-symbols-outlined text-[20px]">sort</span>
+</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto no-scrollbar p-md space-y-md">
+<!-- Student Card: Active -->
+<div class="p-md rounded-xl bg-surface-container-lowest border border-outline-variant selected-card shadow-sm cursor-pointer hover:shadow-md transition-all">
+<div class="flex gap-md">
+<img class="w-14 h-14 rounded-lg object-cover border border-outline-variant" data-alt="A close-up studio portrait of a young female university student of South Asian descent. She is wearing a simple white shirt and has a bright, intellectual expression. The lighting is soft and airy, creating a high-quality light-mode academic profile aesthetic. She is framed clearly against a minimal pale grey background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCh_RuobL7zMGfW9tkWxk6NIb5IRE0jqxNMnwlFSrrUYMvKsUXzGPSTOCIyCWW7eYK2xp8X4n3pGWRlt5E-8iZ7n8w3gkRiC06eVbFm45jeNhENG96jsBjqsroLOjmFCYiJ32SNeKSM3UE09jm7mXIqvbnX64kRw0fc1PoZRPB_LA7ZOYmvHT6uFoi1BqDlE567DFaBu7ZXE-oDGJBDPzgrVo30v7EySn0q4x8aExdd_KbKNAehrDlFgdd6IosNnIcQEluGuIQbRm0"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<h4 class="font-title-md text-[16px] text-on-surface truncate">Ananya S. Iyer</h4>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">HIGH</span>
+</div>
+<p class="text-label-sm text-outline">MF-2024-8891</p>
+<p class="font-label-md text-on-surface mt-1 truncate">Environmental Awareness Drive</p>
+</div>
+</div>
+<div class="mt-md pt-md border-t border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span class="text-label-sm">12 Hours</span>
+</div>
+<span class="text-label-sm text-outline">Submitted 2h ago</span>
+</div>
+</div>
+<!-- Student Card: Regular -->
+<div class="p-md rounded-xl bg-surface-container-lowest border border-outline-variant cursor-pointer hover:bg-surface-container-low transition-all">
+<div class="flex gap-md">
+<img class="w-14 h-14 rounded-lg object-cover border border-outline-variant" data-alt="A crisp profile picture of a male college student with short dark hair and a friendly smile, looking at the camera. He wears a navy blue casual polo shirt. The lighting is professional and even, with a soft blur on the office background. The color palette is modern, professional, and consistent with an enterprise dashboard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5lDmtNXzo_B-1pLlYxWF6RPsHcnC9BOtvxInQk2r2h2frQsMpaxqHMLP7WLRAyYSSS7WHSSktCqLc1gJ2RvcCGKR3lmLZbPifAtuci9uylzXAWsNu1i3RXR2X0sWf9mJgap15EAF_craiu0VhmVsKKMgArKMfK3jbxmHjdIjxeg86rMi0ThYOW3V5nRVjO7Sle5GBK7A70eHaXzKU-s3Yq58LdyjKKDxFuE4XmmFjDKSGCX-v_Rf2A7RBgQk857TRtTl-m6vDdtQ"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<h4 class="font-title-md text-[16px] text-on-surface truncate">Rohan Malhotra</h4>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">NORMAL</span>
+</div>
+<p class="text-label-sm text-outline">MF-2024-7721</p>
+<p class="font-label-md text-on-surface mt-1 truncate">Teaching Assistant - Primary School</p>
+</div>
+</div>
+<div class="mt-md pt-md border-t border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span class="text-label-sm">8 Hours</span>
+</div>
+<span class="text-label-sm text-outline">Submitted 5h ago</span>
+</div>
+</div>
+<!-- Student Card: Regular -->
+<div class="p-md rounded-xl bg-surface-container-lowest border border-outline-variant cursor-pointer hover:bg-surface-container-low transition-all">
+<div class="flex gap-md">
+<img class="w-14 h-14 rounded-lg object-cover border border-outline-variant" data-alt="A portrait of a young woman with a calm, scholarly look, wearing glasses and a business casual mustard sweater. High-resolution digital photograph for a student portal, featuring a light-filled setting with architectural details in the background. The visual style is minimal, corporate, and trustworthy." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHUkMT38s2HdC2Sw-F0x66fssloS5eUVk2VETb18WC7GnW1CpsbKBbgiV9nODR10vu9CL8KT-AqWWAqZ8Ps261xNAAkzDvvTrTgwX-CCOG3uxbmb4-u3mNXAb29HYGqOHRCL3KdFd_WGOgtmXYW7CsTKP5JCmuOtEkycmGI4BZHNfppxKKCKcLNM0C_m0OaW2UlsGQ1hgoqCR-6fiEdSxa51mMR9qCAnAtovi6oZgg7Q_11dTFRxVlqaH8uQSOYYPAuT8YfpiF6fg"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<h4 class="font-title-md text-[16px] text-on-surface truncate">Priya Sharma</h4>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">NORMAL</span>
+</div>
+<p class="text-label-sm text-outline">MF-2024-9102</p>
+<p class="font-label-md text-on-surface mt-1 truncate">Blood Donation Camp Logistics</p>
+</div>
+</div>
+<div class="mt-md pt-md border-t border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span class="text-label-sm">4 Hours</span>
+</div>
+<span class="text-label-sm text-outline">Submitted 6h ago</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- RIGHT PANEL: REVIEW WORKSPACE (65%) -->
+<section class="flex-1 overflow-y-auto bg-surface-container-lowest p-margin space-y-xl">
+<!-- 1. Header Details -->
+<div class="flex justify-between items-start">
+<div>
+<nav class="flex items-center gap-2 text-outline font-label-md mb-2">
+<span>Submissions</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span>Review #10928</span>
+</nav>
+<h2 class="font-headline-xl text-headline-xl text-primary mb-1">Environmental Awareness Drive</h2>
+<div class="flex items-center gap-lg">
+<div class="flex items-center gap-2">
+<span class="text-secondary font-bold text-label-md">Student:</span>
+<span class="text-on-surface font-label-md">Ananya S. Iyer</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-secondary font-bold text-label-md">College:</span>
+<span class="text-on-surface font-label-md">Stella Maris College</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-secondary font-bold text-label-md">CGPA:</span>
+<span class="text-on-surface font-label-md">9.2</span>
+</div>
+</div>
+</div>
+<div class="text-right">
+<span class="block text-outline font-label-sm uppercase mb-1">Hours Claimed</span>
+<span class="text-headline-xl font-bold text-secondary">12.0</span>
+</div>
+</div>
+<!-- 2. Supporting Evidence -->
+<div class="space-y-md">
+<div class="flex items-center justify-between">
+<h3 class="font-title-md text-title-md text-on-surface">Supporting Evidence</h3>
+<button class="text-secondary font-label-md flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                                Download All
+                            </button>
+</div>
+<div class="grid grid-cols-3 gap-md">
+<div class="relative group aspect-video rounded-xl overflow-hidden border border-outline-variant cursor-zoom-in">
+<img class="w-full h-full object-cover" data-alt="A professional certificate from a recognized NGO for environmental conservation, printed on high-quality paper with official seals and signatures. The image is photographed from an angle on a clean white desk, with sharp focus and clear, legible typography. The lighting is bright and airy, symbolizing authenticity and merit." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdHiPECK-hG9YHJsXG-pyRq7gXeQkzNSM_xMBf41IXWpp2V_ZmBbhfL_xFXyXXuVkc8FHI2SfTwk3FryS6mFiBl1OVpsczjSgEqbKyK24taFWrfPG1b-QnlrDj2B76heJ89pc9ZvBNBmm9LD20D4ZvO30l6gSKG5RBcItOwvHi2fiQfDGgMIlp2OfrjLM0FkSBTtP3tHUIqe07YYb1S3MSGZZNOogzp5DSZP7RSattSN3UCnL4biWySH3MT7dEz1U28SOtLma1Fm0"/>
+<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white">zoom_in</span>
+</div>
+</div>
+<div class="relative group aspect-video rounded-xl overflow-hidden border border-outline-variant cursor-zoom-in">
+<img class="w-full h-full object-cover" data-alt="A candid photo of student volunteers planting trees in a sunny public park. They are wearing Maatram Foundation branded vests. The photo is high-resolution, capturing natural light and vibrant green foliage. The scene is energetic and heartwarming, embodying the spirit of community service." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEzycUM-_ZT4I5bHbICXPIaSATrpatmteZkFinAcVdxGb15pOewuJrE4EvLvjzTK87xeKVrBfF0zId28WteY-kpcW987AqWXh3ak2QU1Cm2QMRVYhNwl3JCZwVgFgFgO2TGR2mIYEJV6lSR3zYEz-TT_vNmYoyZgqxP-4kJVEsXUidgvjBL_UqVVNwMwybBUGAYBdtG-6Q8c6pDxsp-M-4ocY5HCD1U4mshhHutAox0S5jMHNm-zKddVw7YQJf0IZ7JdL4hsyPZGs"/>
+<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white">zoom_in</span>
+</div>
+</div>
+<div class="relative group aspect-video rounded-xl overflow-hidden border border-outline-variant cursor-zoom-in">
+<img class="w-full h-full object-cover" data-alt="A well-lit photo of a signed attendance sheet from a community event. The document is clearly visible, with names and timestamps neatly organized. The shot is top-down, clean, and presented in a clinical, professional manner suitable for an enterprise verification dashboard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBlvznw-wCdjEpqqWgwv55aYolQL6PMPHEZtqiPKC0-7G5zJFvzsUhm36vtartxFeTQ1tMiscXiQ47KtIICJez3tNuMehO3cyOiHMwOgoplLxiEwNwPtGjKH-nyK9pV5WmT2I_iriBWcjU9yFyafDMfTVMlGtiLeCweoZTlEDkzuQpxb4GfOEJkeSQxiqOGF5NNQn0gl6c8wo2cyx1wHksDfjSYthbXkgqNeff3UwScW9EFykANboVc5bl9PK7PHmEC50xyp4uKRA"/>
+<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white">zoom_in</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 3. Verification Checklist -->
+<div class="bg-surface-container-low p-lg rounded-2xl border border-outline-variant">
+<h3 class="font-title-md text-title-md text-on-surface mb-md">Reviewer Checklist</h3>
+<div class="grid grid-cols-2 gap-lg">
+<div class="space-y-3">
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="w-5 h-5 rounded border-outline-variant text-secondary focus:ring-secondary" type="checkbox"/>
+<span class="font-body-md text-on-surface group-hover:text-primary transition-colors">Activity Title Verified</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="w-5 h-5 rounded border-outline-variant text-secondary focus:ring-secondary" type="checkbox"/>
+<span class="font-body-md text-on-surface group-hover:text-primary transition-colors">Digital Signature Matches</span>
+</label>
+</div>
+<div class="space-y-3">
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="w-5 h-5 rounded border-outline-variant text-secondary focus:ring-secondary" type="checkbox"/>
+<span class="font-body-md text-on-surface group-hover:text-primary transition-colors">Evidence Validity Confirmed</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="w-5 h-5 rounded border-outline-variant text-secondary focus:ring-secondary" type="checkbox"/>
+<span class="font-body-md text-on-surface group-hover:text-primary transition-colors">Organization Status Verified</span>
+</label>
+</div>
+</div>
+</div>
+<!-- 4. Review Decision -->
+<div class="space-y-md">
+<h3 class="font-title-md text-title-md text-on-surface">Review Decision &amp; Feedback</h3>
+<textarea class="w-full h-32 p-md rounded-xl border border-outline-variant bg-surface focus:ring-1 focus:ring-secondary focus:outline-none text-body-md resize-none" placeholder="Write constructive feedback for the student..."></textarea>
+<div class="flex items-center gap-md">
+<div class="relative flex-1">
+<select class="w-full pl-4 pr-10 py-3 rounded-xl border border-outline-variant bg-surface appearance-none text-label-md focus:outline-none focus:ring-1 focus:ring-secondary">
+<option>Select Rejection Reason (Required if Rejecting)</option>
+<option>Incomplete Evidence</option>
+<option>Irrelevant Activity</option>
+<option>Forged Certificate Detected</option>
+<option>Insufficient Hours Performance</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-outline">expand_more</span>
+</div>
+<button class="px-xl py-3 rounded-xl bg-surface-container-lowest border border-outline-variant text-on-surface font-label-md hover:bg-surface-container-high transition-all">
+                                Clarification
+                            </button>
+<button class="px-xl py-3 rounded-xl bg-white border border-red-200 text-red-600 font-label-md hover:bg-red-50 transition-all">
+                                Reject
+                            </button>
+<button class="px-margin py-3 rounded-xl bg-secondary text-on-primary font-label-md shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                                Approve Application
+                            </button>
+</div>
+</div>
+<!-- 5. Student History -->
+<div class="space-y-md">
+<h3 class="font-title-md text-title-md text-on-surface">Submission History</h3>
+<div class="border border-outline-variant rounded-xl overflow-hidden">
+<table class="w-full text-left text-label-md">
+<thead class="bg-surface-container-low border-b border-outline-variant">
+<tr>
+<th class="px-md py-3 text-outline font-semibold">Activity</th>
+<th class="px-md py-3 text-outline font-semibold text-center">Hours</th>
+<th class="px-md py-3 text-outline font-semibold">Date</th>
+<th class="px-md py-3 text-outline font-semibold">Status</th>
+</tr>
+</thead>
+<tbody class="bg-surface">
+<tr class="border-b border-outline-variant/50">
+<td class="px-md py-4 text-on-surface">Blood Donation Camp</td>
+<td class="px-md py-4 text-on-surface text-center">4.0</td>
+<td class="px-md py-4 text-on-surface">Jan 12, 2024</td>
+<td class="px-md py-4">
+<span class="flex items-center gap-1 text-green-600 font-bold">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+                                                Approved
+                                            </span>
+</td>
+</tr>
+<tr>
+<td class="px-md py-4 text-on-surface">Digital Literacy Workshop</td>
+<td class="px-md py-4 text-on-surface text-center">10.0</td>
+<td class="px-md py-4 text-on-surface">Nov 04, 2023</td>
+<td class="px-md py-4">
+<span class="flex items-center gap-1 text-green-600 font-bold">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+                                                Approved
+                                            </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- FLOATING ACTION TOAST (JS Demo) -->
+<div class="fixed bottom-margin right-margin bg-inverse-surface text-on-background px-lg py-md rounded-xl shadow-2xl translate-y-24 transition-transform duration-500 flex items-center gap-md" id="toast">
+<span class="material-symbols-outlined text-green-400">check_circle</span>
+<span class="font-label-md">Submission approved successfully!</span>
+</div>
+<script>
+        // Simple Micro-interactions
+        const approveBtn = document.querySelector('button.bg-secondary');
+        const toast = document.getElementById('toast');
+
+        approveBtn.addEventListener('click', () => {
+            toast.classList.remove('translate-y-24');
+            setTimeout(() => {
+                toast.classList.add('translate-y-24');
+            }, 3000);
+        });
+
+        // Add visual feedback to checkboxes
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const label = e.target.closest('label').querySelector('span');
+                if (e.target.checked) {
+                    label.classList.add('opacity-50', 'line-through');
+                } else {
+                    label.classList.remove('opacity-50', 'line-through');
+                }
+            });
+        });
+    </script>
+</body></html>
