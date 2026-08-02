@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Zone Analytics | Maatram Foundation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "error-container": "#ffdad6",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary-fixed-variant": "#55442d",
+                    "on-secondary-fixed-variant": "#574500",
+                    "primary-fixed": "#dce2f7",
+                    "outline-variant": "#c6c6cd",
+                    "outline": "#76777d",
+                    "on-surface-variant": "#45464c",
+                    "on-primary-fixed": "#141b2b",
+                    "surface-variant": "#e5e2e3",
+                    "on-surface": "#1b1b1d",
+                    "background": "#fcf8fa",
+                    "on-secondary-fixed": "#241a00",
+                    "error": "#ba1a1a",
+                    "surface-dim": "#dcd9db",
+                    "tertiary-fixed": "#f9debf",
+                    "surface-container-low": "#f6f3f4",
+                    "on-tertiary": "#ffffff",
+                    "secondary-container": "#fed65b",
+                    "secondary": "#735c00",
+                    "on-error": "#ffffff",
+                    "inverse-surface": "#303031",
+                    "surface": "#fcf8fa",
+                    "tertiary": "#000000",
+                    "on-tertiary-container": "#968065",
+                    "surface-container-highest": "#e5e2e3",
+                    "secondary-fixed-dim": "#e9c349",
+                    "surface-container-high": "#eae7e9",
+                    "inverse-on-surface": "#f3f0f1",
+                    "on-secondary-container": "#745c00",
+                    "on-secondary": "#ffffff",
+                    "on-primary-container": "#7d8497",
+                    "surface-container": "#f0edee",
+                    "primary-fixed-dim": "#c0c6db",
+                    "primary": "#000000",
+                    "secondary-fixed": "#ffe088",
+                    "primary-container": "#141b2b",
+                    "on-primary-fixed-variant": "#404758",
+                    "tertiary-fixed-dim": "#dcc2a4",
+                    "inverse-primary": "#c0c6db",
+                    "surface-bright": "#fcf8fa",
+                    "on-error-container": "#93000a",
+                    "tertiary-container": "#261906",
+                    "surface-tint": "#575e70",
+                    "on-background": "#1b1b1d",
+                    "on-tertiary-fixed": "#261906",
+                    "on-primary": "#ffffff",
+                    "luxury-gold": "#D4AF37"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "xl": "32px",
+                    "lg": "24px",
+                    "gutter": "24px",
+                    "xs": "4px",
+                    "margin": "32px",
+                    "md": "16px",
+                    "base": "8px",
+                    "xxl": "48px"
+            },
+            "fontFamily": {
+                    "label-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "title-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-xl": ["Inter"],
+                    "body-md": ["Inter"],
+                    "display-lg": ["Inter"]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; }
+        .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid #E5E7EB; }
+        .premium-shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); }
+        .active-gold-border { border-right: 4px solid #D4AF37; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .gold-gradient-bg { background: linear-gradient(135deg, #D4AF37 0%, #B4941F 100%); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body class="text-on-surface antialiased overflow-x-hidden">
+<!-- Fixed Side Navigation -->
+<aside class="fixed left-0 top-0 h-full w-64 bg-surface border-r border-outline-variant flex flex-col z-50">
+<div class="p-lg">
+<h1 class="font-headline-lg text-headline-lg font-bold text-on-surface">Maatram</h1>
+<p class="font-label-sm text-on-surface-variant opacity-70">Enterprise Portal</p>
+</div>
+<nav class="flex-1 px-md space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">school</span>
+<span class="font-body-md">Students</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">rate_review</span>
+<span class="font-body-md">Volunteer Reviews</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">apartment</span>
+<span class="font-body-md">Colleges</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary font-bold active-gold-border bg-surface-container-high" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-body-md">Analytics</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-body-md">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">notifications</span>
+<span class="font-body-md">Notifications</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md">Settings</span>
+</a>
+</nav>
+<div class="p-lg">
+<button class="w-full gold-gradient-bg text-white py-3 rounded-xl font-label-md premium-shadow active:scale-95 transition-transform">
+                New Application
+            </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-64 min-h-screen bg-background pb-xxl">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-40 flex items-center justify-between px-margin h-16 bg-surface/80 backdrop-blur-md border-b border-outline-variant premium-shadow">
+<div class="flex items-center gap-xl">
+<div class="flex items-center gap-2 text-on-surface-variant font-label-md">
+<span>Home</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-on-surface font-semibold">Analytics</span>
+</div>
+<div class="relative w-96 group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-lg focus:ring-1 focus:ring-luxury-gold transition-all text-label-md" placeholder="Search analytics, students, or colleges..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-lg">
+<div class="flex items-center gap-3 px-3 py-1 bg-surface-container-high rounded-full border border-outline-variant/30">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-label-md font-semibold text-secondary">Coimbatore Zone</span>
+</div>
+<div class="flex items-center gap-md">
+<button class="p-2 hover:bg-surface-container rounded-full transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="flex items-center gap-3 pl-md border-l border-outline-variant">
+<div class="text-right hidden xl:block">
+<p class="font-label-md font-bold text-on-surface">Regional Admin</p>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-wider">North Zone</p>
+</div>
+<img class="w-10 h-10 rounded-full border-2 border-luxury-gold/20 object-cover" data-alt="A professional headshot of a middle-aged male administrator with a confident expression, wearing a tailored navy suit and crisp white shirt. The lighting is studio-quality and soft, set against a neutral gray background. The aesthetic is corporate, reliable, and premium, fitting an executive dashboard interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhtffx62UvGO_yjWITF8oK6Z-IDWr-Q1y7AyftoVocWGpVi0FOAcFgumjrGibNu5TCQi2WUDqXcmVlD6lxgAAWdeobeqiueQ6-f9e-kNTYSEQsb0rkletMBnTtYGfBGQoEm1vvAPMGRzb0YjZGU8g9H6RW7EPaOQBTvS3ttXLMaQ6L6mh6XcsvPTqs_wlY3PVxihPgYa12qkbPnIbVqWmIidbwjhq8grcO9W29jcQFD10h0qzNoLxcSSEXdZEK67T0OMqT6FqOFuw"/>
+</div>
+</div>
+</div>
+</header>
+<div class="max-w-[1600px] mx-auto px-margin pt-xl space-y-xl">
+<!-- Page Header -->
+<section class="flex flex-col md:flex-row md:items-end justify-between gap-lg">
+<div class="space-y-2">
+<h2 class="font-headline-xl text-headline-xl text-on-surface">Zone Analytics</h2>
+<p class="font-body-md text-on-surface-variant max-w-2xl">Executive overview of student performance, volunteer contributions, and operational health across all affiliated colleges in the Coimbatore zone.</p>
+</div>
+<div class="flex items-center gap-md">
+<div class="flex items-center gap-2 px-4 py-2.5 bg-white border border-outline-variant rounded-xl premium-shadow cursor-pointer hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant">calendar_today</span>
+<span class="font-label-md text-on-surface">Oct 1, 2023 - Mar 31, 2024</span>
+</div>
+<button class="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl font-label-md premium-shadow hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">file_download</span>
+                        Export Report
+                    </button>
+</div>
+</section>
+<!-- Global Filters -->
+<section class="p-4 bg-white border border-outline-variant rounded-xl flex flex-wrap items-center gap-md premium-shadow">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-surface-container-low rounded-lg border border-outline-variant/30 text-on-surface-variant">
+<span class="text-[10px] font-bold uppercase">College</span>
+<select class="bg-transparent border-none text-label-md font-semibold focus:ring-0 py-0 pr-8 cursor-pointer">
+<option>All Colleges</option>
+<option>PSG Tech</option>
+<option>Amrita Univ</option>
+</select>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 bg-surface-container-low rounded-lg border border-outline-variant/30 text-on-surface-variant">
+<span class="text-[10px] font-bold uppercase">Department</span>
+<select class="bg-transparent border-none text-label-md font-semibold focus:ring-0 py-0 pr-8 cursor-pointer">
+<option>Engineering</option>
+<option>Arts &amp; Science</option>
+</select>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 bg-surface-container-low rounded-lg border border-outline-variant/30 text-on-surface-variant">
+<span class="text-[10px] font-bold uppercase">Batch</span>
+<select class="bg-transparent border-none text-label-md font-semibold focus:ring-0 py-0 pr-8 cursor-pointer">
+<option>2020-2024</option>
+<option>2021-2025</option>
+</select>
+</div>
+<div class="h-8 w-[1px] bg-outline-variant mx-2"></div>
+<button class="text-label-md text-secondary font-bold flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                    More Filters
+                </button>
+</section>
+<!-- KPI Cards Grid -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-lg">
+<!-- Card Template -->
+<div class="bg-white p-lg rounded-xl border border-outline-variant premium-shadow hover:border-luxury-gold/30 transition-all group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-surface-container rounded-lg text-secondary group-hover:bg-luxury-gold group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">group</span>
+</div>
+<div class="flex items-center gap-1 text-green-600 font-label-sm">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+                            12%
+                        </div>
+</div>
+<p class="text-on-surface-variant font-label-md uppercase tracking-wider mb-1">Total Students</p>
+<div class="flex items-end justify-between">
+<h3 class="text-display-lg font-bold">1,284</h3>
+<div class="w-16 h-8 opacity-30 group-hover:opacity-100 transition-opacity">
+<svg class="w-full h-full" viewbox="0 0 100 40"><path d="M0 35 Q 25 30 50 20 T 100 5" fill="none" stroke="#D4AF37" stroke-width="3"></path></svg>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-white p-lg rounded-xl border border-outline-variant premium-shadow hover:border-luxury-gold/30 transition-all group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-surface-container rounded-lg text-secondary group-hover:bg-luxury-gold group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">person_check</span>
+</div>
+<div class="flex items-center gap-1 text-green-600 font-label-sm">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+                            5%
+                        </div>
+</div>
+<p class="text-on-surface-variant font-label-md uppercase tracking-wider mb-1">Active Students</p>
+<div class="flex items-end justify-between">
+<h3 class="text-display-lg font-bold">1,102</h3>
+<div class="w-16 h-8 opacity-30 group-hover:opacity-100 transition-opacity">
+<svg class="w-full h-full" viewbox="0 0 100 40"><path d="M0 10 Q 25 15 50 25 T 100 35" fill="none" stroke="#D4AF37" stroke-width="3"></path></svg>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-white p-lg rounded-xl border border-outline-variant premium-shadow hover:border-luxury-gold/30 transition-all group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-surface-container rounded-lg text-secondary group-hover:bg-luxury-gold group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">task_alt</span>
+</div>
+<div class="flex items-center gap-1 text-luxury-gold font-label-sm">
+<span class="material-symbols-outlined text-[16px]">horizontal_rule</span>
+                            Stable
+                        </div>
+</div>
+<p class="text-on-surface-variant font-label-md uppercase tracking-wider mb-1">Profile Comp. %</p>
+<div class="flex items-end justify-between">
+<h3 class="text-display-lg font-bold">94%</h3>
+<div class="w-16 h-8 opacity-30 group-hover:opacity-100 transition-opacity">
+<svg class="w-full h-full" viewbox="0 0 100 40"><path d="M0 20 H 100" fill="none" stroke="#D4AF37" stroke-width="3"></path></svg>
+</div>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-white p-lg rounded-xl border border-outline-variant premium-shadow hover:border-luxury-gold/30 transition-all group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-surface-container rounded-lg text-secondary group-hover:bg-luxury-gold group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">volunteer_activism</span>
+</div>
+<div class="flex items-center gap-1 text-green-600 font-label-sm">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+                            24%
+                        </div>
+</div>
+<p class="text-on-surface-variant font-label-md uppercase tracking-wider mb-1">Volunteer Hours</p>
+<div class="flex items-end justify-between">
+<h3 class="text-display-lg font-bold">8.4k</h3>
+<div class="w-16 h-8 opacity-30 group-hover:opacity-100 transition-opacity">
+<svg class="w-full h-full" viewbox="0 0 100 40"><path d="M0 38 L 20 25 L 40 30 L 60 10 L 80 15 L 100 2" fill="none" stroke="#D4AF37" stroke-width="3"></path></svg>
+</div>
+</div>
+</div>
+</section>
+<!-- Zone Health & Academic Section -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+<!-- Zone Health Score -->
+<div class="lg:col-span-4 bg-white p-lg rounded-xl border border-outline-variant premium-shadow flex flex-col justify-between">
+<div>
+<h4 class="font-title-md text-title-md text-on-surface mb-2">Zone Health Score</h4>
+<p class="text-on-surface-variant font-label-md mb-xl">Comprehensive metric based on zone activity metrics.</p>
+<div class="relative flex items-center justify-center mb-xl">
+<svg class="w-48 h-48 transform -rotate-90">
+<circle cx="96" cy="96" fill="transparent" r="80" stroke="#F3F0F1" stroke-width="12"></circle>
+<circle cx="96" cy="96" fill="transparent" r="80" stroke="#D4AF37" stroke-dasharray="502" stroke-dashoffset="55" stroke-linecap="round" stroke-width="12"></circle>
+</svg>
+<div class="absolute flex flex-col items-center">
+<span class="text-display-lg font-extrabold text-on-surface leading-none">89</span>
+<span class="text-on-surface-variant font-label-sm uppercase tracking-widest">Target 95</span>
+</div>
+</div>
+</div>
+<div class="space-y-4">
+<div class="space-y-1">
+<div class="flex justify-between text-label-sm">
+<span class="text-on-surface-variant">Academic Health</span>
+<span class="font-bold text-on-surface">92%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-luxury-gold w-[92%]"></div>
+</div>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-label-sm">
+<span class="text-on-surface-variant">Volunteer Participation</span>
+<span class="font-bold text-on-surface">78%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-luxury-gold w-[78%]"></div>
+</div>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-label-sm">
+<span class="text-on-surface-variant">Review Efficiency</span>
+<span class="font-bold text-on-surface">85%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-luxury-gold w-[85%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Academic Intelligence -->
+<div class="lg:col-span-8 bg-white p-lg rounded-xl border border-outline-variant premium-shadow">
+<div class="flex items-center justify-between mb-xl">
+<h4 class="font-title-md text-title-md text-on-surface">Academic Intelligence</h4>
+<div class="flex gap-2">
+<button class="px-3 py-1 bg-surface-container-high rounded-md text-label-sm font-bold">Line</button>
+<button class="px-3 py-1 text-on-surface-variant hover:bg-surface-container rounded-md text-label-sm font-bold">Bar</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-xl h-[400px]">
+<div class="flex flex-col">
+<p class="text-label-sm text-on-surface-variant uppercase mb-4">Semester GPA Trends</p>
+<div class="flex-1 bg-surface-container-lowest rounded-lg border border-dashed border-outline-variant flex items-center justify-center p-md relative overflow-hidden">
+<!-- Mock Line Chart -->
+<svg class="w-full h-full drop-shadow-lg" viewbox="0 0 200 100">
+<path d="M0,80 L20,70 L40,75 L60,40 L80,50 L100,30 L120,45 L140,20 L160,25 L180,10 L200,15" fill="none" stroke="#D4AF37" stroke-linecap="round" stroke-width="3"></path>
+<path d="M0,80 L20,70 L40,75 L60,40 L80,50 L100,30 L120,45 L140,20 L160,25 L180,10 L200,15 L200,100 L0,100 Z" fill="url(#goldGradient)" opacity="0.1"></path>
+<defs>
+<lineargradient id="goldGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#D4AF37"></stop>
+<stop offset="100%" stop-color="transparent"></stop>
+</lineargradient>
+</defs>
+</svg>
+<div class="absolute bottom-4 left-0 right-0 flex justify-around text-[10px] text-on-surface-variant">
+<span>Sem 1</span><span>Sem 2</span><span>Sem 3</span><span>Sem 4</span><span>Sem 5</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col">
+<p class="text-label-sm text-on-surface-variant uppercase mb-4">CGPA Distribution</p>
+<div class="flex-1 bg-surface-container-lowest rounded-lg border border-dashed border-outline-variant flex items-end justify-around p-md pb-8">
+<!-- Mock Histogram -->
+<div class="w-8 bg-surface-container-high h-[10%] rounded-t-sm"></div>
+<div class="w-8 bg-surface-container-high h-[30%] rounded-t-sm"></div>
+<div class="w-8 bg-luxury-gold h-[85%] rounded-t-sm"></div>
+<div class="w-8 bg-luxury-gold h-[60%] rounded-t-sm"></div>
+<div class="w-8 bg-surface-container-high h-[20%] rounded-t-sm"></div>
+<div class="w-8 bg-surface-container-high h-[5%] rounded-t-sm"></div>
+<div class="absolute bottom-4 flex gap-10 text-[10px] text-on-surface-variant">
+<span>6.0</span><span>7.5</span><span>8.5</span><span>9.5</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Volunteer Intelligence Section -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-lg">
+<div class="bg-white p-lg rounded-xl border border-outline-variant premium-shadow">
+<h5 class="font-label-md font-bold mb-4">Volunteer Hours Trend</h5>
+<div class="h-48 w-full bg-surface-container-low rounded-lg flex items-center justify-center p-md">
+<svg class="w-full h-full" viewbox="0 0 100 40"><path d="M0 35 L 20 20 L 40 30 L 60 15 L 80 25 L 100 5" fill="none" stroke="#D4AF37" stroke-width="2"></path></svg>
+</div>
+</div>
+<div class="bg-white p-lg rounded-xl border border-outline-variant premium-shadow">
+<h5 class="font-label-md font-bold mb-4">Category Distribution</h5>
+<div class="flex items-center gap-lg">
+<div class="relative w-32 h-32">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<circle cx="18" cy="18" fill="none" r="16" stroke="#F3F0F1" stroke-width="4"></circle>
+<circle cx="18" cy="18" fill="none" r="16" stroke="#D4AF37" stroke-dasharray="45 100" stroke-width="4"></circle>
+<circle cx="18" cy="18" fill="none" r="16" stroke="#1b1b1d" stroke-dasharray="25 100" stroke-dashoffset="-45" stroke-width="4"></circle>
+</svg>
+</div>
+<div class="space-y-2 text-label-sm">
+<div class="flex items-center gap-2"><span class="w-3 h-3 bg-luxury-gold rounded-full"></span> Education (45%)</div>
+<div class="flex items-center gap-2"><span class="w-3 h-3 bg-primary rounded-full"></span> Environment (25%)</div>
+<div class="flex items-center gap-2"><span class="w-3 h-3 bg-surface-container-highest rounded-full"></span> Health (30%)</div>
+</div>
+</div>
+</div>
+<div class="bg-white p-lg rounded-xl border border-outline-variant premium-shadow">
+<h5 class="font-label-md font-bold mb-4">Monthly Approved Activities</h5>
+<div class="h-48 w-full flex items-end justify-between px-md pb-2">
+<div class="w-6 bg-surface-container-high h-[40%]"></div>
+<div class="w-6 bg-surface-container-high h-[60%]"></div>
+<div class="w-6 bg-luxury-gold h-[90%]"></div>
+<div class="w-6 bg-surface-container-high h-[75%]"></div>
+<div class="w-6 bg-primary h-[55%]"></div>
+</div>
+</div>
+</section>
+<!-- College Performance Table -->
+<section class="bg-white rounded-xl border border-outline-variant premium-shadow overflow-hidden">
+<div class="p-lg border-b border-outline-variant flex items-center justify-between">
+<h4 class="font-title-md text-title-md">College Performance Rankings</h4>
+<button class="text-label-md text-secondary font-bold">View Full Leaderboard</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-surface-container-low text-on-surface-variant font-label-sm uppercase tracking-wider">
+<tr>
+<th class="px-lg py-4">Zone Rank</th>
+<th class="px-lg py-4">College Name</th>
+<th class="px-lg py-4 text-center">Students</th>
+<th class="px-lg py-4 text-center">Avg CGPA</th>
+<th class="px-lg py-4 text-center">Vol. Hours</th>
+<th class="px-lg py-4 text-center">Profile Comp.</th>
+<th class="px-lg py-4 text-right">Health Score</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/30">
+<tr class="hover:bg-surface-container-lowest transition-colors">
+<td class="px-lg py-5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-luxury-gold text-white flex items-center justify-center font-bold">1</div>
+<span class="material-symbols-outlined text-luxury-gold" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</td>
+<td class="px-lg py-5 font-bold">PSG College of Technology</td>
+<td class="px-lg py-5 text-center">342</td>
+<td class="px-lg py-5 text-center">9.12</td>
+<td class="px-lg py-5 text-center">2,140</td>
+<td class="px-lg py-5 text-center">98%</td>
+<td class="px-lg py-5 text-right font-extrabold text-luxury-gold">96.4</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest transition-colors">
+<td class="px-lg py-5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-silver-400 border border-outline-variant text-on-surface flex items-center justify-center font-bold">2</div>
+</div>
+</td>
+<td class="px-lg py-5 font-bold">Amrita Vishwa Vidyapeetham</td>
+<td class="px-lg py-5 text-center">218</td>
+<td class="px-lg py-5 text-center">8.84</td>
+<td class="px-lg py-5 text-center">1,890</td>
+<td class="px-lg py-5 text-center">95%</td>
+<td class="px-lg py-5 text-right font-extrabold">92.1</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest transition-colors">
+<td class="px-lg py-5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-orange-400/20 text-orange-900 border border-orange-200 flex items-center justify-center font-bold">3</div>
+</div>
+</td>
+<td class="px-lg py-5 font-bold">Kumaraguru College of Technology</td>
+<td class="px-lg py-5 text-center">295</td>
+<td class="px-lg py-5 text-center">8.45</td>
+<td class="px-lg py-5 text-center">1,540</td>
+<td class="px-lg py-5 text-center">92%</td>
+<td class="px-lg py-5 text-right font-extrabold">88.7</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Activity Heatmap & Insights -->
+<section class="grid grid-cols-1 xl:grid-cols-3 gap-lg">
+<!-- Activity Heatmap -->
+<div class="xl:col-span-2 bg-white p-lg rounded-xl border border-outline-variant premium-shadow">
+<div class="flex items-center justify-between mb-lg">
+<div>
+<h4 class="font-title-md text-title-md">Volunteer Engagement Pulse</h4>
+<p class="text-label-sm text-on-surface-variant">Frequency of activity submissions per day in the zone.</p>
+</div>
+<div class="flex items-center gap-2 text-[10px] uppercase text-on-surface-variant font-bold">
+                            Less <div class="flex gap-1"><div class="w-3 h-3 bg-surface-container rounded-sm"></div><div class="w-3 h-3 bg-luxury-gold/30 rounded-sm"></div><div class="w-3 h-3 bg-luxury-gold/60 rounded-sm"></div><div class="w-3 h-3 bg-luxury-gold rounded-sm"></div></div> More
+                        </div>
+</div>
+<div class="grid grid-cols-[repeat(26,minmax(0,1fr))] gap-1">
+<!-- Simplified Heatmap Simulation (26 cols x 7 rows) -->
+<script>
+                            document.write(Array(26 * 7).fill(0).map(() => {
+                                const level = Math.floor(Math.random() * 4);
+                                const colors = ['bg-surface-container', 'bg-luxury-gold/30', 'bg-luxury-gold/60', 'bg-luxury-gold'];
+                                return `<div class="aspect-square ${colors[level]} rounded-sm"></div>`;
+                            }).join(''));
+                        </script>
+</div>
+<div class="mt-4 flex justify-between text-[10px] text-on-surface-variant uppercase font-bold">
+<span>Oct 2023</span><span>Nov</span><span>Dec</span><span>Jan 2024</span><span>Feb</span><span>Mar</span>
+</div>
+</div>
+<!-- AI Insights Panel -->
+<div class="bg-primary text-white p-lg rounded-xl premium-shadow space-y-lg relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-luxury-gold rounded-full blur-[80px] opacity-20 -mr-16 -mt-16"></div>
+<div class="flex items-center gap-3 relative">
+<span class="material-symbols-outlined text-luxury-gold">auto_awesome</span>
+<h4 class="font-title-md text-title-md">AI Action Insights</h4>
+</div>
+<div class="space-y-md relative">
+<div class="p-md bg-white/10 rounded-xl border border-white/10 hover:bg-white/15 transition-all cursor-pointer">
+<p class="font-label-md font-bold text-luxury-gold mb-1">Student Attrition Warning</p>
+<p class="text-label-sm text-white/80">42 students in Sector B have zero activity in the last 15 days. Recommend regional reach-out.</p>
+</div>
+<div class="p-md bg-white/10 rounded-xl border border-white/10 hover:bg-white/15 transition-all cursor-pointer">
+<p class="font-label-md font-bold text-luxury-gold mb-1">Volunteer Efficiency</p>
+<p class="text-label-sm text-white/80">Approval rates at PSG Tech are 15% higher than zone average. Review their peer-review model.</p>
+</div>
+<div class="p-md bg-white/10 rounded-xl border border-white/10 hover:bg-white/15 transition-all cursor-pointer">
+<p class="font-label-md font-bold text-luxury-gold mb-1">Upcoming Milestone</p>
+<p class="text-label-sm text-white/80">Zone Coimbatore is 420 hours away from its annual target. Organize a mega-drive next week.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Goals & Operational Review -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+<!-- Operational Review Card -->
+<div class="bg-white p-lg rounded-xl border border-outline-variant premium-shadow flex flex-col justify-between">
+<h5 class="font-label-md font-bold mb-lg">Review Analytics</h5>
+<div class="space-y-xl">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-error-container text-on-error-container flex items-center justify-center">
+<span class="material-symbols-outlined">pending_actions</span>
+</div>
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant uppercase">Pending Reviews</p>
+<p class="text-title-md font-bold">142</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-bold text-on-surface-variant uppercase">Avg Time</p>
+<p class="text-title-md font-bold">1.2d</p>
+</div>
+</div>
+<div class="h-16 w-full flex items-end gap-1">
+<div class="flex-1 bg-surface-container h-[40%] rounded-t-sm"></div>
+<div class="flex-1 bg-surface-container h-[55%] rounded-t-sm"></div>
+<div class="flex-1 bg-luxury-gold h-[85%] rounded-t-sm"></div>
+<div class="flex-1 bg-surface-container h-[70%] rounded-t-sm"></div>
+<div class="flex-1 bg-surface-container h-[60%] rounded-t-sm"></div>
+<div class="flex-1 bg-surface-container h-[45%] rounded-t-sm"></div>
+</div>
+</div>
+</div>
+<!-- Engagement Grid -->
+<div class="bg-white p-lg rounded-xl border border-outline-variant premium-shadow">
+<h5 class="font-label-md font-bold mb-lg">Student Engagement Status</h5>
+<div class="grid grid-cols-2 gap-md">
+<div class="p-md bg-green-50 rounded-xl border border-green-100">
+<p class="text-[10px] text-green-700 font-bold uppercase">Highly Active</p>
+<p class="text-headline-lg font-bold text-green-900">72%</p>
+</div>
+<div class="p-md bg-luxury-gold/5 rounded-xl border border-luxury-gold/20">
+<p class="text-[10px] text-secondary font-bold uppercase">Moderate</p>
+<p class="text-headline-lg font-bold text-on-surface">18%</p>
+</div>
+<div class="p-md bg-error-container/20 rounded-xl border border-error-container">
+<p class="text-[10px] text-error font-bold uppercase">At Risk</p>
+<p class="text-headline-lg font-bold text-on-error-container">10%</p>
+</div>
+<div class="p-md bg-surface-container rounded-xl flex items-center justify-center">
+<button class="text-label-sm font-bold text-on-surface-variant underline">View List</button>
+</div>
+</div>
+</div>
+<!-- Goals Progress -->
+<div class="bg-white p-lg rounded-xl border border-outline-variant premium-shadow space-y-lg">
+<h5 class="font-label-md font-bold mb-lg">Quarterly Zone Targets</h5>
+<div class="space-y-xl">
+<div class="space-y-2">
+<div class="flex justify-between font-label-sm">
+<span>Volunteer Hours</span>
+<span>8,400 / 10,000</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full">
+<div class="h-full bg-luxury-gold w-[84%] rounded-full shadow-[0_0_8px_rgba(212,175,55,0.4)]"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between font-label-sm">
+<span>Profile Completion</span>
+<span>94% / 95%</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full">
+<div class="h-full bg-primary w-[94%] rounded-full"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between font-label-sm">
+<span>Review SLA (Under 48h)</span>
+<span>88% / 90%</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full">
+<div class="h-full bg-luxury-gold w-[88%] rounded-full shadow-[0_0_8px_rgba(212,175,55,0.4)]"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<script>
+        // Micro-interactions and subtle effects
+        document.querySelectorAll('.premium-shadow').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+                card.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body></html>

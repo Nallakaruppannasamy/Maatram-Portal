@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Maatram Foundation | Zone Incharge Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-container": "#7d8497",
+                    "on-primary": "#ffffff",
+                    "on-secondary-fixed-variant": "#574500",
+                    "secondary": "#735c00",
+                    "tertiary-fixed-dim": "#dcc2a4",
+                    "on-tertiary-fixed": "#261906",
+                    "on-secondary": "#ffffff",
+                    "on-primary-fixed-variant": "#404758",
+                    "secondary-container": "#fed65b",
+                    "inverse-on-surface": "#f3f0f1",
+                    "surface-container-low": "#f6f3f4",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-fixed-variant": "#55442d",
+                    "inverse-surface": "#303031",
+                    "secondary-fixed-dim": "#e9c349",
+                    "on-secondary-fixed": "#241a00",
+                    "tertiary": "#000000",
+                    "primary-fixed": "#dce2f7",
+                    "outline-variant": "#c6c6cd",
+                    "surface-container-high": "#eae7e9",
+                    "outline": "#76777d",
+                    "tertiary-container": "#261906",
+                    "surface-bright": "#fcf8fa",
+                    "inverse-primary": "#c0c6db",
+                    "on-error-container": "#93000a",
+                    "primary-container": "#141b2b",
+                    "on-error": "#ffffff",
+                    "secondary-fixed": "#ffe088",
+                    "on-secondary-container": "#745c00",
+                    "background": "#fcf8fa",
+                    "tertiary-fixed": "#f9debf",
+                    "surface-container-highest": "#e5e2e3",
+                    "on-primary-fixed": "#141b2b",
+                    "error-container": "#ffdad6",
+                    "surface-tint": "#575e70",
+                    "surface-container-lowest": "#ffffff",
+                    "primary-fixed-dim": "#c0c6db",
+                    "on-tertiary-container": "#968065",
+                    "primary": "#000000",
+                    "on-background": "#1b1b1d",
+                    "surface-variant": "#e5e2e3",
+                    "on-surface-variant": "#45464c",
+                    "on-surface": "#1b1b1d",
+                    "surface-dim": "#dcd9db",
+                    "surface-container": "#f0edee",
+                    "surface": "#fcf8fa",
+                    "error": "#ba1a1a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "lg": "24px",
+                    "xxl": "48px",
+                    "sm": "8px",
+                    "xs": "4px",
+                    "margin": "32px",
+                    "xl": "32px",
+                    "md": "16px",
+                    "base": "8px",
+                    "gutter": "24px"
+            },
+            "fontFamily": {
+                    "label-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "title-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "headline-xl": ["Inter"]
+            },
+            "fontSize": {
+                    "label-sm": ["12px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "title-md": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "headline-lg": ["30px", {"lineHeight": "1.25", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                    "headline-xl": ["36px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fcf8fa;
+            color: #1b1b1d;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .luxury-accent { color: #D4AF37; }
+        .luxury-bg { background-color: #D4AF37; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid #E5E7EB;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e2e3; border-radius: 10px; }
+    </style>
+</head>
+<body class="overflow-hidden">
+<!-- SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 border-r border-outline-variant bg-surface flex flex-col p-md z-50">
+<div class="mb-xxl px-sm">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary">Maatram</h1>
+<p class="text-label-sm luxury-accent tracking-widest uppercase">Foundation</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-md px-md py-sm bg-secondary-container/10 text-secondary font-bold rounded-lg group transition-all" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">school</span>
+<span class="font-label-md text-label-md">Students</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">rate_review</span>
+<span class="font-label-md text-label-md">Volunteer Reviews</span>
+<span class="ml-auto bg-error text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">18</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">domain</span>
+<span class="font-label-md text-label-md">Colleges</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-md text-label-md">Analytics</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-label-md text-label-md">Reports</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">notifications</span>
+<span class="font-label-md text-label-md">Notifications</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</nav>
+<button class="mt-auto luxury-bg text-white font-label-md py-sm rounded-xl flex items-center justify-center gap-sm hover:brightness-110 transition-all shadow-sm">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+            New Entry
+        </button>
+</aside>
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 left-64 h-16 bg-surface/80 backdrop-blur-md border-b border-outline-variant z-40 flex justify-between items-center px-xl">
+<div class="flex items-center gap-xl flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-full pl-10 pr-4 py-1.5 focus:ring-1 focus:ring-secondary/30 text-sm" placeholder="Search activities, students or IDs..." type="text"/>
+</div>
+<span class="font-title-md text-title-md text-secondary font-semibold">Management System</span>
+</div>
+<div class="flex items-center gap-lg">
+<button class="text-on-surface-variant hover:text-secondary transition-colors">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<button class="text-on-surface-variant hover:text-secondary transition-colors">
+<span class="material-symbols-outlined">apps</span>
+</button>
+<div class="h-8 w-8 rounded-full overflow-hidden border border-outline-variant shadow-sm bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a middle-aged South Asian male administrator wearing a crisp white formal shirt against a soft, out-of-focus office background. The lighting is bright and natural, reflecting a clean and institutional light-mode design aesthetic consistent with a premium educational foundation. He has a warm, confident expression, symbolizing trust and leadership." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEL1_Ozv0nduEZwjbZ7ErZ5NWo8BRzW8Y3Bb9c86_cQvs0w1qUV-o50XRvtTlCTtfvTO_i9Q0gvNMYKLxdUueZ1KrQLZJ0p3vy24tUoP1vTjnj9krAG1yMs-h7w6N3yxOWVqPaPLj0BoFh51QZpsod4brh9NP7oLXLMuux-x3981_3oSRsrOEkSOId4K4KsX680Ko2yw0jGgAMTd4JavXaIfTxnDdNcDydquml2QNna-53rHDJ6vbOq46On4Wo7Qnc8h1WUkGygfw"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="pl-64 pt-16 h-screen overflow-y-auto custom-scrollbar">
+<div class="p-xl max-w-7xl mx-auto space-y-xl">
+<!-- Welcome Section -->
+<section class="flex flex-col md:flex-row md:items-end justify-between gap-md">
+<div>
+<h2 class="font-headline-xl text-headline-xl text-primary">Good Morning, Rajesh 👋</h2>
+<div class="flex items-center gap-xs mt-xs">
+<span class="material-symbols-outlined text-secondary text-[18px]">location_on</span>
+<span class="text-on-surface-variant font-label-md">Coimbatore Zone</span>
+<span class="mx-2 text-outline-variant">•</span>
+<span class="text-on-surface-variant font-label-md">Wednesday, Oct 25</span>
+</div>
+</div>
+<div class="flex gap-md">
+<button class="bg-white border border-outline-variant px-md py-sm rounded-xl text-label-md hover:bg-surface-container-low transition-colors flex items-center gap-sm">
+<span class="material-symbols-outlined text-[20px]">calendar_today</span>
+                        View Schedule
+                    </button>
+<button class="luxury-bg text-white px-md py-sm rounded-xl text-label-md flex items-center gap-sm hover:opacity-90 transition-all">
+<span class="material-symbols-outlined text-[20px]">file_download</span>
+                        Export Data
+                    </button>
+</div>
+</section>
+<!-- Priority & AI Insights Bento -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-lg">
+<!-- Priority Card -->
+<div class="lg:col-span-2 bg-primary-container text-on-primary rounded-2xl p-xl shadow-lg relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-lg opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-[120px]" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<h3 class="font-title-md text-title-md mb-lg">Needs Immediate Attention</h3>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-xl">
+<div class="space-y-xs">
+<span class="text-display-lg font-display-lg text-secondary-fixed">18</span>
+<p class="text-on-primary-container text-label-md">Pending Volunteer Reviews</p>
+</div>
+<div class="space-y-xs border-l border-outline/20 pl-lg">
+<span class="text-display-lg font-display-lg text-secondary-fixed">12</span>
+<p class="text-on-primary-container text-label-md">Incomplete Profiles</p>
+</div>
+<div class="space-y-xs border-l border-outline/20 pl-lg">
+<span class="text-display-lg font-display-lg text-secondary-fixed">05</span>
+<p class="text-on-primary-container text-label-md">New Registrations</p>
+</div>
+</div>
+</div>
+<!-- AI Insights -->
+<div class="bg-white border border-outline-variant rounded-2xl p-xl flex flex-col">
+<div class="flex items-center gap-sm mb-lg">
+<span class="material-symbols-outlined luxury-accent">auto_awesome</span>
+<h3 class="font-title-md text-title-md">Zone Insights</h3>
+</div>
+<div class="space-y-md flex-1">
+<div class="p-md rounded-xl bg-surface-container-low border-l-4 border-secondary">
+<p class="text-body-md text-on-surface">Volunteer participation increased by <span class="font-bold text-secondary">18%</span> in the central cluster this week.</p>
+</div>
+<div class="p-md rounded-xl bg-surface-container-low border-l-4 border-outline-variant">
+<p class="text-body-md text-on-surface">3 colleges are nearing their semester hour targets ahead of schedule.</p>
+</div>
+</div>
+<button class="text-secondary font-label-md mt-lg flex items-center gap-xs hover:underline">
+                        View All Insights <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</section>
+<!-- KPI Summary -->
+<section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-md">
+<div class="bg-white border border-outline-variant rounded-2xl p-md shadow-sm hover:shadow-md transition-shadow">
+<p class="text-label-sm text-on-surface-variant uppercase tracking-tighter">Total Students</p>
+<h4 class="text-headline-lg font-headline-lg mt-xs">1,240</h4>
+<div class="mt-sm h-1 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full luxury-bg" style="width: 75%"></div>
+</div>
+</div>
+<div class="bg-white border border-outline-variant rounded-2xl p-md shadow-sm hover:shadow-md transition-shadow">
+<p class="text-label-sm text-on-surface-variant uppercase tracking-tighter">Assigned Colleges</p>
+<h4 class="text-headline-lg font-headline-lg mt-xs">14</h4>
+<p class="text-label-sm text-secondary mt-xs font-semibold">+2 this month</p>
+</div>
+<div class="bg-white border border-outline-variant rounded-2xl p-md shadow-sm hover:shadow-md transition-shadow">
+<p class="text-label-sm text-on-surface-variant uppercase tracking-tighter">Pending Reviews</p>
+<h4 class="text-headline-lg font-headline-lg mt-xs text-error">18</h4>
+<p class="text-label-sm text-on-surface-variant mt-xs">Requires Action</p>
+</div>
+<div class="bg-white border border-outline-variant rounded-2xl p-md shadow-sm hover:shadow-md transition-shadow">
+<p class="text-label-sm text-on-surface-variant uppercase tracking-tighter">Approved (MoM)</p>
+<h4 class="text-headline-lg font-headline-lg mt-xs">42</h4>
+<p class="text-label-sm text-secondary mt-xs font-semibold">↑ 12%</p>
+</div>
+<div class="bg-white border border-outline-variant rounded-2xl p-md shadow-sm hover:shadow-md transition-shadow">
+<p class="text-label-sm text-on-surface-variant uppercase tracking-tighter">Total Hours</p>
+<h4 class="text-headline-lg font-headline-lg mt-xs">8.4k</h4>
+<p class="text-label-sm text-on-surface-variant mt-xs">Cumulative impact</p>
+</div>
+<div class="bg-white border border-outline-variant rounded-2xl p-md shadow-sm hover:shadow-md transition-shadow">
+<p class="text-label-sm text-on-surface-variant uppercase tracking-tighter">Completion Rate</p>
+<h4 class="text-headline-lg font-headline-lg mt-xs">88%</h4>
+<div class="mt-sm h-1 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 88%"></div>
+</div>
+</div>
+</section>
+<!-- Dashboard Center: Analytics & Quick Actions -->
+<section class="grid grid-cols-1 xl:grid-cols-4 gap-lg">
+<!-- Analytics Charts -->
+<div class="xl:col-span-3 space-y-lg">
+<div class="bg-white border border-outline-variant rounded-2xl p-xl shadow-sm h-full">
+<div class="flex justify-between items-center mb-xxl">
+<h3 class="font-title-md text-title-md">Zone Analytics</h3>
+<div class="flex gap-sm">
+<select class="text-label-sm border-outline-variant rounded-lg py-1 px-3">
+<option>Last 6 Months</option>
+<option>Last Year</option>
+</select>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-5 gap-xl">
+<!-- Line Chart Placeholder -->
+<div class="md:col-span-3 h-64 relative flex flex-col justify-end">
+<div class="absolute inset-0 flex items-end justify-between px-md pb-xs">
+<div class="w-12 bg-surface-container-high rounded-t-lg h-[40%]"></div>
+<div class="w-12 bg-surface-container-high rounded-t-lg h-[55%]"></div>
+<div class="w-12 bg-surface-container-high rounded-t-lg h-[70%]"></div>
+<div class="w-12 bg-secondary/80 rounded-t-lg h-[85%]"></div>
+<div class="w-12 bg-secondary rounded-t-lg h-[75%]"></div>
+<div class="w-12 bg-primary rounded-t-lg h-[95%]"></div>
+</div>
+<div class="border-b border-outline-variant w-full"></div>
+<div class="flex justify-between text-[10px] text-on-surface-variant mt-2 px-1">
+<span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span>
+</div>
+<p class="text-center font-label-sm text-on-surface-variant mt-xxl">Monthly Volunteer Hours Trend</p>
+</div>
+<!-- Donut Chart Placeholder -->
+<div class="md:col-span-2 flex flex-col items-center justify-center">
+<div class="relative w-40 h-40 rounded-full border-[16px] border-surface-container-high flex items-center justify-center">
+<div class="absolute inset-0 border-[16px] border-secondary rounded-full" style="clip-path: polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 50% 100%)"></div>
+<div class="text-center">
+<span class="text-title-md font-bold">1.2k</span>
+<p class="text-[10px] text-on-surface-variant uppercase">Sessions</p>
+</div>
+</div>
+<div class="mt-lg w-full space-y-sm">
+<div class="flex justify-between items-center text-label-sm">
+<span class="flex items-center gap-xs"><div class="w-2 h-2 rounded-full bg-secondary"></div> Teaching</span>
+<span class="font-bold">45%</span>
+</div>
+<div class="flex justify-between items-center text-label-sm">
+<span class="flex items-center gap-xs"><div class="w-2 h-2 rounded-full bg-primary"></div> Admin</span>
+<span class="font-bold">30%</span>
+</div>
+<div class="flex justify-between items-center text-label-sm">
+<span class="flex items-center gap-xs"><div class="w-2 h-2 rounded-full bg-surface-container-high"></div> Fieldwork</span>
+<span class="font-bold">25%</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Actions -->
+<div class="xl:col-span-1 flex flex-col gap-lg">
+<h3 class="font-title-md text-title-md">Quick Actions</h3>
+<button class="group flex items-center gap-md p-md bg-white border border-outline-variant rounded-2xl hover:border-secondary hover:shadow-md transition-all text-left">
+<div class="w-12 h-12 rounded-xl bg-secondary-container/20 flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">pending_actions</span>
+</div>
+<div>
+<p class="font-label-md text-primary">Review Pending</p>
+<p class="text-[12px] text-on-surface-variant">18 active requests</p>
+</div>
+</button>
+<button class="group flex items-center gap-md p-md bg-white border border-outline-variant rounded-2xl hover:border-secondary hover:shadow-md transition-all text-left">
+<div class="w-12 h-12 rounded-xl bg-primary-fixed/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">person_search</span>
+</div>
+<div>
+<p class="font-label-md text-primary">Manage Students</p>
+<p class="text-[12px] text-on-surface-variant">Database lookup</p>
+</div>
+</button>
+<button class="group flex items-center gap-md p-md bg-white border border-outline-variant rounded-2xl hover:border-secondary hover:shadow-md transition-all text-left">
+<div class="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-outline group-hover:bg-primary-container group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">summarize</span>
+</div>
+<div>
+<p class="font-label-md text-primary">Generate Report</p>
+<p class="text-[12px] text-on-surface-variant">Custom PDF/Excel</p>
+</div>
+</button>
+<div class="mt-auto bg-surface-container-highest rounded-2xl p-md text-center">
+<p class="text-label-sm text-on-surface-variant mb-sm">Zone Resource Capacity</p>
+<div class="text-title-md font-bold luxury-accent">92%</div>
+<p class="text-[10px] uppercase text-outline mt-xs tracking-wider">Optimized</p>
+</div>
+</div>
+</section>
+<!-- Bottom Section: Tables -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-lg">
+<!-- Approval Queue -->
+<div class="bg-white border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
+<div class="px-xl py-lg border-b border-outline-variant flex justify-between items-center">
+<h3 class="font-title-md text-title-md">Volunteer Approval Queue</h3>
+<a class="text-secondary font-label-md hover:underline" href="#">View All</a>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-surface-container-low text-on-surface-variant">
+<tr>
+<th class="px-xl py-md font-label-sm">Student</th>
+<th class="px-md py-md font-label-sm">Activity</th>
+<th class="px-md py-md font-label-sm text-center">Hours</th>
+<th class="px-xl py-md font-label-sm text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<tr class="hover:bg-surface-container-lowest transition-colors">
+<td class="px-xl py-md">
+<div class="flex items-center gap-md">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex-shrink-0 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A studio portrait of a young South Asian female student with a studious and ambitious expression, wearing a simple blue kurti. Soft, professional lighting highlights her features in a modern, clean light-mode aesthetic, suitable for an educational foundation's user profile interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLIwEGXT7qyqjRbrHpNBx8s8K0mNoLTxcf6Juh3SuyHQaYe2nlK2FxNnNxRLlUNhyIbY3yE478kj4_JEZHsOFIR3UtFu9HOK15AP3lkPzbXta-VPTKEy7wp26Xoo2iFhQdfONxXdk3y8Lo-kAjO27er_jjj0Pfqeq9KNPVKkvfRWtkEY5Uvl44Rz4TJcqXPppEu43mkkYbWbbpE2iAFOokEUf3Ce4P_wx-q-BEwIssL0AJi0J5n6BjoyXOoZjOUwxHltpq18Wkvs0"/>
+</div>
+<div>
+<p class="font-label-md text-primary">Ananya R.</p>
+<p class="text-[11px] text-on-surface-variant">PSG Tech</p>
+</div>
+</div>
+</td>
+<td class="px-md py-md font-label-sm">Library Cataloging</td>
+<td class="px-md py-md font-label-sm text-center">4.5</td>
+<td class="px-xl py-md text-right flex justify-end gap-sm">
+<button class="w-8 h-8 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-error/10 hover:text-error transition-colors"><span class="material-symbols-outlined text-[18px]">close</span></button>
+<button class="w-8 h-8 rounded-lg luxury-bg text-white flex items-center justify-center hover:shadow-lg transition-all"><span class="material-symbols-outlined text-[18px]">check</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest transition-colors">
+<td class="px-xl py-md">
+<div class="flex items-center gap-md">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex-shrink-0 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A portrait of a young South Asian male college student with a friendly and proactive demeanor, wearing a professional grey polo shirt. The background is a clean, neutral white wall with subtle ambient shadows, fitting perfectly into an enterprise UI design for a non-profit foundation." src="https://lh3.googleusercontent.com/aida-public/AB6AXuATRdmmlKPK3dLmv7TNdJuDsFtNXUmnmIEnB4LO57mIiIv6LA_h-kcT-gXDtI2JyKRGgRlt0vOP4OnzwQpC8ImQpXQbfdAI-74HqtTo7MxSLGlY43I3LYKAXyxt4nwtZ3RGhQVwUVObnZR3Cgu3F-82RGFnT8OmpvzcQiALEcrENCczN7HExnPBgYSzvV-zhfISYbC_bKua64-RXQDzR-vReexKltX0pMa8U5mZxD7Jk3KM64NjIoeBRyZPx8koG6WOMLG2_fEiDB0"/>
+</div>
+<div>
+<p class="font-label-md text-primary">Karthik S.</p>
+<p class="text-[11px] text-on-surface-variant">CIT Coimbatore</p>
+</div>
+</div>
+</td>
+<td class="px-md py-md font-label-sm">Tech Workshop Asst.</td>
+<td class="px-md py-md font-label-sm text-center">6.0</td>
+<td class="px-xl py-md text-right flex justify-end gap-sm">
+<button class="w-8 h-8 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-error/10 hover:text-error transition-colors"><span class="material-symbols-outlined text-[18px]">close</span></button>
+<button class="w-8 h-8 rounded-lg luxury-bg text-white flex items-center justify-center hover:shadow-lg transition-all"><span class="material-symbols-outlined text-[18px]">check</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest transition-colors">
+<td class="px-xl py-md">
+<div class="flex items-center gap-md">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex-shrink-0 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A smiling young South Asian female student wearing spectacles, conveying intelligence and diligence. She is dressed in formal attire suitable for a scholarship recipient. The visual style is high-end editorial photography with a soft focus on a modern architectural background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfzUfInN0sN6w-jSD9TLIgtzrSgTNIpbjVEVt6Nsmn08rVxM7vvTovDVPWW-xOs-gPr2R9dD-Xh2XIghf86ASRwXjogPpuBZjIxsU_adH5ehhhKhJxGHw2_jLhpglELgDH5w67Pg5-awrc-fR4enfYN1A_UO2iHfIIcshYY1y2YNdkn3VtxKCMTutu98V1oiGCRKWEY0HmVoHiz0kwdfGTp7laXb0ISLC2GYxoNSfNllI-yVZf-IkytdHkzgJ5tbKHtNWc36XrCms"/>
+</div>
+<div>
+<p class="font-label-md text-primary">Meera Krishnan</p>
+<p class="text-[11px] text-on-surface-variant">Kumaraguru College</p>
+</div>
+</div>
+</td>
+<td class="px-md py-md font-label-sm">Primary Tutoring</td>
+<td class="px-md py-md font-label-sm text-center">3.0</td>
+<td class="px-xl py-md text-right flex justify-end gap-sm">
+<button class="w-8 h-8 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-error/10 hover:text-error transition-colors"><span class="material-symbols-outlined text-[18px]">close</span></button>
+<button class="w-8 h-8 rounded-lg luxury-bg text-white flex items-center justify-center hover:shadow-lg transition-all"><span class="material-symbols-outlined text-[18px]">check</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- College Performance -->
+<div class="bg-white border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
+<div class="px-xl py-lg border-b border-outline-variant flex justify-between items-center">
+<h3 class="font-title-md text-title-md">College Performance</h3>
+<button class="material-symbols-outlined text-outline">more_horiz</button>
+</div>
+<div class="p-xl space-y-lg">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-md">
+<span class="text-title-md font-bold text-outline-variant w-6">01</span>
+<div>
+<p class="font-label-md text-primary">PSG College of Technology</p>
+<p class="text-[11px] text-on-surface-variant">342 Students</p>
+</div>
+</div>
+<div class="text-right">
+<span class="font-bold text-secondary">9.8</span>
+<div class="w-24 h-1.5 bg-surface-container-high rounded-full mt-1">
+<div class="h-full luxury-bg rounded-full" style="width: 98%"></div>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-md">
+<span class="text-title-md font-bold text-outline-variant w-6">02</span>
+<div>
+<p class="font-label-md text-primary">Coimbatore Inst. of Tech</p>
+<p class="text-[11px] text-on-surface-variant">210 Students</p>
+</div>
+</div>
+<div class="text-right">
+<span class="font-bold text-secondary">9.4</span>
+<div class="w-24 h-1.5 bg-surface-container-high rounded-full mt-1">
+<div class="h-full luxury-bg rounded-full" style="width: 94%"></div>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-md">
+<span class="text-title-md font-bold text-outline-variant w-6">03</span>
+<div>
+<p class="font-label-md text-primary">Kumaraguru College</p>
+<p class="text-[11px] text-on-surface-variant">188 Students</p>
+</div>
+</div>
+<div class="text-right">
+<span class="font-bold text-secondary">9.1</span>
+<div class="w-24 h-1.5 bg-surface-container-high rounded-full mt-1">
+<div class="h-full luxury-bg rounded-full" style="width: 91%"></div>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-md">
+<span class="text-title-md font-bold text-outline-variant w-6">04</span>
+<div>
+<p class="font-label-md text-primary">Amrita Vishwa Vidyapeetham</p>
+<p class="text-[11px] text-on-surface-variant">156 Students</p>
+</div>
+</div>
+<div class="text-right">
+<span class="font-bold text-secondary">8.9</span>
+<div class="w-24 h-1.5 bg-surface-container-high rounded-full mt-1">
+<div class="h-full luxury-bg rounded-full" style="width: 89%"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Micro-interaction Script -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Placeholder for interactivity logic
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    const ripple = document.createElement('span');
+                    ripple.className = 'absolute bg-white/20 rounded-full animate-ping';
+                    ripple.style.width = '20px';
+                    ripple.style.height = '20px';
+                    ripple.style.left = `${e.offsetX - 10}px`;
+                    ripple.style.top = `${e.offsetY - 10}px`;
+                    this.appendChild(ripple);
+                    setTimeout(() => ripple.remove(), 500);
+                });
+            });
+        });
+    </script>
+</body></html>

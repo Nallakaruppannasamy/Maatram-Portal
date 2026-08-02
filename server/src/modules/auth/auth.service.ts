@@ -6,6 +6,7 @@
 import crypto from 'crypto';
 import { ApiError } from '@/common/exceptions/apiError';
 import { logger } from '@/config/logger';
+import { env } from '@/config/env';
 import { authRepository } from './auth.repository';
 import { comparePassword, hashPassword } from '@/utils/password';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '@/utils/jwt';
@@ -250,7 +251,7 @@ export class AuthService {
     await authRepository.createPasswordResetToken(user.id, tokenHash, expiresAt);
 
     // Send password reset email
-    const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
+    const resetLink = `${env.FRONTEND_URL}/reset-password?token=${resetToken}`;
     await mockNotificationService.sendEmail({
       to: user.email || '',
       subject: 'Maatram Foundation — Password Reset Request',

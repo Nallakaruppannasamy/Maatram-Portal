@@ -194,6 +194,7 @@ async function main() {
   // ─── 5. USERS ──────────────────────────────────────────────────────────────
   console.log('👥 Creating Users...');
 
+  // Super Admin 1
   const adminPasswordHash = await hashPassword('Admin@123');
   const adminUser = await prisma.user.create({
     data: {
@@ -214,6 +215,7 @@ async function main() {
     },
   });
 
+  // Super Admin 2
   const sysAdminPasswordHash = await hashPassword('admin@123');
   await prisma.user.create({
     data: {
@@ -234,6 +236,7 @@ async function main() {
     },
   });
 
+  // Zone Incharge — Zone 1
   const zonePasswordHash = await hashPassword('Zone@123');
   const zoneUser = await prisma.user.create({
     data: {
