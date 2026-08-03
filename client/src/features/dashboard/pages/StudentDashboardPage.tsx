@@ -1,12 +1,60 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { HeartHandshake, Award, FileText, CheckCircle2, Clock, Plus, ArrowRight, TrendingUp, Sparkles } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { HeartHandshake, Award, FileText, CheckCircle2, Plus, ArrowRight, TrendingUp, Sparkles } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { ProgressBar } from '@/components/ui/ProgressBar'
+import { CardSkeleton } from '@/components/ui/CardSkeleton'
+import { TableLoader } from '@/components/ui/TableLoader'
+import { profileApi } from '@/api/profile.api'
+import { volunteerApi } from '@/api/volunteer.api'
+import { useAuth } from '@/hooks/useAuth'
 
 export const StudentDashboardPage = () => {
+  const { user } = useAuth()
+
+  const { data: profileRes, isLoading: isProfileLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => profileApi.get(),
+  })
+
+  const { data: volunteersRes, isLoading: isVolunteersLoading } = useQuery({
+    queryKey: ['volunteers'],
+    queryFn: () => volunteerApi.list(),
+  })
+
+  const profile = profileRes?.data
+  const volunteers = volunteersRes?.data || []
+
+  // Derive stats from real volunteer logs
+  const approvedLogs = volunteers.filter(
+    (v) => v.status === 'approved' || v.status === 'APPROVED'
+  )
+  const pendingLogs = volunteers.filter(
+    (v) => v.status === 'pending' || v.status === 'PENDING'
+  )
+
+  const totalApprovedHours = approvedLogs.reduce((acc, curr) => acc + (Number(curr.hours) || 0), 0)
+
+  const displayName = profile?.fullName || profile?.firstName
+    ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim()
+    : user?.fullName || user?.name || user?.email || 'Student Scholar'
+
+  const regNo = user?.regNumber || user?.registrationNumber || 'Data not available'
+  const department = user?.profile?.careerObjective ? 'Scholar Department' : 'General Department'
+
+  if (isProfileLoading || isVolunteersLoading) {
+    return (
+      <div className="space-y-8 animate-in fade-in duration-300">
+        <div className="h-36 bg-[#111827] rounded-2xl animate-pulse" />
+        <CardSkeleton count={4} />
+        <TableLoader rows={4} columns={5} />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Welcome Banner */}
@@ -16,9 +64,9 @@ export const StudentDashboardPage = () => {
           <Badge variant="gold" size="sm" className="uppercase tracking-widest">
             <Sparkles className="w-3 h-3 mr-1" /> Student Workspace
           </Badge>
-          <h2 className="text-3xl font-extrabold tracking-tight">Welcome back, Ananya Sharma!</h2>
+          <h2 className="text-3xl font-extrabold tracking-tight">Welcome back, {displayName}!</h2>
           <p className="text-sm text-slate-300">
-            Reg. No: <span className="font-semibold text-white">2024CS1092</span> • Chennai Zone 1 • Department of Computer Science
+            Reg. No: <span className="font-semibold text-white">{regNo}</span> • {user?.role ? `${user.role.toUpperCase()} Portal` : 'Student Portal'}
           </p>
           <div className="pt-2 flex flex-wrap gap-3">
             <Link to="/student/volunteer-submit">
@@ -44,9 +92,11 @@ export const StudentDashboardPage = () => {
               <HeartHandshake className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-3xl font-extrabold text-[#111827] mt-3">42.5 <span className="text-xs font-normal text-[#76777d]">hrs</span></p>
+          <p className="text-3xl font-extrabold text-[#111827] mt-3">
+            {totalApprovedHours} <span className="text-xs font-normal text-[#76777d]">hrs</span>
+          </p>
           <p className="text-xs text-emerald-600 font-semibold mt-2 flex items-center gap-1">
-            <TrendingUp className="w-3.5 h-3.5" /> +8.5 hrs this month
+            <TrendingUp className="w-3.5 h-3.5" /> {approvedLogs.length} verified activities
           </p>
         </Card>
 
@@ -57,8 +107,10 @@ export const StudentDashboardPage = () => {
               <Award className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-3xl font-extrabold text-[#111827] mt-3">8.82 <span className="text-xs font-normal text-[#76777d]">/ 10</span></p>
-          <p className="text-xs text-[#76777d] mt-2">Semester 6 Complete</p>
+          <p className="text-3xl font-extrabold text-[#111827] mt-3">
+            Data not available
+          </p>
+          <p className="text-xs text-[#76777d] mt-2">Active Student Scholar</p>
         </Card>
 
         <Card>
@@ -68,22 +120,30 @@ export const StudentDashboardPage = () => {
               <FileText className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-3xl font-extrabold text-[#111827] mt-3">12 <span className="text-xs font-normal text-[#76777d]">entries</span></p>
-          <p className="text-xs text-emerald-600 font-semibold mt-2">10 Approved • 2 Pending</p>
+          <p className="text-3xl font-extrabold text-[#111827] mt-3">
+            {volunteers.length} <span className="text-xs font-normal text-[#76777d]">entries</span>
+          </p>
+          <p className="text-xs text-emerald-600 font-semibold mt-2">
+            {approvedLogs.length} Approved • {pendingLogs.length} Pending
+          </p>
         </Card>
 
         <Card>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#76777d] uppercase tracking-wider">Resume Completeness</span>
+            <span className="text-xs font-semibold text-[#76777d] uppercase tracking-wider">Profile Status</span>
             <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <CheckCircle2 className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3 space-y-2">
-            <ProgressBar value={85} color="gold" showPercentage={false} />
+            <ProgressBar value={profile?.fullName || profile?.firstName ? 100 : 50} color="gold" showPercentage={false} />
             <div className="flex justify-between text-xs">
-              <span className="font-bold text-[#111827]">85% Ready</span>
-              <Link to="/student/profile" className="text-[#D4AF37] font-semibold hover:underline">Complete profile</Link>
+              <span className="font-bold text-[#111827]">
+                {profile?.fullName || profile?.firstName ? 'Complete' : 'Pending Detail'}
+              </span>
+              <Link to="/student/profile" className="text-[#D4AF37] font-semibold hover:underline">
+                Update profile
+              </Link>
             </div>
           </div>
         </Card>
@@ -106,48 +166,44 @@ export const StudentDashboardPage = () => {
           </CardHeader>
 
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-[#111827]">
-                <thead>
-                  <tr className="border-b border-[#E5E7EB] text-[#76777d] uppercase tracking-wider text-[10px]">
-                    <th className="py-3 px-2 font-bold">Activity Title</th>
-                    <th className="py-3 px-2 font-bold">Category</th>
-                    <th className="py-3 px-2 font-bold">Hours</th>
-                    <th className="py-3 px-2 font-bold">Event Date</th>
-                    <th className="py-3 px-2 font-bold">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E5E7EB]">
-                  <tr>
-                    <td className="py-3.5 px-2 font-bold text-[#111827]">Blood Donation Drive Coordination</td>
-                    <td className="py-3.5 px-2 text-[#45464c]">Healthcare</td>
-                    <td className="py-3.5 px-2 font-semibold">6.0 hrs</td>
-                    <td className="py-3.5 px-2 text-[#76777d]">Jul 20, 2026</td>
-                    <td className="py-3.5 px-2">
-                      <Badge variant="approved">Approved</Badge>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-3.5 px-2 font-bold text-[#111827]">Rural Science Fair Mentorship</td>
-                    <td className="py-3.5 px-2 text-[#45464c]">Education</td>
-                    <td className="py-3.5 px-2 font-semibold">12.0 hrs</td>
-                    <td className="py-3.5 px-2 text-[#76777d]">Jul 14, 2026</td>
-                    <td className="py-3.5 px-2">
-                      <Badge variant="approved">Approved</Badge>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-3.5 px-2 font-bold text-[#111827]">Community Cleanliness Drive</td>
-                    <td className="py-3.5 px-2 text-[#45464c]">Environment</td>
-                    <td className="py-3.5 px-2 font-semibold">4.0 hrs</td>
-                    <td className="py-3.5 px-2 text-[#76777d]">Jul 24, 2026</td>
-                    <td className="py-3.5 px-2">
-                      <Badge variant="pending">Pending Review</Badge>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            {volunteers.length === 0 ? (
+              <div className="py-8 text-center text-xs text-gray-500">
+                No volunteer activities logged yet. Click "Log Volunteer Activity" to submit your first entry.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-[#111827]">
+                  <thead>
+                    <tr className="border-b border-[#E5E7EB] text-[#76777d] uppercase tracking-wider text-[10px]">
+                      <th className="py-3 px-2 font-bold">Activity Title</th>
+                      <th className="py-3 px-2 font-bold">Category</th>
+                      <th className="py-3 px-2 font-bold">Hours</th>
+                      <th className="py-3 px-2 font-bold">Event Date</th>
+                      <th className="py-3 px-2 font-bold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E5E7EB]">
+                    {volunteers.slice(0, 5).map((log) => {
+                      const isApproved = log.status === 'approved' || log.status === 'APPROVED'
+                      const isRejected = log.status === 'rejected' || log.status === 'REJECTED'
+                      return (
+                        <tr key={log.id}>
+                          <td className="py-3.5 px-2 font-bold text-[#111827]">{log.title}</td>
+                          <td className="py-3.5 px-2 text-[#45464c]">{log.category}</td>
+                          <td className="py-3.5 px-2 font-semibold">{log.hours} hrs</td>
+                          <td className="py-3.5 px-2 text-[#76777d]">{log.eventDate}</td>
+                          <td className="py-3.5 px-2">
+                            <Badge variant={isApproved ? 'approved' : isRejected ? 'rejected' : 'pending'}>
+                              {isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending Review'}
+                            </Badge>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -163,15 +219,11 @@ export const StudentDashboardPage = () => {
             <div className="p-4 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] space-y-3 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-[#76777d]">Verification Code:</span>
-                <span className="font-mono font-bold text-[#111827]">MTM-2024-CS1092</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[#76777d]">Last Generated:</span>
-                <span className="font-semibold text-[#111827]">Jul 26, 2026</span>
+                <span className="font-mono font-bold text-[#111827]">{regNo}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[#76777d]">Verified Hours Included:</span>
-                <span className="font-semibold text-emerald-600">38.5 hrs</span>
+                <span className="font-semibold text-emerald-600">{totalApprovedHours} hrs</span>
               </div>
             </div>
           </div>
@@ -186,3 +238,5 @@ export const StudentDashboardPage = () => {
     </div>
   )
 }
+
+export default StudentDashboardPage

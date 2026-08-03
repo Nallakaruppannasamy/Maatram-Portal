@@ -1,13 +1,51 @@
 import React from 'react'
-import { Printer, Download, QrCode, CheckCircle2, Award, BookOpen, User, Phone, Mail, MapPin } from 'lucide-react'
-import { Card } from '@/components/ui/Card'
+import { useQuery } from '@tanstack/react-query'
+import { Printer, Download, QrCode, CheckCircle2, Mail, Phone, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
+import { LoadingPage } from '@/components/ui/LoadingPage'
+import { profileApi } from '@/api/profile.api'
+import { volunteerApi } from '@/api/volunteer.api'
+import { useAuth } from '@/hooks/useAuth'
 
 export const ResumeGeneratorPage = () => {
+  const { user } = useAuth()
+
+  const { data: profileRes, isLoading: isProfileLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => profileApi.get(),
+  })
+
+  const { data: volunteersRes, isLoading: isVolunteersLoading } = useQuery({
+    queryKey: ['volunteers'],
+    queryFn: () => volunteerApi.list(),
+  })
+
+  const profile = profileRes?.data
+  const volunteers = volunteersRes?.data || []
+
+  const approvedLogs = volunteers.filter(
+    (v) => v.status === 'approved' || v.status === 'APPROVED'
+  )
+
+  const totalHours = approvedLogs.reduce((acc, curr) => acc + (Number(curr.hours) || 0), 0)
+
   const handlePrint = () => {
     window.print()
   }
+
+  if (isProfileLoading || isVolunteersLoading) {
+    return <LoadingPage message="Generating student resume from verified records..." />
+  }
+
+  const displayName = profile?.fullName || profile?.firstName
+    ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim()
+    : user?.fullName || user?.name || user?.email || 'Scholar Student'
+
+  const regNo = user?.regNumber || user?.registrationNumber || 'MTM-SCHOLAR'
+  const email = user?.email || 'scholar@maatram.org'
+  const mobile = profile?.mobile || 'Not specified'
+  const address = profile?.address || 'Tamil Nadu, India'
+  const objective = profile?.careerObjective || 'Dedicated undergraduate committed to applying technical knowledge for community development and social impact.'
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -38,13 +76,13 @@ export const ResumeGeneratorPage = () => {
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] bg-[#111827] px-2.5 py-1 rounded-md">
                 Maatram Foundation Scholar
               </span>
-              <h1 className="text-3xl font-extrabold text-[#111827] tracking-tight">ANANYA SHARMA</h1>
-              <p className="text-sm font-semibold text-[#45464c]">Computer Science & Engineering • Batch 2022-2026</p>
+              <h1 className="text-3xl font-extrabold text-[#111827] tracking-tight uppercase">{displayName}</h1>
+              <p className="text-sm font-semibold text-[#45464c]">Scholar Student • Verified Profile</p>
               
               <div className="flex flex-wrap gap-4 text-xs text-[#45464c] pt-2">
-                <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5 text-[#D4AF37]" /> ananya.sharma@student.maatram.org</span>
-                <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-[#D4AF37]" /> +91 98765 43210</span>
-                <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-[#D4AF37]" /> Chennai, Tamil Nadu</span>
+                <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5 text-[#D4AF37]" /> {email}</span>
+                <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-[#D4AF37]" /> {mobile}</span>
+                <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-[#D4AF37]" /> {address}</span>
               </div>
             </div>
 
@@ -54,7 +92,7 @@ export const ResumeGeneratorPage = () => {
                 <QrCode className="w-16 h-16 text-[#111827]" />
               </div>
               <p className="text-[9px] font-bold text-[#111827] uppercase tracking-wider">QR VERIFIED PORTFOLIO</p>
-              <p className="text-[9px] font-mono text-[#76777d]">MTM-2024-CS1092</p>
+              <p className="text-[9px] font-mono text-[#76777d]">{regNo}</p>
             </div>
           </div>
 
@@ -63,9 +101,7 @@ export const ResumeGeneratorPage = () => {
             <h3 className="text-xs font-bold text-[#111827] uppercase tracking-widest border-b border-[#E5E7EB] pb-1">
               Professional Summary
             </h3>
-            <p className="text-xs text-[#45464c] leading-relaxed">
-              Final-year Computer Science undergraduate with strong foundations in React, TypeScript, and Node.js. Passionate about applying software engineering solutions to scale social impact through Maatram Foundation.
-            </p>
+            <p className="text-xs text-[#45464c] leading-relaxed">{objective}</p>
           </div>
 
           {/* Academic Background */}
@@ -75,77 +111,53 @@ export const ResumeGeneratorPage = () => {
             </h3>
             <div className="flex justify-between items-start text-xs">
               <div>
-                <p className="font-bold text-[#111827]">B.E. Computer Science & Engineering</p>
-                <p className="text-[#45464c]">Madras Institute of Technology, Anna University</p>
+                <p className="font-bold text-[#111827]">Maatram Foundation Scholar Program</p>
+                <p className="text-[#45464c]">Verified Academic Registration: {regNo}</p>
               </div>
               <div className="text-right">
-                <p className="font-extrabold text-[#D4AF37]">CGPA: 8.82 / 10</p>
-                <p className="text-[#76777d]">2022 – 2026</p>
+                <p className="font-extrabold text-[#D4AF37]">Active Scholar</p>
               </div>
             </div>
           </div>
 
-          {/* Verified Volunteer Impact (Highlight Section) */}
+          {/* Verified Volunteer Impact Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-1">
               <h3 className="text-xs font-bold text-[#111827] uppercase tracking-widest flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Verified Volunteering & Leadership Impact
               </h3>
-              <span className="text-xs font-extrabold text-[#D4AF37]">42.5 Verified Hours</span>
+              <span className="text-xs font-extrabold text-[#D4AF37]">{totalHours} Verified Hours</span>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <div className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] space-y-1">
-                <div className="flex justify-between font-bold text-[#111827]">
-                  <span>Rural Science Fair Student Mentorship</span>
-                  <span className="text-[#D4AF37]">12.0 Hours</span>
-                </div>
-                <p className="text-[#45464c]">Mentored 35 high school students in rural government schools to prepare STEM projects for district competition.</p>
-                <p className="text-[10px] text-[#76777d] font-medium">Verified by: Dr. Ramesh Kumar (Zone Incharge, Chennai) • Jul 2026</p>
+            {approvedLogs.length === 0 ? (
+              <p className="text-xs text-[#76777d]">No approved volunteer activities logged yet.</p>
+            ) : (
+              <div className="space-y-3 text-xs">
+                {approvedLogs.map((log) => (
+                  <div key={log.id} className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] space-y-1">
+                    <div className="flex justify-between font-bold text-[#111827]">
+                      <span>{log.title}</span>
+                      <span className="text-[#D4AF37]">{log.hours} Hours</span>
+                    </div>
+                    <p className="text-[#45464c]">{log.description}</p>
+                    <p className="text-[10px] text-[#76777d] font-medium">
+                      Category: {log.category} • Organization: {log.organization} • Event Date: {log.eventDate}
+                    </p>
+                  </div>
+                ))}
               </div>
-
-              <div className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] space-y-1">
-                <div className="flex justify-between font-bold text-[#111827]">
-                  <span>Blood Donation Drive Lead Coordinator</span>
-                  <span className="text-[#D4AF37]">6.0 Hours</span>
-                </div>
-                <p className="text-[#45464c]">Coordinated campus donor registrations, logistics, and donor certificate distribution for 150+ donors.</p>
-                <p className="text-[10px] text-[#76777d] font-medium">Verified by: Dr. Ramesh Kumar (Zone Incharge, Chennai) • Jul 2026</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Technical Skills & Projects */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <h3 className="text-xs font-bold text-[#111827] uppercase tracking-widest border-b border-[#E5E7EB] pb-1">
-                Technical Skills
-              </h3>
-              <ul className="text-xs text-[#45464c] space-y-1 list-disc pl-4">
-                <li><span className="font-semibold text-[#111827]">Languages:</span> TypeScript, JavaScript, Python, C++</li>
-                <li><span className="font-semibold text-[#111827]">Frontend:</span> React, Vite, Tailwind CSS, Zustand</li>
-                <li><span className="font-semibold text-[#111827]">Backend & DB:</span> Node.js, Express, PostgreSQL, Prisma ORM</li>
-              </ul>
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-xs font-bold text-[#111827] uppercase tracking-widest border-b border-[#E5E7EB] pb-1">
-                Projects
-              </h3>
-              <div className="text-xs space-y-1">
-                <p className="font-bold text-[#111827]">Volunteer Work Log Tracker SPA</p>
-                <p className="text-[#45464c]">Full-stack web application built using React and Express.js to track volunteering hours with automated PDF resume generation.</p>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Footer Verification Notice */}
           <div className="pt-6 border-t border-[#E5E7EB] text-center text-[10px] text-[#76777d] space-y-1">
             <p>Official Record • Generated via Maatram Foundation Student & Volunteer Management System</p>
-            <p className="font-mono">Verify document validity at https://maatram.org/verify/MTM-2024-CS1092</p>
+            <p className="font-mono">Verify document validity at https://maatram.org/verify/{regNo}</p>
           </div>
         </div>
       </div>
     </div>
   )
 }
+
+export default ResumeGeneratorPage

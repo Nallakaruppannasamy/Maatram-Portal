@@ -1,12 +1,81 @@
-import React, { useState } from 'react'
-import { User, BookOpen, Code, Award, FolderGit2, Save, Plus, Trash2 } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { User, BookOpen, Code, Award, FolderGit2, Save, Plus, Loader2 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
+import { LoadingPage } from '@/components/ui/LoadingPage'
+import { profileApi } from '@/api/profile.api'
+import { useAuth } from '@/hooks/useAuth'
+import { notify } from '@/utils/toast'
 
 export const StudentProfilePage = () => {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<'basic' | 'academics' | 'skills' | 'projects' | 'achievements'>('basic')
+
+  // Profile Form States
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [mobile, setMobile] = useState('')
+  const [parentMobile, setParentMobile] = useState('')
+  const [gender, setGender] = useState('')
+  const [dob, setDob] = useState('')
+  const [address, setAddress] = useState('')
+  const [careerObjective, setCareerObjective] = useState('')
+
+  const { data: profileRes, isLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => profileApi.get(),
+  })
+
+  const profile = profileRes?.data
+
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.fullName || (profile.firstName ? `${profile.firstName} ${profile.lastName || ''}`.trim() : user?.fullName || ''))
+      setEmail(user?.email || '')
+      setMobile(profile.mobile || '')
+      setParentMobile(profile.parentMobile || '')
+      setGender(profile.gender || '')
+      setDob(profile.dob || profile.dateOfBirth || '')
+      setAddress(profile.address || '')
+      setCareerObjective(profile.careerObjective || '')
+    }
+  }, [profile, user])
+
+  const updateMutation = useMutation({
+    mutationFn: (updatedPayload: any) => profileApi.update(updatedPayload),
+    onSuccess: (res) => {
+      if (res.success) {
+        notify.success('Profile updated successfully!')
+        queryClient.invalidateQueries({ queryKey: ['profile'] })
+      } else {
+        notify.error(res.message || 'Failed to update profile.')
+      }
+    },
+    onError: (err: any) => {
+      notify.error(err?.response?.data?.message || err?.message || 'Error updating profile.')
+    },
+  })
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault()
+    updateMutation.mutate({
+      fullName,
+      mobile,
+      parentMobile,
+      gender,
+      dob,
+      address,
+      careerObjective,
+    })
+  }
+
+  if (isLoading) {
+    return <LoadingPage message="Loading student profile data..." />
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -16,8 +85,14 @@ export const StudentProfilePage = () => {
           <h2 className="text-2xl font-extrabold text-[#111827] tracking-tight">Modular Student Profile</h2>
           <p className="text-xs text-[#45464c]">Manage your personal details, academic CGPA, skills, projects, and certifications.</p>
         </div>
-        <Button variant="gold" size="md" icon={<Save className="w-4 h-4" />}>
-          Save All Changes
+        <Button
+          variant="gold"
+          size="md"
+          onClick={handleSaveProfile}
+          disabled={updateMutation.isPending}
+          icon={updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+        >
+          {updateMutation.isPending ? 'Saving...' : 'Save All Changes'}
         </Button>
       </div>
 
@@ -89,12 +164,56 @@ export const StudentProfilePage = () => {
 
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input label="Full Name" defaultValue="Ananya Sharma" />
-              <Input label="Register Number" defaultValue="2024CS1092" disabled />
-              <Input label="Email Address" defaultValue="ananya.sharma@student.maatram.org" />
-              <Input label="Mobile Number" defaultValue="+91 98765 43210" />
-              <Input label="Gender" defaultValue="Female" />
-              <Input label="Date of Birth" type="date" defaultValue="2003-08-15" />
+              <Input
+                label="Full Name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
+              <Input
+                label="Register Number"
+                value={user?.regNumber || user?.registrationNumber || 'Data not available'}
+                disabled
+              />
+              <Input
+                label="Email Address"
+                value={email || user?.email || ''}
+                disabled
+              />
+              <Input
+                label="Mobile Number"
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value)}
+                placeholder="+91 98765 43210"
+              />
+              <Input
+                label="Parent/Guardian Mobile"
+                value={parentMobile}
+                onChange={(e) => setParentMobile(e.target.value)}
+                placeholder="+91 98765 43210"
+              />
+              <Input
+                label="Gender"
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                placeholder="e.g. Male / Female"
+              />
+              <Input
+                label="Date of Birth"
+                type="date"
+                value={dob}
+                onChange={(e) => setDob(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider">
+                Address
+              </label>
+              <Input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Residential Address"
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -103,8 +222,10 @@ export const StudentProfilePage = () => {
               </label>
               <textarea
                 rows={3}
+                value={careerObjective}
+                onChange={(e) => setCareerObjective(e.target.value)}
+                placeholder="Enthusiastic undergraduate dedicated to leveraging software development skills for social impact."
                 className="w-full bg-[#FFFFFF] border border-[#E5E7EB] rounded-xl p-3 text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50"
-                defaultValue="Enthusiastic Computer Science undergraduate dedicated to leveraging software development skills for social impact and community empowerment."
               />
             </div>
           </CardContent>
@@ -120,24 +241,12 @@ export const StudentProfilePage = () => {
 
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Input label="College" defaultValue="Madras Institute of Technology" disabled />
-              <Input label="Department" defaultValue="Computer Science & Engineering" disabled />
-              <Input label="Program" defaultValue="B.E. Computer Science" disabled />
-              <Input label="Batch" defaultValue="2022 - 2026" disabled />
-              <Input label="Cumulative CGPA" defaultValue="8.82" />
-              <Input label="Current Semester" defaultValue="Semester 7" />
-            </div>
-
-            <div className="space-y-3 pt-4 border-t border-[#E5E7EB]">
-              <h4 className="text-sm font-bold text-[#111827]">Semester-wise GPA Breakdown</h4>
-              <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
-                {['Sem 1: 8.50', 'Sem 2: 8.65', 'Sem 3: 8.90', 'Sem 4: 9.10', 'Sem 5: 8.80', 'Sem 6: 8.95'].map((sem, idx) => (
-                  <div key={idx} className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] text-center">
-                    <p className="text-xs font-bold text-[#111827]">{sem.split(':')[0]}</p>
-                    <p className="text-sm font-extrabold text-[#D4AF37]">{sem.split(':')[1]}</p>
-                  </div>
-                ))}
-              </div>
+              <Input label="College" value="Data not available" disabled />
+              <Input label="Department" value="Data not available" disabled />
+              <Input label="Program" value="Data not available" disabled />
+              <Input label="Batch" value="Data not available" disabled />
+              <Input label="Cumulative CGPA" value="Data not available" disabled />
+              <Input label="Current Semester" value="Data not available" disabled />
             </div>
           </CardContent>
         </Card>
@@ -151,19 +260,7 @@ export const StudentProfilePage = () => {
           </CardHeader>
 
           <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {['React', 'TypeScript', 'Node.js', 'Python', 'PostgreSQL', 'Tailwind CSS', 'Git & GitHub', 'Community Leadership', 'Event Coordination', 'Data Analysis'].map((skill, idx) => (
-                <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#FCF8FA] border border-[#E5E7EB] text-[#111827]">
-                  {skill}
-                  <button className="text-[#76777d] hover:text-red-500">×</button>
-                </span>
-              ))}
-            </div>
-
-            <div className="flex gap-2 max-w-md pt-4">
-              <Input placeholder="Add a new skill (e.g. Docker, Figma)" />
-              <Button variant="primary" size="md">Add</Button>
-            </div>
+            <p className="text-xs text-[#76777d]">Skill tags can be specified in your student profile configuration.</p>
           </CardContent>
         </Card>
       )}
@@ -175,20 +272,10 @@ export const StudentProfilePage = () => {
               <CardTitle>Projects & Demos</CardTitle>
               <CardDescription>Showcase your academic and personal software projects</CardDescription>
             </div>
-            <Button variant="gold" size="sm" icon={<Plus className="w-4 h-4" />}>
-              Add Project
-            </Button>
           </CardHeader>
 
           <CardContent className="space-y-4">
-            <div className="p-4 bg-[#FCF8FA] rounded-2xl border border-[#E5E7EB] space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-bold text-[#111827]">Volunteer Work Log Tracker SPA</h4>
-                <Badge variant="gold">React • TS • Node</Badge>
-              </div>
-              <p className="text-xs text-[#45464c]">Built a lightweight single-page application for real-time tracking of community volunteering metrics.</p>
-              <p className="text-xs font-mono text-[#D4AF37]">github.com/ananya/volunteer-tracker</p>
-            </div>
+            <p className="text-xs text-[#76777d]">No projects recorded. Use backend profile updates to add projects.</p>
           </CardContent>
         </Card>
       )}
@@ -200,22 +287,15 @@ export const StudentProfilePage = () => {
               <CardTitle>Certifications & Honours</CardTitle>
               <CardDescription>Verified course certificates, hackathons, and awards</CardDescription>
             </div>
-            <Button variant="gold" size="sm" icon={<Plus className="w-4 h-4" />}>
-              Add Certification
-            </Button>
           </CardHeader>
 
           <CardContent className="space-y-4">
-            <div className="p-4 bg-[#FCF8FA] rounded-2xl border border-[#E5E7EB] flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-bold text-[#111827]">Full Stack Web Development Certification</h4>
-                <p className="text-xs text-[#45464c]">Issued by Coursera / Meta • Issued June 2025</p>
-              </div>
-              <Badge variant="approved">Verified</Badge>
-            </div>
+            <p className="text-xs text-[#76777d]">No certifications recorded. Use backend profile updates to add certifications.</p>
           </CardContent>
         </Card>
       )}
     </div>
   )
 }
+
+export default StudentProfilePage

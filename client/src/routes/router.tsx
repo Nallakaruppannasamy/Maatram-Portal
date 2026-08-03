@@ -1,6 +1,9 @@
 import React from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from '@/components/shared/AppLayout'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { RoleGuard } from '@/components/auth/RoleGuard'
+import { ROLES } from '@/constants/roles'
 
 // Auth & Public Pages
 import { LandingPage } from '@/features/auth/pages/LandingPage'
@@ -38,44 +41,198 @@ import { AuditLogsPage } from '@/features/organization/pages/AuditLogsPage'
 import { NotificationsPage } from '@/features/notifications/pages/NotificationsPage'
 import { ReportsPage } from '@/features/reports/pages/ReportsPage'
 
+import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
+
 export const router = createBrowserRouter([
   // Public & Auth Routes (Without App Layout Sidebar)
   { path: '/', element: <LandingPage /> },
   { path: '/login', element: <LoginPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
-  { path: '/change-password', element: <ChangePasswordPage /> },
-
-  // Authenticated Workspace Routes (Wrapped with App Layout)
+  { path: '/reset-password', element: <ResetPasswordPage /> },
   {
-    element: <AppLayout />,
+    path: '/change-password',
+    element: (
+      <ProtectedRoute>
+        <ChangePasswordPage />
+      </ProtectedRoute>
+    ),
+  },
+
+  // Authenticated Workspace Routes (Wrapped with ProtectedRoute & App Layout)
+  {
+    element: (
+      <ProtectedRoute>
+        <AppLayout />
+      </ProtectedRoute>
+    ),
     children: [
       // Student Routes
-      { path: '/student/dashboard', element: <StudentDashboardPage /> },
-      { path: '/student/profile', element: <StudentProfilePage /> },
-      { path: '/student/volunteer-submit', element: <VolunteerSubmissionPage /> },
-      { path: '/student/volunteer-history', element: <VolunteerHistoryPage /> },
-      { path: '/student/resume', element: <ResumeGeneratorPage /> },
+      {
+        path: '/student/dashboard',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.STUDENT, ROLES.ZONE, ROLES.ADMIN]}>
+            <StudentDashboardPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/student/profile',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.STUDENT, ROLES.ZONE, ROLES.ADMIN]}>
+            <StudentProfilePage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/student/volunteer-submit',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.STUDENT]}>
+            <VolunteerSubmissionPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/student/volunteer-history',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.STUDENT]}>
+            <VolunteerHistoryPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/student/resume',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.STUDENT, ROLES.ZONE, ROLES.ADMIN]}>
+            <ResumeGeneratorPage />
+          </RoleGuard>
+        ),
+      },
 
       // Zone Incharge Routes
-      { path: '/zone/dashboard', element: <ZoneDashboardPage /> },
-      { path: '/zone/approvals', element: <VolunteerApprovalPage /> },
-      { path: '/zone/students', element: <ZoneStudentManagementPage /> },
-      { path: '/zone/colleges', element: <ZoneManagementPage /> },
-      { path: '/zone/analytics', element: <ZoneAnalyticsPage /> },
-      { path: '/zone/profile', element: <ZoneProfilePage /> },
+      {
+        path: '/zone/dashboard',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ZONE, ROLES.ADMIN]}>
+            <ZoneDashboardPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/zone/approvals',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ZONE, ROLES.ADMIN]}>
+            <VolunteerApprovalPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/zone/students',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ZONE, ROLES.ADMIN]}>
+            <ZoneStudentManagementPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/zone/colleges',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ZONE, ROLES.ADMIN]}>
+            <ZoneManagementPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/zone/analytics',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ZONE, ROLES.ADMIN]}>
+            <ZoneAnalyticsPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/zone/profile',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ZONE, ROLES.ADMIN]}>
+            <ZoneProfilePage />
+          </RoleGuard>
+        ),
+      },
 
       // Super Admin Routes
-      { path: '/admin/dashboard', element: <SuperAdminDashboardPage /> },
-      { path: '/admin/provisioning', element: <StudentProvisioningPage /> },
-      { path: '/admin/students', element: <SuperAdminStudentDirectoryPage /> },
-      { path: '/admin/hierarchy', element: <OrganizationHierarchyPage /> },
-      { path: '/admin/team', element: <TeamManagementPage /> },
-      { path: '/admin/analytics', element: <SuperAdminAnalyticsPage /> },
-      { path: '/admin/audit-logs', element: <AuditLogsPage /> },
+      {
+        path: '/admin/dashboard',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+            <SuperAdminDashboardPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/admin/provisioning',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+            <StudentProvisioningPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/admin/students',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+            <SuperAdminStudentDirectoryPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/admin/hierarchy',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+            <OrganizationHierarchyPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/admin/team',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+            <TeamManagementPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/admin/analytics',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+            <SuperAdminAnalyticsPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/admin/audit-logs',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+            <AuditLogsPage />
+          </RoleGuard>
+        ),
+      },
 
       // Shared System Tools
-      { path: '/notifications', element: <NotificationsPage /> },
-      { path: '/reports', element: <ReportsPage /> },
+      {
+        path: '/notifications',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.STUDENT, ROLES.ZONE, ROLES.ADMIN]}>
+            <NotificationsPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/reports',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.STUDENT, ROLES.ZONE, ROLES.ADMIN]}>
+            <ReportsPage />
+          </RoleGuard>
+        ),
+      },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

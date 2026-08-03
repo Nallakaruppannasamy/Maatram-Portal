@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Mail, ArrowLeft, CheckCircle2, Loader2, RefreshCw } from 'lucide-react'
-import { toast } from 'react-toastify'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import { authApi } from '@/api/auth.api'
+import { notify } from '@/utils/toast'
 
 export const ForgotPasswordPage = () => {
   const [identifier, setIdentifier] = useState('')
@@ -27,32 +28,25 @@ export const ForgotPasswordPage = () => {
     e.preventDefault()
     
     if (!identifier.trim()) {
-      toast.error('Please enter your Email Address or Register Number')
+      notify.error('Please enter your Email Address or Register Number')
       return
     }
 
     setIsLoading(true)
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
-      const response = await fetch(`${backendUrl}/api/v1/auth/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: identifier.trim() }),
-      })
+      const data = await authApi.forgotPassword(identifier.trim())
 
-      const data = await response.json()
-
-      if (response.ok && data.success) {
-        toast.success(data.message || 'Reset instructions sent to your email.')
+      if (data.success) {
+        notify.success(data.message || 'Reset instructions sent to your email.')
       } else {
-        toast.info('If an account exists, recovery instructions have been processed.')
+        notify.info('If an account exists, recovery instructions have been processed.')
       }
 
       setSubmitted(true)
       setResendTimer(60)
-    } catch (error) {
-      toast.info('If an account exists, recovery instructions have been processed.')
+    } catch (error: any) {
+      notify.info('If an account exists, recovery instructions have been processed.')
       setSubmitted(true)
       setResendTimer(60)
     } finally {

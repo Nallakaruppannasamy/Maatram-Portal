@@ -1,26 +1,68 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { FileCheck2, Users, Building2, Clock, CheckCircle2, XCircle, ArrowRight, TrendingUp } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { FileCheck2, Users, Building2, Clock, CheckCircle2, ArrowRight, TrendingUp } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { CardSkeleton } from '@/components/ui/CardSkeleton'
+import { TableLoader } from '@/components/ui/TableLoader'
+import { volunteerApi } from '@/api/volunteer.api'
+import { studentApi } from '@/api/student.api'
 
 export const ZoneDashboardPage = () => {
+  const { data: volunteersRes, isLoading: isVolunteersLoading } = useQuery({
+    queryKey: ['volunteers'],
+    queryFn: () => volunteerApi.list(),
+  })
+
+  const { data: studentsRes, isLoading: isStudentsLoading } = useQuery({
+    queryKey: ['students'],
+    queryFn: () => studentApi.list(),
+  })
+
+  const volunteers = volunteersRes?.data || []
+  const students = studentsRes?.data || []
+
+  const pendingLogs = volunteers.filter(
+    (v) => v.status === 'pending' || v.status === 'PENDING'
+  )
+  const approvedLogs = volunteers.filter(
+    (v) => v.status === 'approved' || v.status === 'APPROVED'
+  )
+  const rejectedLogs = volunteers.filter(
+    (v) => v.status === 'rejected' || v.status === 'REJECTED'
+  )
+
+  const totalApprovedHours = approvedLogs.reduce((acc, curr) => acc + (Number(curr.hours) || 0), 0)
+
+  const reviewedTotal = approvedLogs.length + rejectedLogs.length
+  const approvalRate = reviewedTotal > 0 ? ((approvedLogs.length / reviewedTotal) * 100).toFixed(1) : '100'
+
+  if (isVolunteersLoading || isStudentsLoading) {
+    return (
+      <div className="space-y-8 animate-in fade-in duration-300">
+        <CardSkeleton count={4} />
+        <TableLoader rows={4} columns={6} />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Zone Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <Badge variant="info">Zone 1 Workspace</Badge>
-            <span className="text-xs text-[#76777d]">Chennai & Kanchipuram Region</span>
+            <Badge variant="info">Zone Workspace</Badge>
+            <span className="text-xs text-[#76777d]">Regional Management Space</span>
           </div>
           <h2 className="text-2xl font-extrabold text-[#111827] tracking-tight mt-1">Zone Incharge Dashboard</h2>
-          <p className="text-xs text-[#45464c]">Manage volunteer approvals, students, and colleges assigned to your zone.</p>
+          <p className="text-xs text-[#45464c]">Manage volunteer approvals and students assigned to your zone.</p>
         </div>
         <Link to="/zone/approvals">
           <Button variant="gold" size="md" icon={<FileCheck2 className="w-4 h-4" />}>
-            Review Pending Approvals (5)
+            Review Pending Approvals ({pendingLogs.length})
           </Button>
         </Link>
       </div>
@@ -34,8 +76,10 @@ export const ZoneDashboardPage = () => {
               <Users className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-3xl font-extrabold text-[#111827] mt-3">480 <span className="text-xs font-normal text-[#76777d]">students</span></p>
-          <p className="text-xs text-emerald-600 font-semibold mt-2">Across 8 colleges</p>
+          <p className="text-3xl font-extrabold text-[#111827] mt-3">
+            {students.length} <span className="text-xs font-normal text-[#76777d]">students</span>
+          </p>
+          <p className="text-xs text-emerald-600 font-semibold mt-2">Active Scholars</p>
         </Card>
 
         <Card>
@@ -45,7 +89,9 @@ export const ZoneDashboardPage = () => {
               <Clock className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-3xl font-extrabold text-[#D4AF37] mt-3">5 <span className="text-xs font-normal text-[#76777d]">submissions</span></p>
+          <p className="text-3xl font-extrabold text-[#D4AF37] mt-3">
+            {pendingLogs.length} <span className="text-xs font-normal text-[#76777d]">submissions</span>
+          </p>
           <p className="text-xs text-amber-600 font-semibold mt-2">Requires review</p>
         </Card>
 
@@ -56,9 +102,11 @@ export const ZoneDashboardPage = () => {
               <CheckCircle2 className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-3xl font-extrabold text-[#111827] mt-3">8,420 <span className="text-xs font-normal text-[#76777d]">hrs</span></p>
+          <p className="text-3xl font-extrabold text-[#111827] mt-3">
+            {totalApprovedHours} <span className="text-xs font-normal text-[#76777d]">hrs</span>
+          </p>
           <p className="text-xs text-emerald-600 font-semibold mt-2 flex items-center gap-1">
-            <TrendingUp className="w-3.5 h-3.5" /> +140 hrs this week
+            <TrendingUp className="w-3.5 h-3.5" /> {approvedLogs.length} approved entries
           </p>
         </Card>
 
@@ -69,7 +117,7 @@ export const ZoneDashboardPage = () => {
               <Building2 className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-3xl font-extrabold text-[#111827] mt-3">94.2%</p>
+          <p className="text-3xl font-extrabold text-[#111827] mt-3">{approvalRate}%</p>
           <p className="text-xs text-[#76777d] mt-2">Zone Average</p>
         </Card>
       </div>
@@ -89,59 +137,49 @@ export const ZoneDashboardPage = () => {
         </CardHeader>
 
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-[#111827]">
-              <thead>
-                <tr className="border-b border-[#E5E7EB] text-[#76777d] uppercase tracking-wider text-[10px]">
-                  <th className="py-3 px-3 font-bold">Student Name & Reg</th>
-                  <th className="py-3 px-3 font-bold">College</th>
-                  <th className="py-3 px-3 font-bold">Activity Title</th>
-                  <th className="py-3 px-3 font-bold">Hours</th>
-                  <th className="py-3 px-3 font-bold">Event Date</th>
-                  <th className="py-3 px-3 font-bold">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E5E7EB]">
-                <tr>
-                  <td className="py-3.5 px-3">
-                    <p className="font-bold text-[#111827]">Ananya Sharma</p>
-                    <p className="text-[10px] text-[#76777d]">2024CS1092</p>
-                  </td>
-                  <td className="py-3.5 px-3 text-[#45464c]">MIT Chennai</td>
-                  <td className="py-3.5 px-3 font-bold">Community Cleanliness Drive</td>
-                  <td className="py-3.5 px-3 font-extrabold text-[#D4AF37]">4.0 hrs</td>
-                  <td className="py-3.5 px-3 text-[#76777d]">Jul 24, 2026</td>
-                  <td className="py-3.5 px-3">
-                    <Link to="/zone/approvals">
-                      <Button variant="gold" size="sm">
-                        Review Proof
-                      </Button>
-                    </Link>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td className="py-3.5 px-3">
-                    <p className="font-bold text-[#111827]">Karthik Raja</p>
-                    <p className="text-[10px] text-[#76777d]">2024ME1105</p>
-                  </td>
-                  <td className="py-3.5 px-3 text-[#45464c]">College of Engg Guindy</td>
-                  <td className="py-3.5 px-3 font-bold">Digital Literacy Workshop</td>
-                  <td className="py-3.5 px-3 font-extrabold text-[#D4AF37]">8.0 hrs</td>
-                  <td className="py-3.5 px-3 text-[#76777d]">Jul 22, 2026</td>
-                  <td className="py-3.5 px-3">
-                    <Link to="/zone/approvals">
-                      <Button variant="gold" size="sm">
-                        Review Proof
-                      </Button>
-                    </Link>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          {pendingLogs.length === 0 ? (
+            <div className="py-8 text-center text-xs text-gray-500">
+              No pending volunteer logs requiring approval. All submissions reviewed!
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-[#111827]">
+                <thead>
+                  <tr className="border-b border-[#E5E7EB] text-[#76777d] uppercase tracking-wider text-[10px]">
+                    <th className="py-3 px-3 font-bold">Activity Title</th>
+                    <th className="py-3 px-3 font-bold">Category</th>
+                    <th className="py-3 px-3 font-bold">Hours</th>
+                    <th className="py-3 px-3 font-bold">Event Date</th>
+                    <th className="py-3 px-3 font-bold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E5E7EB]">
+                  {pendingLogs.slice(0, 5).map((log) => (
+                    <tr key={log.id}>
+                      <td className="py-3.5 px-3">
+                        <p className="font-bold text-[#111827]">{log.title}</p>
+                        <p className="text-[10px] text-[#76777d]">{log.organization}</p>
+                      </td>
+                      <td className="py-3.5 px-3 text-[#45464c]">{log.category}</td>
+                      <td className="py-3.5 px-3 font-extrabold text-[#D4AF37]">{log.hours} hrs</td>
+                      <td className="py-3.5 px-3 text-[#76777d]">{log.eventDate}</td>
+                      <td className="py-3.5 px-3">
+                        <Link to="/zone/approvals">
+                          <Button variant="gold" size="sm">
+                            Review Proof
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   )
 }
+
+export default ZoneDashboardPage

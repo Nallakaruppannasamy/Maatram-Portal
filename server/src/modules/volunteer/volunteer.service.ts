@@ -184,39 +184,56 @@ class VolunteerService {
   }
 
   /**
-   * Changes the status of a volunteer using the state machine.
+   * Changes the status of a volunteer or volunteer submission.
    */
   async changeStatus(
     id: string,
-    newStatus: VolunteerProfileStatus,
+    newStatus: string,
     actorId: string,
     actorRole: AuditActorRole
-  ): Promise<VolunteerWithRelations> {
+  ): Promise<any> {
+    const statusStr = String(newStatus).toLowerCase();
+    const isSubmissionStatus = ['pending', 'approved', 'rejected'].includes(statusStr);
+
+    if (isSubmissionStatus) {
+      const statusValue = statusStr as any;
+      const updatedSubmission = await prisma.volunteerSubmission.update({
+        where: { id },
+        data: {
+          status: statusValue,
+          reviewedById: actorId,
+          reviewedAt: new Date(),
+        },
+        include: { student: true, zone: true },
+      });
+      return updatedSubmission;
+    }
+
+    const upperStatus = newStatus.toUpperCase() as VolunteerProfileStatus;
     const volunteer = await volunteerRepository.findById(id);
     if (!volunteer) {
-      throw ApiError.notFound(`Volunteer with ID "${id}" not found`);
+      throw ApiError.notFound(`Volunteer or Submission with ID "${id}" not found`);
     }
 
     const currentStatus = volunteer.status;
     const allowedTransitions = ALLOWED_STATUS_TRANSITIONS[currentStatus];
 
-    if (!allowedTransitions.includes(newStatus)) {
+    if (!allowedTransitions.includes(upperStatus)) {
       throw ApiError.badRequest(
-        `Invalid status transition: cannot change from "${currentStatus}" to "${newStatus}". ` +
+        `Invalid status transition: cannot change from "${currentStatus}" to "${upperStatus}". ` +
           (allowedTransitions.length > 0
             ? `Allowed: ${allowedTransitions.join(', ')}`
             : 'This status is terminal and cannot be changed.')
       );
     }
 
-    const updated = await volunteerRepository.updateStatus(id, newStatus);
+    const updated = await volunteerRepository.updateStatus(id, upperStatus);
 
-    // Determine audit action
     const auditAction =
-      newStatus === VolunteerProfileStatus.ACTIVE
+      upperStatus === VolunteerProfileStatus.ACTIVE
         ? VOLUNTEER_AUDIT_ACTIONS.VOLUNTEER_REACTIVATED
-        : newStatus === VolunteerProfileStatus.EXITED ||
-            newStatus === VolunteerProfileStatus.SUSPENDED
+        : upperStatus === VolunteerProfileStatus.EXITED ||
+            upperStatus === VolunteerProfileStatus.SUSPENDED
           ? VOLUNTEER_AUDIT_ACTIONS.VOLUNTEER_DEACTIVATED
           : VOLUNTEER_AUDIT_ACTIONS.VOLUNTEER_STATUS_CHANGED;
 
@@ -227,11 +244,11 @@ class VolunteerService {
       targetEntityType: 'volunteer',
       targetEntityId: volunteer.id,
       targetLabel: `${volunteer.firstName} ${volunteer.lastName} (${volunteer.volunteerId})`,
-      details: `Volunteer status changed from "${currentStatus}" to "${newStatus}" by actor ${actorId}`,
+      details: `Volunteer status changed from "${currentStatus}" to "${upperStatus}" by actor ${actorId}`,
     });
 
     logger.info(
-      `[VOLUNTEER_STATUS_CHANGED] Volunteer ${volunteer.volunteerId}: ${currentStatus} → ${newStatus}`
+      `[VOLUNTEER_STATUS_CHANGED] Volunteer ${volunteer.volunteerId}: ${currentStatus} → ${upperStatus}`
     );
 
     return {
@@ -241,12 +258,47 @@ class VolunteerService {
   }
 
   /**
-   * Lists volunteers with pagination, search, sorting, and filtering.
+   * Lists volunteers or volunteer submissions with pagination, search, and filtering.
    */
   async listVolunteers(queryParams: QueryParams): Promise<{
-    items: (VolunteerWithRelations & { fullName: string })[];
+    items: any[];
     meta: ReturnType<typeof buildPaginationMeta>;
   }> {
+    const rawStatus = queryParams.status ? String(queryParams.status).trim() : undefined;
+    const lowerStatus = rawStatus ? rawStatus.toLowerCase() : undefined;
+
+    const SUBMISSION_STATUSES = ['pending', 'approved', 'rejected'];
+    const PROFILE_STATUSES = ['active', 'inactive', 'on_leave', 'suspended', 'exited'];
+
+    if (
+      lowerStatus &&
+      !SUBMISSION_STATUSES.includes(lowerStatus) &&
+      !PROFILE_STATUSES.includes(lowerStatus)
+    ) {
+      throw ApiError.badRequest(
+        `Invalid status filter value: "${rawStatus}". Supported status values are: pending, approved, rejected, active, inactive, on_leave, suspended, exited.`
+      );
+    }
+
+    const isSubmissionQuery = lowerStatus ? SUBMISSION_STATUSES.includes(lowerStatus) : false;
+
+    if (isSubmissionQuery) {
+      const { items, total } = await volunteerRepository.listSubmissions({
+        page: queryParams.page as number,
+        limit: queryParams.limit as number,
+        search: queryParams.search as string,
+        status: lowerStatus,
+      });
+
+      return {
+        items,
+        meta: buildPaginationMeta(total, {
+          page: (queryParams.page as number) || 1,
+          limit: (queryParams.limit as number) || 10,
+        }),
+      };
+    }
+
     const options: VolunteerQueryOptions = {
       page: queryParams.page as number,
       limit: queryParams.limit as number,
@@ -255,7 +307,7 @@ class VolunteerService {
       sortOrder: queryParams.sortOrder as 'asc' | 'desc',
       organizationId: queryParams.organizationId as string,
       zoneId: queryParams.zoneId as string,
-      status: queryParams.status as VolunteerProfileStatus,
+      status: lowerStatus ? (lowerStatus.toUpperCase() as VolunteerProfileStatus) : undefined,
       volunteerType: queryParams.volunteerType as string,
       skill: queryParams.skill as string,
     };

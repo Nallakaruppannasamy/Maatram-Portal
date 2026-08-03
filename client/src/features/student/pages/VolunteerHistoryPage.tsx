@@ -1,58 +1,38 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { History, Plus, Filter, Search, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
+import { useQuery } from '@tanstack/react-query'
+import { Plus, Search, Filter } from 'lucide-react'
+import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Input } from '@/components/ui/Input'
+import { TableLoader } from '@/components/ui/TableLoader'
+import { volunteerApi } from '@/api/volunteer.api'
+import { useDebounce } from '@/hooks/useDebounce'
+
+const safeString = (val: any, fallback: string = 'N/A'): string => {
+  if (val === null || val === undefined) return fallback
+  if (typeof val === 'string' || typeof val === 'number') return String(val)
+  if (typeof val === 'object') {
+    if (val.name) return String(val.name)
+    if (val.fullName) return String(val.fullName)
+    if (val.title) return String(val.title)
+    if (val.code) return String(val.code)
+  }
+  return fallback
+}
 
 export const VolunteerHistoryPage = () => {
-  const historyLogs = [
-    {
-      id: 'VLOG-1092-01',
-      title: 'Blood Donation Drive Coordination',
-      category: 'Healthcare',
-      organization: 'Red Cross / Maatram',
-      hours: 6.0,
-      date: 'Jul 20, 2026',
-      status: 'approved',
-      reviewer: 'Dr. Ramesh Kumar',
-      comment: 'Excellent coordination work. Proof verified.',
-    },
-    {
-      id: 'VLOG-1092-02',
-      title: 'Rural Science Fair Mentorship',
-      category: 'Education',
-      organization: 'Govt Higher Sec School',
-      hours: 12.0,
-      date: 'Jul 14, 2026',
-      status: 'approved',
-      reviewer: 'Dr. Ramesh Kumar',
-      comment: 'Verified with school principal attendance letter.',
-    },
-    {
-      id: 'VLOG-1092-03',
-      title: 'Community Cleanliness Drive',
-      category: 'Environment',
-      organization: 'NSS Unit 4',
-      hours: 4.0,
-      date: 'Jul 24, 2026',
-      status: 'pending',
-      reviewer: 'Pending Zone Review',
-      comment: 'Under review by Zone Incharge.',
-    },
-    {
-      id: 'VLOG-1092-04',
-      title: 'Tree Plantation Campaign',
-      category: 'Environment',
-      organization: 'Green Earth Trust',
-      hours: 5.0,
-      date: 'Jun 10, 2026',
-      status: 'rejected',
-      reviewer: 'Dr. Ramesh Kumar',
-      comment: 'Proof photo missing clear date stamp. Please resubmit with event photo.',
-    },
-  ]
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('')
+  const debouncedSearch = useDebounce(searchTerm, 400)
+
+  const { data: volunteersRes, isLoading } = useQuery({
+    queryKey: ['volunteers', debouncedSearch, statusFilter],
+    queryFn: () => volunteerApi.list({ search: debouncedSearch, status: statusFilter || undefined }),
+  })
+
+  const historyLogs = volunteersRes?.data || []
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -71,58 +51,84 @@ export const VolunteerHistoryPage = () => {
       <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="relative w-72">
-            <Input icon={<Search className="w-4 h-4" />} placeholder="Search activity title..." />
+            <Input
+              icon={<Search className="w-4 h-4" />}
+              placeholder="Search activity title..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" icon={<Filter className="w-4 h-4" />}>
-              Filter Status
-            </Button>
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-[#76777d]" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="bg-white border border-[#E5E7EB] rounded-xl px-3 py-1.5 text-xs text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50"
+            >
+              <option value="">All Statuses</option>
+              <option value="APPROVED">Approved</option>
+              <option value="PENDING">Pending Review</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
           </div>
         </CardHeader>
 
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-[#111827]">
-              <thead>
-                <tr className="border-b border-[#E5E7EB] text-[#76777d] uppercase tracking-wider text-[10px]">
-                  <th className="py-3 px-3 font-bold">ID / Title</th>
-                  <th className="py-3 px-3 font-bold">Category</th>
-                  <th className="py-3 px-3 font-bold">Organization</th>
-                  <th className="py-3 px-3 font-bold">Hours</th>
-                  <th className="py-3 px-3 font-bold">Event Date</th>
-                  <th className="py-3 px-3 font-bold">Status</th>
-                  <th className="py-3 px-3 font-bold">Reviewer Feedback</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E5E7EB]">
-                {historyLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-[#FCF8FA] transition-colors">
-                    <td className="py-3.5 px-3">
-                      <p className="font-bold text-[#111827]">{log.title}</p>
-                      <p className="text-[10px] text-[#76777d] font-mono">{log.id}</p>
-                    </td>
-                    <td className="py-3.5 px-3 text-[#45464c] font-medium">{log.category}</td>
-                    <td className="py-3.5 px-3 text-[#45464c]">{log.organization}</td>
-                    <td className="py-3.5 px-3 font-extrabold text-[#111827]">{log.hours} hrs</td>
-                    <td className="py-3.5 px-3 text-[#76777d]">{log.date}</td>
-                    <td className="py-3.5 px-3">
-                      <Badge
-                        variant={log.status === 'approved' ? 'approved' : log.status === 'pending' ? 'pending' : 'rejected'}
-                      >
-                        {log.status === 'approved' ? 'Approved' : log.status === 'pending' ? 'Pending' : 'Rejected'}
-                      </Badge>
-                    </td>
-                    <td className="py-3.5 px-3 max-w-xs">
-                      <p className="text-[11px] text-[#45464c] truncate">{log.comment}</p>
-                      <p className="text-[10px] text-[#76777d] font-semibold">{log.reviewer}</p>
-                    </td>
+          {isLoading ? (
+            <TableLoader rows={5} columns={7} />
+          ) : historyLogs.length === 0 ? (
+            <div className="py-12 text-center text-xs text-gray-500">
+              No volunteer submission records found.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-[#111827]">
+                <thead>
+                  <tr className="border-b border-[#E5E7EB] text-[#76777d] uppercase tracking-wider text-[10px]">
+                    <th className="py-3 px-3 font-bold">Activity Title</th>
+                    <th className="py-3 px-3 font-bold">Category</th>
+                    <th className="py-3 px-3 font-bold">Organization</th>
+                    <th className="py-3 px-3 font-bold">Hours</th>
+                    <th className="py-3 px-3 font-bold">Event Date</th>
+                    <th className="py-3 px-3 font-bold">Status</th>
+                    <th className="py-3 px-3 font-bold">Reviewer Feedback</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-[#E5E7EB]">
+                  {historyLogs.map((log: any) => {
+                    const isApproved = log.status === 'approved' || log.status === 'APPROVED'
+                    const isRejected = log.status === 'rejected' || log.status === 'REJECTED'
+                    return (
+                      <tr key={log.id} className="hover:bg-[#FCF8FA] transition-colors">
+                        <td className="py-3.5 px-3">
+                          <p className="font-bold text-[#111827]">{safeString(log.title, 'Activity')}</p>
+                          <p className="text-[10px] text-[#76777d] font-mono">{log.id}</p>
+                        </td>
+                        <td className="py-3.5 px-3 text-[#45464c] font-medium">{safeString(log.category, 'General')}</td>
+                        <td className="py-3.5 px-3 text-[#45464c]">{safeString(log.organization, 'Partner Org')}</td>
+                        <td className="py-3.5 px-3 font-extrabold text-[#111827]">{log.hours} hrs</td>
+                        <td className="py-3.5 px-3 text-[#76777d]">{safeString(log.eventDate, 'N/A')}</td>
+                        <td className="py-3.5 px-3">
+                          <Badge variant={isApproved ? 'approved' : isRejected ? 'rejected' : 'pending'}>
+                            {isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending Review'}
+                          </Badge>
+                        </td>
+                        <td className="py-3.5 px-3 max-w-xs">
+                          <p className="text-[11px] text-[#45464c] truncate">
+                            {log.reviewerComment || (isApproved ? 'Verified by Zone Incharge.' : 'Under review.')}
+                          </p>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   )
 }
+
+export default VolunteerHistoryPage

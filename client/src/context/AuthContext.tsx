@@ -1,56 +1,139 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { AuthUser } from '@/types/api'
+import { UserRole } from '@/constants/roles'
+import { authApi, LoginPayload } from '@/api/auth.api'
+import {
+  getAccessToken,
+  getStoredUser,
+  setAccessToken,
+  setRefreshToken,
+  setStoredUser,
+  clearAuthStorage,
+} from '@/utils/token'
 
-export type UserRole = 'student' | 'zone_incharge' | 'super_admin'
-
-export interface User {
-  id: string
-  name: string
-  email?: string
-  regNumber?: string
-  role: UserRole
-  isFirstTimeUser?: boolean
-}
+export type { UserRole } from '@/constants/roles'
 
 interface AuthContextType {
-  user: User | null
+  user: AuthUser | null
+  accessToken: string | null
   token: string | null
+  loading: boolean
   isAuthenticated: boolean
-  login: (userData: User, authToken: string) => void
-  logout: () => void
-  updateUser: (updatedData: Partial<User>) => void
+  login: ((payload: LoginPayload) => Promise<AuthUser>) &
+    ((userData: AuthUser, token: string, refreshToken?: string) => void)
+  loginWithTokens: (user: AuthUser, accessToken: string, refreshToken?: string) => void
+  logout: () => Promise<void>
+  refresh: () => Promise<void>
+  getCurrentUser: () => Promise<AuthUser | null>
+  updateCurrentUser: (updatedData: Partial<AuthUser>) => void
+  updateUser: (updatedData: Partial<AuthUser>) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const savedUser = localStorage.getItem('svms_user')
-    return savedUser ? JSON.parse(savedUser) : null
-  })
+  const [user, setUser] = useState<AuthUser | null>(() => getStoredUser())
+  const [accessToken, setAccessTokenState] = useState<string | null>(() => getAccessToken())
+  const [loading, setLoading] = useState<boolean>(true)
 
-  const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem('svms_token') || null
-  })
+  useEffect(() => {
+    const initAuth = async () => {
+      const token = getAccessToken()
+      if (token) {
+        try {
+          const res = await authApi.getMe()
+          if (res.success && res.data) {
+            setUser(res.data)
+            setStoredUser(res.data)
+          }
+        } catch {
+          // Token might be invalid or expired; state preserved from token utils
+        }
+      }
+      setLoading(false)
+    }
+    initAuth()
+  }, [])
 
-  const login = (userData: User, authToken: string) => {
+  const loginWithTokens = (userData: AuthUser, token: string, refreshToken?: string) => {
     setUser(userData)
-    setToken(authToken)
-    localStorage.setItem('svms_user', JSON.stringify(userData))
-    localStorage.setItem('svms_token', authToken)
+    setAccessTokenState(token)
+    setAccessToken(token)
+    setStoredUser(userData)
+    if (refreshToken) {
+      setRefreshToken(refreshToken)
+    }
   }
 
-  const logout = () => {
-    setUser(null)
-    setToken(null)
-    localStorage.removeItem('svms_user')
-    localStorage.removeItem('svms_token')
+  const login = ((arg1: LoginPayload | AuthUser, arg2?: string, arg3?: string): any => {
+    if (typeof arg2 === 'string') {
+      // Legacy signature: login(user, accessToken, refreshToken)
+      loginWithTokens(arg1 as AuthUser, arg2, arg3)
+      return
+    }
+
+    // Standard signature: login(payload)
+    const payload = arg1 as LoginPayload
+    setLoading(true)
+    return authApi.login(payload).then((res) => {
+      setLoading(false)
+      if (res.success && res.data) {
+        const { user: loggedInUser, accessToken: token, refreshToken } = res.data
+        loginWithTokens(loggedInUser, token, refreshToken)
+        return loggedInUser
+      } else {
+        throw new Error(res.message || 'Login failed')
+      }
+    }).catch((err) => {
+      setLoading(false)
+      throw err
+    })
+  }) as AuthContextType['login']
+
+  const logout = async (): Promise<void> => {
+    try {
+      await authApi.logout()
+    } catch {
+      // Ignore API logout error if network fails
+    } finally {
+      setUser(null)
+      setAccessTokenState(null)
+      clearAuthStorage()
+    }
   }
 
-  const updateUser = (updatedData: Partial<User>) => {
+  const refresh = async (): Promise<void> => {
+    const refreshToken = localStorage.getItem('svms_refresh_token')
+    if (!refreshToken) return
+    const res = await authApi.refresh(refreshToken)
+    if (res.success && res.data) {
+      setAccessTokenState(res.data.accessToken)
+      setAccessToken(res.data.accessToken)
+      if (res.data.newRefreshToken) {
+        setRefreshToken(res.data.newRefreshToken)
+      }
+    }
+  }
+
+  const getCurrentUser = async (): Promise<AuthUser | null> => {
+    try {
+      const res = await authApi.getMe()
+      if (res.success && res.data) {
+        setUser(res.data)
+        setStoredUser(res.data)
+        return res.data
+      }
+    } catch {
+      return user
+    }
+    return user
+  }
+
+  const updateCurrentUser = (updatedData: Partial<AuthUser>) => {
     setUser((prev) => {
       if (!prev) return null
       const updated = { ...prev, ...updatedData }
-      localStorage.setItem('svms_user', JSON.stringify(updated))
+      setStoredUser(updated)
       return updated
     })
   }
@@ -59,11 +142,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     <AuthContext.Provider
       value={{
         user,
-        token,
-        isAuthenticated: !!token,
+        accessToken,
+        token: accessToken,
+        loading,
+        isAuthenticated: !!accessToken && !!user,
         login,
+        loginWithTokens,
         logout,
-        updateUser,
+        refresh,
+        getCurrentUser,
+        updateCurrentUser,
+        updateUser: updateCurrentUser,
       }}
     >
       {children}

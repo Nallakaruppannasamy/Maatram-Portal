@@ -196,6 +196,42 @@ export class VolunteerRepository {
   }
 
   /**
+   * Lists volunteer activity submissions from VolunteerSubmission table.
+   */
+  async listSubmissions(options: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+  }): Promise<{ items: any[]; total: number }> {
+    const page = options.page || 1;
+    const limit = options.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const where: Record<string, unknown> = {};
+    if (options.status) {
+      where.status = options.status.toLowerCase();
+    }
+
+    if (options.search && options.search.trim()) {
+      where.title = { contains: options.search.trim(), mode: 'insensitive' };
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.volunteerSubmission.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: { student: true, zone: true },
+      }),
+      prisma.volunteerSubmission.count({ where }),
+    ]);
+
+    return { items, total };
+  }
+
+  /**
    * Builds a reusable Prisma WHERE clause from query options.
    */
   private buildWhereClause(options: VolunteerQueryOptions): Record<string, unknown> {
@@ -203,7 +239,12 @@ export class VolunteerRepository {
 
     if (options.organizationId) where.organizationId = options.organizationId;
     if (options.zoneId) where.zoneId = options.zoneId;
-    if (options.status) where.status = options.status;
+    if (options.status) {
+      const upperStatus = String(options.status).toUpperCase();
+      if (Object.values(VolunteerProfileStatus).includes(upperStatus as VolunteerProfileStatus)) {
+        where.status = upperStatus as VolunteerProfileStatus;
+      }
+    }
     if (options.volunteerType)
       where.volunteerType = { contains: options.volunteerType, mode: 'insensitive' };
 

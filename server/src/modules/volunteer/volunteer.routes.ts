@@ -38,7 +38,7 @@ router.put(
 );
 router.patch(
   '/:id/status',
-  requireRole('admin'),
+  requireRole('admin', 'zone'),
   validate(changeVolunteerStatusSchema),
   volunteerController.changeStatus
 );
