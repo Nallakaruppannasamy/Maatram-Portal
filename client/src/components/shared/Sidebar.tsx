@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import {
   LayoutDashboard,
   User,
@@ -14,23 +15,31 @@ import {
   CheckSquare,
   History,
   FileSpreadsheet,
-  Settings,
   LogOut,
   FolderGit2,
   ChevronLeft,
   ChevronRight,
-  Award
+  LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
 import { assets } from '@/assets'
+import { UserRole } from '@/constants/roles'
+import { volunteerApi } from '@/api/volunteer.api'
 
-export type UserRole = 'student' | 'zone' | 'admin'
+export type { UserRole }
 
 interface UserProfile {
   name?: string
   regNumber?: string
   avatarUrl?: string
+}
+
+interface NavItem {
+  title: string
+  path: string
+  icon: LucideIcon
+  badge?: string
 }
 
 interface SidebarProps {
@@ -44,37 +53,49 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeRole, user, onLogout }) 
   const location = useLocation()
   const navigate = useNavigate()
 
-  // Fallback logout handler if not passed directly via props
+  // Fetch live pending volunteer approvals count for Zone role
+  const { data: pendingVolunteersRes } = useQuery({
+    queryKey: ['volunteers', 'pending-count'],
+    queryFn: () => volunteerApi.list({ status: 'pending' }),
+    enabled: activeRole === 'zone',
+  })
+
+  const pendingCount = pendingVolunteersRes?.data?.length || 0
+
   const handleLogout = () => {
     if (onLogout) {
       onLogout()
     } else {
-      // Default fallback navigation to auth page
       navigate('/login')
     }
   }
 
-  // Navigation Items Mapping per Role
-  const studentNav = [
+  // Navigation Items Mapping per Role (Cleaned of static/hardcoded badges)
+  const studentNav: NavItem[] = [
     { title: 'Dashboard', path: '/student/dashboard', icon: LayoutDashboard },
     { title: 'My Profile', path: '/student/profile', icon: User },
-    { title: 'Log Volunteer Work', path: '/student/volunteer-submit', icon: HeartHandshake, badge: '2' },
+    { title: 'Log Volunteer Work', path: '/student/volunteer-submit', icon: HeartHandshake },
     { title: 'Volunteer History', path: '/student/volunteer-history', icon: History },
-    { title: 'Resume Builder', path: '/student/resume', icon: FileText, badge: 'QR Verified' },
+    { title: 'Resume Builder', path: '/student/resume', icon: FileText },
   ]
 
-  const zoneNav = [
+  const zoneNav: NavItem[] = [
     { title: 'Zone Dashboard', path: '/zone/dashboard', icon: LayoutDashboard },
-    { title: 'Pending Approvals', path: '/zone/approvals', icon: FileCheck2, badge: '5 Pending' },
+    {
+      title: 'Pending Approvals',
+      path: '/zone/approvals',
+      icon: FileCheck2,
+      badge: pendingCount > 0 ? `${pendingCount} Pending` : undefined,
+    },
     { title: 'Zone Students', path: '/zone/students', icon: Users },
     { title: 'Assigned Colleges', path: '/zone/colleges', icon: Building2 },
     { title: 'Zone Analytics', path: '/zone/analytics', icon: BarChart3 },
     { title: 'Zone Profile', path: '/zone/profile', icon: User },
   ]
 
-  const adminNav = [
+  const adminNav: NavItem[] = [
     { title: 'Global Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { title: 'Excel Provisioning', path: '/admin/provisioning', icon: FileSpreadsheet, badge: 'Import' },
+    { title: 'Excel Provisioning', path: '/admin/provisioning', icon: FileSpreadsheet },
     { title: 'Student Directory', path: '/admin/students', icon: Users },
     { title: 'Organization Hierarchy', path: '/admin/hierarchy', icon: FolderGit2 },
     { title: 'Team Management', path: '/admin/team', icon: ShieldCheck },
@@ -82,8 +103,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeRole, user, onLogout }) 
     { title: 'Audit Logs', path: '/admin/audit-logs', icon: CheckSquare },
   ]
 
-  const commonNav = [
-    { title: 'Notifications', path: '/notifications', icon: Bell, badge: '3' },
+  const commonNav: NavItem[] = [
+    { title: 'Notifications', path: '/notifications', icon: Bell },
     { title: 'Export Reports', path: '/reports', icon: FileText },
   ]
 
@@ -203,7 +224,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeRole, user, onLogout }) 
 
                 {/* Badge Indicator */}
                 {item.badge && !isCollapsed && (
-                  <Badge variant={isActive ? 'gold' : 'neutral'} size="sm">
+                  <Badge variant={isActive ? 'gold' : 'pending'} size="sm">
                     {item.badge}
                   </Badge>
                 )}

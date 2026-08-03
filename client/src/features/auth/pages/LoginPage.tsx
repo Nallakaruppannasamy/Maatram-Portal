@@ -14,21 +14,17 @@ import {
   KeyRound,
   AlertCircle
 } from 'lucide-react'
-import axios from 'axios'
-import { toast } from 'react-toastify'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { assets } from '@/assets'
-import { useAuth } from '../../../context/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
+import { notify } from '@/utils/toast'
 
 export type AuthRole = 'student' | 'zone_incharge' | 'super_admin'
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate()
   const { login } = useAuth()
-
-  // 12. Environment Variable Configuration
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
   // 1. Explicit 3-Role Segmentation State
   const [selectedRole, setSelectedRole] = useState<AuthRole>('student')
@@ -39,16 +35,16 @@ export const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('')
 
   // UI & Interactive States
-  const [loading, setLoading] = useState(false) // 14. Form Submission Rate Mitigation
-  const [showPassword, setShowPassword] = useState(false) // 5. Interactive Password Visibility Toggle
-  const [error, setError] = useState('') // 9. Inline Field Error Highlights
+  const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('')
 
-  // 7. Client-Side Validation Flags
+  // Client-Side Validation Flags
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   const isPasswordValid = password.length >= 6
   const isRegValid = regNumber.trim().length >= 4
 
-  // 8. Disabled Button State Guard
+  // Disabled Button State Guard
   const isFormValid =
     selectedRole === 'student'
       ? isRegValid && isPasswordValid
@@ -63,7 +59,7 @@ export const LoginPage: React.FC = () => {
     setPassword('')
   }
 
-  // 6. Live Input Formatting for Registration Number
+  // Live Input Formatting for Registration Number
   const handleRegNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = e.target.value.toUpperCase().replace(/\s+/g, '')
     setRegNumber(formatted)
@@ -78,7 +74,6 @@ export const LoginPage: React.FC = () => {
     setLoading(true)
 
     try {
-      // 10. Dual Identifier Payload Handling (backend expects 'identifier' and 'password')
       const identifier =
         selectedRole === 'student'
           ? regNumber.trim().toUpperCase()
@@ -89,50 +84,41 @@ export const LoginPage: React.FC = () => {
         password,
       }
 
-      const response = await axios.post(`${backendUrl}/api/v1/auth/login`, payload)
+      // Call centralized AuthContext login / API service
+      const user = await login(payload)
 
-      if (response.data.success) {
-        const { accessToken, user } = response.data.data
+      notify.success('Login Successful!')
 
-        // 11. Standardized JWT Local Storage Sync
-        login(user, accessToken)
+      // FIRST-TIME LOGIN PASSWORD CHANGE ENFORCEMENT
+      if (user.isFirstLogin || user.isFirstTimeUser) {
+        notify.info('First-time login detected. Please set up a new password.')
+        navigate('/change-password', { state: { required: true, role: selectedRole } })
+        return
+      }
 
-        // 17. Toast Feedback Notifications
-        toast.success(response.data.message || 'Login Successful!')
-
-        // FIRST-TIME LOGIN PASSWORD CHANGE ENFORCEMENT
-        if (user.isFirstLogin) {
-          toast.info('First-time login detected. Please set up a new password.')
-          navigate('/change-password', { state: { required: true, role: selectedRole } })
-          return
-        }
-
-        // 13. Role-Based Post-Login Routing (backend role enum: 'admin', 'zone', 'student')
-        if (user.role === 'admin') {
-          navigate('/admin/dashboard')
-        } else if (user.role === 'zone') {
-          navigate('/zone/dashboard')
-        } else {
-          navigate('/student/dashboard')
-        }
+      // Role-Based Post-Login Routing (backend role enum: 'admin', 'zone', 'student')
+      if (user.role === 'admin') {
+        navigate('/admin/dashboard')
+      } else if (user.role === 'zone') {
+        navigate('/zone/dashboard')
+      } else {
+        navigate('/student/dashboard')
       }
     } catch (err: any) {
       const errMsg =
-        err.response?.data?.message ||
+        err?.response?.data?.message ||
+        err?.message ||
         'Authentication failed. Please verify your credentials.'
       
-      // 9. Inline Field Error Highlights & 17. Toast Feedback
       setError(errMsg)
-      toast.error(errMsg)
+      notify.error(errMsg)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    // 16. Timeless Altruism Token Colors (#FCF8FA Background)
     <div className="min-h-screen bg-[#FCF8FA] flex items-center justify-center p-4 sm:p-6 lg:p-8 font-sans selection:bg-[#D4AF37]/20 selection:text-[#111827]">
-      {/* 19. Subtle Entrance Animations CSS */}
       <style>{`
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(20px); }
@@ -141,12 +127,10 @@ export const LoginPage: React.FC = () => {
         .animate-login-card { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}</style>
 
-      {/* 3. Responsive Mobile-First Card Layout (1-col on mobile, 2-col on md+) */}
       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 rounded-3xl bg-white border border-[#E5E7EB] shadow-xl overflow-hidden animate-login-card">
         
         {/* LEFT COLUMN: AUTH FORM */}
         <div className="p-8 sm:p-10 flex flex-col justify-center order-2 md:order-1">
-          {/* Brand Header with 15. Assets Fallback Integration */}
           <div className="mb-6">
             <Link to="/" className="inline-flex items-center gap-3 mb-3 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] rounded-xl">
               {assets?.logo ? (
@@ -163,7 +147,6 @@ export const LoginPage: React.FC = () => {
             </p>
           </div>
 
-          {/* 1. Explicit 3-Role Segmentation Controls */}
           <div className="grid grid-cols-3 p-1 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] mb-6">
             {(['student', 'zone_incharge', 'super_admin'] as AuthRole[]).map((role) => (
               <button
@@ -185,7 +168,6 @@ export const LoginPage: React.FC = () => {
             ))}
           </div>
 
-          {/* 9. Inline Field Error Highlights Banner */}
           {error && (
             <div className="mb-5 p-3.5 bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl font-medium flex items-center gap-2.5">
               <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
@@ -193,7 +175,6 @@ export const LoginPage: React.FC = () => {
             </div>
           )}
 
-          {/* Form Fields with 20. Keyboard Navigation & Accessibility */}
           <form onSubmit={handleLoginSubmit} className="space-y-4" noValidate>
             {selectedRole === 'student' ? (
               <div>
@@ -212,10 +193,8 @@ export const LoginPage: React.FC = () => {
                     required
                     aria-required="true"
                     aria-invalid={!isRegValid && regNumber.length > 0}
-                    // 4. Context-Aware Dynamic Form Placeholders
                     placeholder="e.g. 2024CS1092"
                     value={regNumber}
-                    // 6. Live Input Formatting
                     onChange={handleRegNumberChange}
                     className={`w-full pl-10 pr-4 py-3 rounded-xl border text-sm font-semibold text-[#111827] uppercase focus:outline-none focus:ring-2 focus:ring-[#D4AF37] transition-all ${
                       regNumber && !isRegValid
@@ -244,7 +223,6 @@ export const LoginPage: React.FC = () => {
                     required
                     aria-required="true"
                     aria-invalid={!isEmailValid && email.length > 0}
-                    // 4. Context-Aware Dynamic Form Placeholders
                     placeholder={
                       selectedRole === 'zone_incharge'
                         ? 'coordinator@maatram.org'
@@ -284,7 +262,6 @@ export const LoginPage: React.FC = () => {
                 <input
                   id="password"
                   name="password"
-                  // 5. Interactive Password Visibility Toggle State
                   type={showPassword ? 'text' : 'password'}
                   required
                   aria-required="true"
@@ -304,7 +281,6 @@ export const LoginPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 8. Disabled Button State Guard & 14. Submission Rate Mitigation */}
             <Button
               type="submit"
               variant="gold"
@@ -322,7 +298,6 @@ export const LoginPage: React.FC = () => {
             </Button>
           </form>
 
-          {/* First-Time Student Notice */}
           {selectedRole === 'student' && (
             <div className="mt-6 pt-4 border-t border-[#E5E7EB] text-center">
               <p className="text-[11px] text-[#45464c] flex items-center justify-center gap-1.5">
@@ -333,7 +308,7 @@ export const LoginPage: React.FC = () => {
           )}
         </div>
 
-        {/* 2. Visual Right-Side Feature Banner */}
+        {/* RIGHT COLUMN: VISUAL BANNER */}
         <div className="p-8 sm:p-10 bg-[#111827] text-white flex flex-col justify-between order-1 md:order-2 border-b md:border-b-0 md:border-l border-slate-800 relative overflow-hidden">
           <div className="space-y-6 relative z-10">
             <div className="flex items-center justify-between">

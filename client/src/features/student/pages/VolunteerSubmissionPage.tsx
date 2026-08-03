@@ -1,26 +1,65 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { HeartHandshake, UploadCloud, Calendar, Clock, Building, FileText, CheckCircle2, ArrowRight } from 'lucide-react'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { UploadCloud, Calendar, Clock, Building, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { volunteerApi } from '@/api/volunteer.api'
+import { useAuth } from '@/hooks/useAuth'
+import { notify } from '@/utils/toast'
 
 export const VolunteerSubmissionPage = () => {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('Education')
   const [organization, setOrganization] = useState('')
   const [hours, setHours] = useState('4.0')
-  const [eventDate, setEventDate] = useState('2026-07-28')
+  const [eventDate, setEventDate] = useState(new Date().toISOString().split('T')[0])
   const [description, setDescription] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
+  const submitMutation = useMutation({
+    mutationFn: (payload: any) => volunteerApi.create(payload),
+    onSuccess: (res) => {
+      if (res.success) {
+        notify.success('Volunteer log submitted successfully!')
+        queryClient.invalidateQueries({ queryKey: ['volunteers'] })
+        setSubmitted(true)
+        setTimeout(() => {
+          navigate('/student/volunteer-history')
+        }, 1500)
+      } else {
+        notify.error(res.message || 'Failed to submit volunteer log.')
+      }
+    },
+    onError: (err: any) => {
+      notify.error(
+        err?.response?.data?.message || err?.message || 'Error submitting volunteer log.'
+      )
+    },
+  })
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitted(true)
-    setTimeout(() => {
-      navigate('/student/volunteer-history')
-    }, 1500)
+
+    if (!title.trim() || !organization.trim() || !hours || !description.trim()) {
+      notify.error('Please fill in all required fields.')
+      return
+    }
+
+    submitMutation.mutate({
+      studentId: user?.id || '',
+      title: title.trim(),
+      category,
+      organization: organization.trim(),
+      hours: parseFloat(hours) || 0,
+      eventDate,
+      description: description.trim(),
+    })
   }
 
   return (
@@ -41,6 +80,7 @@ export const VolunteerSubmissionPage = () => {
                 placeholder="e.g. Free Tutoring for Government School Students"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                disabled={submitMutation.isPending}
                 required
               />
 
@@ -52,6 +92,7 @@ export const VolunteerSubmissionPage = () => {
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
+                    disabled={submitMutation.isPending}
                     className="w-full bg-[#FFFFFF] border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50"
                   >
                     <option value="Education">Education & Mentorship</option>
@@ -68,6 +109,7 @@ export const VolunteerSubmissionPage = () => {
                   value={organization}
                   onChange={(e) => setOrganization(e.target.value)}
                   icon={<Building className="w-4 h-4" />}
+                  disabled={submitMutation.isPending}
                   required
                 />
               </div>
@@ -81,6 +123,7 @@ export const VolunteerSubmissionPage = () => {
                   value={hours}
                   onChange={(e) => setHours(e.target.value)}
                   icon={<Clock className="w-4 h-4" />}
+                  disabled={submitMutation.isPending}
                   required
                 />
 
@@ -90,6 +133,7 @@ export const VolunteerSubmissionPage = () => {
                   value={eventDate}
                   onChange={(e) => setEventDate(e.target.value)}
                   icon={<Calendar className="w-4 h-4" />}
+                  disabled={submitMutation.isPending}
                   required
                 />
               </div>
@@ -104,11 +148,12 @@ export const VolunteerSubmissionPage = () => {
                   placeholder="Describe your specific contributions, responsibilities, and outcomes during the event..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  disabled={submitMutation.isPending}
                   required
                 />
               </div>
 
-              {/* File Dropzone */}
+              {/* File Dropzone Placeholder */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider">
                   Upload Proof Image / Certificate Evidence
@@ -121,8 +166,22 @@ export const VolunteerSubmissionPage = () => {
               </div>
             </div>
 
-            <Button type="submit" variant="gold" size="lg" className="w-full font-bold" icon={<ArrowRight className="w-4 h-4" />}>
-              Submit Log for Zone Approval
+            <Button
+              type="submit"
+              variant="gold"
+              size="lg"
+              disabled={submitMutation.isPending}
+              className="w-full font-bold"
+            >
+              {submitMutation.isPending ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Submitting Log...
+                </span>
+              ) : (
+                <span className="flex items-center justify-center gap-2">
+                  Submit Log for Zone Approval <ArrowRight className="w-4 h-4" />
+                </span>
+              )}
             </Button>
           </form>
         ) : (
@@ -140,3 +199,5 @@ export const VolunteerSubmissionPage = () => {
     </div>
   )
 }
+
+export default VolunteerSubmissionPage

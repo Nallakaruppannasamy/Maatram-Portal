@@ -1,0 +1,32 @@
+export const ROUTES = {
+  HOME: '/',
+  LOGIN: '/login',
+  FORGOT_PASSWORD: '/forgot-password',
+  CHANGE_PASSWORD: '/change-password',
+  NOTIFICATIONS: '/notifications',
+  REPORTS: '/reports',
+  STUDENT: {
+    DASHBOARD: '/student/dashboard',
+    PROFILE: '/student/profile',
+    VOLUNTEER_SUBMIT: '/student/volunteer-submit',
+    VOLUNTEER_HISTORY: '/student/volunteer-history',
+    RESUME: '/student/resume',
+  },
+  ZONE: {
+    DASHBOARD: '/zone/dashboard',
+    APPROVALS: '/zone/approvals',
+    STUDENTS: '/zone/students',
+    COLLEGES: '/zone/colleges',
+    ANALYTICS: '/zone/analytics',
+    PROFILE: '/zone/profile',
+  },
+  ADMIN: {
+    DASHBOARD: '/admin/dashboard',
+    PROVISIONING: '/admin/provisioning',
+    STUDENTS: '/admin/students',
+    HIERARCHY: '/admin/hierarchy',
+    TEAM: '/admin/team',
+    ANALYTICS: '/admin/analytics',
+    AUDIT_LOGS: '/admin/audit-logs',
+  },
+} as const

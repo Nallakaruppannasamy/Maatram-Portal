@@ -1,11 +1,66 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Shield, Users, Building2, HeartHandshake, FileSpreadsheet, FolderGit2, ArrowRight, TrendingUp, CheckSquare } from 'lucide-react'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
+import { useQuery } from '@tanstack/react-query'
+import { Shield, Users, HeartHandshake, FileSpreadsheet, FolderGit2, CheckSquare } from 'lucide-react'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { CardSkeleton } from '@/components/ui/CardSkeleton'
+import { organizationApi } from '@/api/organization.api'
+import { zoneApi } from '@/api/zone.api'
+import { studentApi } from '@/api/student.api'
+import { volunteerApi } from '@/api/volunteer.api'
+import { userApi } from '@/api/user.api'
 
 export const SuperAdminDashboardPage = () => {
+  const { data: orgsRes, isLoading: isOrgsLoading } = useQuery({
+    queryKey: ['organizations'],
+    queryFn: () => organizationApi.list(),
+  })
+
+  const { data: zonesRes, isLoading: isZonesLoading } = useQuery({
+    queryKey: ['zones'],
+    queryFn: () => zoneApi.list(),
+  })
+
+  const { data: studentsRes, isLoading: isStudentsLoading } = useQuery({
+    queryKey: ['students'],
+    queryFn: () => studentApi.list(),
+  })
+
+  const { data: volunteersRes, isLoading: isVolunteersLoading } = useQuery({
+    queryKey: ['volunteers'],
+    queryFn: () => volunteerApi.list(),
+  })
+
+  const { data: usersRes, isLoading: isUsersLoading } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => userApi.list(),
+  })
+
+  const orgs = orgsRes?.data || []
+  const zones = zonesRes?.data || []
+  const students = studentsRes?.data || []
+  const volunteers = volunteersRes?.data || []
+  const users = usersRes?.data || []
+
+  const approvedLogs = volunteers.filter(
+    (v) => v.status === 'approved' || v.status === 'APPROVED'
+  )
+  const totalApprovedHours = approvedLogs.reduce((acc, curr) => acc + (Number(curr.hours) || 0), 0)
+
+  if (isOrgsLoading || isZonesLoading || isStudentsLoading || isVolunteersLoading || isUsersLoading) {
+    return (
+      <div className="space-y-8 animate-in fade-in duration-300">
+        <div>
+          <h2 className="text-3xl font-extrabold text-[#111827] tracking-tight">Super Admin Executive Dashboard</h2>
+          <p className="text-xs text-[#45464c]">Organization-wide analytics and governance.</p>
+        </div>
+        <CardSkeleton count={4} />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Super Admin Welcome Title */}
@@ -42,10 +97,10 @@ export const SuperAdminDashboardPage = () => {
               <Users className="w-5 h-5 text-[#D4AF37]" />
             </div>
           </div>
-          <p className="text-3xl font-extrabold text-[#111827] mt-3">2,480 <span className="text-xs font-normal text-[#76777d]">students</span></p>
-          <p className="text-xs text-emerald-600 font-semibold mt-2 flex items-center gap-1">
-            <TrendingUp className="w-3.5 h-3.5" /> +120 newly onboarded
+          <p className="text-3xl font-extrabold text-[#111827] mt-3">
+            {students.length} <span className="text-xs font-normal text-[#76777d]">students</span>
           </p>
+          <p className="text-xs text-emerald-600 font-semibold mt-2">Active Scholar Roster</p>
         </Card>
 
         <Card>
@@ -55,8 +110,10 @@ export const SuperAdminDashboardPage = () => {
               <HeartHandshake className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-3xl font-extrabold text-[#111827] mt-3">48,250 <span className="text-xs font-normal text-[#76777d]">hrs</span></p>
-          <p className="text-xs text-emerald-600 font-semibold mt-2">Across 14 foundation zones</p>
+          <p className="text-3xl font-extrabold text-[#111827] mt-3">
+            {totalApprovedHours} <span className="text-xs font-normal text-[#76777d]">hrs</span>
+          </p>
+          <p className="text-xs text-emerald-600 font-semibold mt-2">Across {zones.length} foundation zones</p>
         </Card>
 
         <Card>
@@ -66,19 +123,23 @@ export const SuperAdminDashboardPage = () => {
               <FolderGit2 className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-3xl font-extrabold text-[#111827] mt-3">14 <span className="text-xs font-normal text-[#76777d]">zones</span></p>
-          <p className="text-xs text-[#76777d] mt-2">120 Partner Colleges</p>
+          <p className="text-3xl font-extrabold text-[#111827] mt-3">
+            {zones.length} <span className="text-xs font-normal text-[#76777d]">zones</span>
+          </p>
+          <p className="text-xs text-[#76777d] mt-2">{orgs.length} Organizations</p>
         </Card>
 
         <Card>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#76777d] uppercase tracking-wider">System Audit Logs</span>
+            <span className="text-xs font-semibold text-[#76777d] uppercase tracking-wider">System Staff Users</span>
             <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
               <CheckSquare className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-3xl font-extrabold text-[#111827] mt-3">1,420 <span className="text-xs font-normal text-[#76777d]">events</span></p>
-          <p className="text-xs text-[#76777d] mt-2">Fully Audited & Traceable</p>
+          <p className="text-3xl font-extrabold text-[#111827] mt-3">
+            {users.length} <span className="text-xs font-normal text-[#76777d]">users</span>
+          </p>
+          <p className="text-xs text-[#76777d] mt-2">System Administrators & Incharges</p>
         </Card>
       </div>
 
@@ -100,7 +161,7 @@ export const SuperAdminDashboardPage = () => {
             <h3 className="text-base font-bold text-[#111827]">Organization Hierarchy</h3>
             <FolderGit2 className="w-5 h-5 text-[#D4AF37]" />
           </div>
-          <p className="text-xs text-[#45464c]">Configure the 6-level hierarchy tree from Organization down to Batches and Programs.</p>
+          <p className="text-xs text-[#45464c]">Configure the organization hierarchy tree from Organizations down to Zones and Students.</p>
           <Link to="/admin/hierarchy" className="inline-flex items-center text-xs font-bold text-[#111827] hover:text-[#D4AF37] pt-2">
             Manage Hierarchy Tree →
           </Link>
@@ -120,3 +181,5 @@ export const SuperAdminDashboardPage = () => {
     </div>
   )
 }
+
+export default SuperAdminDashboardPage

@@ -37,6 +37,7 @@ async function main() {
   await prisma.enrollmentImport.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.notification.deleteMany();
+  await prisma.volunteer.deleteMany();
   await prisma.volunteerSubmission.deleteMany();
   await prisma.certification.deleteMany();
   await prisma.project.deleteMany();
@@ -263,10 +264,10 @@ async function main() {
     data: { inchargeId: zoneUser.id },
   });
 
-  const student1PasswordHash = await hashPassword('Mtm#9021');
+  const student1PasswordHash = await hashPassword('Student@123');
   const studentUser1 = await prisma.user.create({
     data: {
-      email: 'ananya.sharma@student.maatram.org',
+      email: 'logesh090707@gmail.com',
       registerNumber: '2024CS1092',
       role: UserRole.student,
       passwordHash: student1PasswordHash,

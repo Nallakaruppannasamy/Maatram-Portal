@@ -1,36 +1,20 @@
-import React, { useState, useEffect, useRef, ChangeEvent, DragEvent, useCallback } from 'react'
+import React, { useState, useRef, ChangeEvent, DragEvent } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   FileSpreadsheet,
   UploadCloud,
   CheckCircle2,
-  Mail,
-  RefreshCw,
   Eye,
   EyeOff,
   Search,
   Loader2,
-  AlertCircle,
 } from 'lucide-react'
-import axios from 'axios'
-import { toast } from 'react-toastify'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-
-// ─── Type Definitions ────────────────────────────────────────────────────────
-
-interface StudentRecord {
-  id: string
-  registrationNumber: string
-  fullName: string
-  accountStatus: 'pending_first_login' | 'activated' | 'password_changed' | string
-  createdAt: string
-  user?: {
-    email?: string
-    tempPassword?: string
-    accountStatus?: string
-  }
-}
+import { studentApi } from '@/api/student.api'
+import { notify } from '@/utils/toast'
+import { useDebounce } from '@/hooks/useDebounce'
 
 interface ImportSummary {
   totalRows: number
@@ -41,112 +25,28 @@ interface ImportSummary {
 }
 
 export const StudentProvisioningPage: React.FC = () => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
-
-  // State Management
-  const [students, setStudents] = useState<StudentRecord[]>([])
-  const [loadingList, setLoadingList] = useState(true)
-  const [validating, setValidating] = useState(false)
+  const queryClient = useQueryClient()
   const [fileUploaded, setFileUploaded] = useState(false)
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
-  const [resendingId, setResendingId] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const debouncedSearch = useDebounce(searchQuery, 400)
 
-  // Auth Header Helper
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('svms_token')
-    return {
-      Authorization: `Bearer ${token || ''}`,
-    }
-  }
+  const { data: studentsRes, isLoading: loadingList } = useQuery({
+    queryKey: ['students', debouncedSearch],
+    queryFn: () => studentApi.list({ search: debouncedSearch, limit: 100 }),
+  })
 
-  // ─── 1. Load Live Students from Database ─────────────────────────────────
-  const fetchStudents = useCallback(async (query = '') => {
-    setLoadingList(true)
-    try {
-      const response = await axios.get(`${backendUrl}/api/v1/students`, {
-        headers: getAuthHeaders(),
-        params: {
-          search: query || undefined,
-          limit: 100,
-        },
-      })
+  const students = studentsRes?.data || []
 
-      if (response.data.success) {
-        setStudents(response.data.data || [])
-      }
-    } catch (err: any) {
-      const errMsg = err.response?.data?.message || 'Failed to load student directory'
-      toast.error(errMsg)
-    } finally {
-      setLoadingList(false)
-    }
-  }, [backendUrl])
-
-  useEffect(() => {
-    fetchStudents(searchQuery)
-  }, [fetchStudents, searchQuery])
-
-  // ─── 2. Handle Roster Export / Template Download ───────────────────────────
-  const handleDownloadTemplate = async () => {
-    try {
-      const response = await axios.get(`${backendUrl}/api/v1/students/export?format=csv`, {
-        headers: getAuthHeaders(),
-        responseType: 'blob',
-      })
-
-      const blob = new Blob([response.data], { type: 'text/csv' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `Maatram_Student_Roster_${Date.now()}.csv`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(url)
-
-      toast.success('Student roster CSV exported successfully')
-    } catch {
-      // Fallback CSV template generator if database is empty
-      const csvHeader = 'Full Name,Register No,Email,Zone,College Code,Department,Batch\n'
-      const sampleRow = 'Sample Student,2024CS1001,sample.s@student.maatram.org,ZONE-1,MIT-CHE,CSE,2024-2028\n'
-      const blob = new Blob([csvHeader + sampleRow], { type: 'text/csv' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', 'Maatram_Student_Enrollment_Template.csv')
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      toast.info('Downloaded student enrollment CSV template')
-    }
-  }
-
-  // ─── 3. Bulk CSV / Excel Upload to Backend ────────────────────────────────
-  const processFileUpload = async (file: File) => {
-    if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
-      toast.error('Invalid file format! Please upload an Excel (.xlsx, .xls) or CSV file.')
-      return
-    }
-
-    setValidating(true)
-    const formData = new FormData()
-    formData.append('file', file)
-
-    try {
-      const response = await axios.post(`${backendUrl}/api/v1/students/import`, formData, {
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'multipart/form-data',
-        },
-      })
-
-      if (response.data.success) {
-        const report = response.data.data
+  const importMutation = useMutation({
+    mutationFn: (file: File) => studentApi.importCSV(file),
+    onSuccess: (res, file) => {
+      if (res.success) {
+        const report = res.data || {}
         setImportSummary({
           totalRows: report.totalRows || report.successCount || 0,
           successCount: report.successCount || 0,
@@ -155,18 +55,43 @@ export const StudentProvisioningPage: React.FC = () => {
           fileName: file.name,
         })
         setFileUploaded(true)
-        toast.success(`Successfully imported ${report.successCount || 0} student records!`)
-        fetchStudents(searchQuery)
+        notify.success(`Successfully imported ${report.successCount || 0} student records!`)
+        queryClient.invalidateQueries({ queryKey: ['students'] })
+      } else {
+        notify.error(res.message || 'Roster import failed.')
       }
-    } catch (err: any) {
-      const errMsg = err.response?.data?.message || 'Roster import failed. Please check file columns.'
-      toast.error(errMsg)
-    } finally {
-      setValidating(false)
+    },
+    onError: (err: any) => {
+      notify.error(err?.response?.data?.message || err?.message || 'Roster import failed.')
+    },
+  })
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const blob = await studentApi.exportCSV()
+      const url = window.URL.createObjectURL(new Blob([blob], { type: 'text/csv' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `Maatram_Student_Roster_${Date.now()}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+      notify.success('Student roster CSV exported successfully')
+    } catch {
+      notify.error('Failed to export student roster CSV.')
     }
   }
 
-  // Drag and Drop Handlers
+  const processFileUpload = (file: File) => {
+    if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
+      notify.error('Invalid file format! Please upload an Excel (.xlsx, .xls) or CSV file.')
+      return
+    }
+
+    importMutation.mutate(file)
+  }
+
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     setIsDragging(true)
@@ -191,7 +116,6 @@ export const StudentProvisioningPage: React.FC = () => {
     }
   }
 
-  // ─── 4. Helpers ─────────────────────────────────────────────────────────────
   const togglePasswordVisibility = (id: string) => {
     setShowPasswords((prev) => ({ ...prev, [id]: !prev[id] }))
   }
@@ -209,7 +133,7 @@ export const StudentProvisioningPage: React.FC = () => {
     }
   }
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'N/A'
     return new Date(dateStr).toLocaleDateString('en-US', {
       month: 'short',
@@ -254,16 +178,17 @@ export const StudentProvisioningPage: React.FC = () => {
         {!fileUploaded ? (
           <div className="space-y-6 text-center">
             <div
-              onClick={() => !validating && fileInputRef.current?.click()}
+              onClick={() => !importMutation.isPending && fileInputRef.current?.click()}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-2xl p-10 cursor-pointer transition-all space-y-3 ${isDragging
+              className={`border-2 border-dashed rounded-2xl p-10 cursor-pointer transition-all space-y-3 ${
+                isDragging
                   ? 'border-[#D4AF37] bg-[#D4AF37]/5 scale-[0.99]'
                   : 'border-[#E5E7EB] hover:border-[#D4AF37] bg-[#FCF8FA]'
-                }`}
+              }`}
             >
-              {validating ? (
+              {importMutation.isPending ? (
                 <div className="flex flex-col items-center gap-3 py-2">
                   <Loader2 className="w-10 h-10 text-[#D4AF37] animate-spin" />
                   <div>
@@ -305,7 +230,7 @@ export const StudentProvisioningPage: React.FC = () => {
                     </Badge>
                   </div>
                   <p className="text-xs text-emerald-800 mt-0.5">
-                    {importSummary?.duplicateCount || 0} duplicates skipped. Database records and credentials generated.
+                    {importSummary?.duplicateCount || 0} duplicates skipped. Database records generated.
                   </p>
                 </div>
               </div>
@@ -385,8 +310,12 @@ export const StudentProvisioningPage: React.FC = () => {
 
                     return (
                       <tr key={student.id} className="hover:bg-[#FCF8FA]/80 transition-colors">
-                        <td className="py-3.5 px-4 font-bold text-[#111827]">{student.fullName}</td>
-                        <td className="py-3.5 px-4 text-[#76777d] font-mono">{student.registrationNumber}</td>
+                        <td className="py-3.5 px-4 font-bold text-[#111827]">
+                          {student.fullName || (student.user?.firstName ? `${student.user.firstName} ${student.user.lastName || ''}`.trim() : userEmail)}
+                        </td>
+                        <td className="py-3.5 px-4 text-[#76777d] font-mono">
+                          {student.registrationNumber || student.regNumber || student.id.slice(0, 8)}
+                        </td>
                         <td className="py-3.5 px-4 text-[#45464c]">{userEmail}</td>
                         <td className="py-3.5 px-4 font-mono font-semibold text-[#D4AF37]">
                           <div className="flex items-center gap-2">
@@ -405,9 +334,7 @@ export const StudentProvisioningPage: React.FC = () => {
                         </td>
                         <td className="py-3.5 px-4 text-[#76777d]">{formatDate(student.createdAt)}</td>
                         <td className="py-3.5 px-4">
-                          <Badge variant={statusInfo.variant}>
-                            {statusInfo.label}
-                          </Badge>
+                          <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
                         </td>
                       </tr>
                     )

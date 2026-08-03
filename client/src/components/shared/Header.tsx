@@ -12,21 +12,10 @@ import {
   Settings,
   Sparkles,
 } from 'lucide-react'
-import { UserRole } from './Sidebar'
+import { UserRole } from '@/constants/roles'
+import { AuthUser } from '@/types/api'
 import { Badge } from '@/components/ui/Badge'
 import { cn } from '@/lib/utils'
-
-// Types matching Backend Prisma Schema & DTOs
-export interface AuthUser {
-  id: string
-  email: string
-  role: 'STUDENT' | 'ZONE_INCHARGE' | 'SUPER_ADMIN'
-  firstName?: string
-  lastName?: string
-  rollNumber?: string
-  profilePhotoUrl?: string
-  zoneName?: string
-}
 
 interface HeaderProps {
   activeRole: UserRole
