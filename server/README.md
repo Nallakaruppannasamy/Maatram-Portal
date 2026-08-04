@@ -106,11 +106,14 @@ npm run start
 
 ## 🧪 Running Integration Tests
 
-A comprehensive end-to-end integration test runner is included to verify all backend authentication, administrative provisioning, student importing, and security controls:
+Comprehensive programmatic integration test runners are included to verify all modules and workflows:
 
 ```bash
 # Run complete integration test suite
 npm run test:complete
+
+# Run Phase 8.2 Student Provisioning & Activation test suite
+npm run test:phase8_2
 ```
 
 ---

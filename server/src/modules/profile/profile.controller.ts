@@ -7,6 +7,7 @@ import { Request, Response } from 'express';
 import { profileService } from './profile.service';
 import { ResponseFormatter } from '@/common/responses/formatter';
 import { asyncHandler } from '@/common/responses/asyncHandler';
+import { ApiError } from '@/common/exceptions/apiError';
 import { AuditActorRole } from '@prisma/client';
 
 export class ProfileController {
@@ -31,6 +32,48 @@ export class ProfileController {
 
     const profile = await profileService.updateProfile(userId, role, req.body, actorRole);
     ResponseFormatter.success(res, profile, 'Profile updated successfully');
+  });
+
+  /**
+   * Get all active colleges
+   */
+  getColleges = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const colleges = await profileService.getColleges();
+    ResponseFormatter.success(res, colleges, 'Colleges retrieved successfully');
+  });
+
+  /**
+   * Get all degrees
+   */
+  getDegrees = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const degrees = await profileService.getDegrees();
+    ResponseFormatter.success(res, degrees, 'Degrees retrieved successfully');
+  });
+
+  /**
+   * Get all departments
+   */
+  getDepartments = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const departments = await profileService.getDepartments();
+    ResponseFormatter.success(res, departments, 'Departments retrieved successfully');
+  });
+
+  /**
+   * Upload profile image and return URL path
+   */
+  uploadImage = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    if (!req.file) {
+      throw ApiError.badRequest('No image file provided');
+    }
+
+    // Return the relative URL path for local access
+    const fileUrl = `/uploads/${req.file.filename}`;
+
+    ResponseFormatter.success(
+      res,
+      { fileUrl },
+      'Profile image uploaded successfully'
+    );
   });
 }
 

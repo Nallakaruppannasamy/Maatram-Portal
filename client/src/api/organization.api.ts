@@ -27,4 +27,14 @@ export const organizationApi = {
     const res = await apiInstance.delete<ApiResponse>(API_ROUTES.ORGANIZATIONS.BY_ID(id))
     return res.data
   },
+
+  getHierarchy: async (): Promise<ApiResponse<any[]>> => {
+    const res = await apiInstance.get<ApiResponse<any[]>>(`${API_ROUTES.ORGANIZATIONS.BASE}/hierarchy`)
+    return res.data
+  },
+
+  exportHierarchy: async (params?: Record<string, any>): Promise<Blob> => {
+    const res = await apiInstance.get(`${API_ROUTES.ORGANIZATIONS.BASE}/export`, { params, responseType: 'blob' })
+    return res.data
+  },
 }

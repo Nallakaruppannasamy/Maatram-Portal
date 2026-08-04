@@ -44,6 +44,19 @@ export class StudentController {
   });
 
   /**
+   * Retrieves student resume data.
+   */
+  getResume = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const requesterId = req.user!.userId;
+    const requesterRole = req.user!.role;
+    const requesterZoneId = req.user!.zoneId;
+
+    const data = await studentService.getStudentResume(id, requesterId, requesterRole, requesterZoneId);
+    ResponseFormatter.success(res, data, 'Resume data retrieved successfully');
+  });
+
+  /**
    * Updates student details.
    */
   updateStudent = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -82,17 +95,19 @@ export class StudentController {
   /**
    * Imports students from CSV file.
    */
+  /**
+   * Imports students from Excel or CSV file.
+   */
   importStudents = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     if (!req.file) {
-      throw ApiError.badRequest('No file uploaded. Please upload a valid CSV file.');
+      throw ApiError.badRequest('No file uploaded. Please upload a valid Excel (.xlsx, .xls) or CSV file.');
     }
 
     const actorId = req.user!.userId;
     const actorRole = this.getAuditActorRole(req.user!.role);
 
-    const csvContent = req.file.buffer.toString('utf-8');
     const report = await studentService.importStudents(
-      csvContent,
+      req.file.buffer,
       req.file.originalname,
       actorId,
       actorRole
@@ -109,6 +124,34 @@ export class StudentController {
 
     ResponseFormatter.success(res, report, 'All students successfully imported');
   });
+
+  /**
+   * Downloads dynamically generated Excel template for student imports.
+   */
+  getTemplate = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const buffer = await studentService.generateTemplate();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=Student_Import_Template.xlsx'
+    );
+    res.status(200).send(buffer);
+  });
+
+  /**
+   * Manually registers a student and generates/sends their credentials.
+   */
+  manualRegister = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const actorId = req.user!.userId;
+    const actorRole = this.getAuditActorRole(req.user!.role);
+
+    const student = await studentService.manualRegisterStudent(req.body, actorId, actorRole);
+    ResponseFormatter.success(res, student, 'Student provisioned and welcome email sent successfully', 201);
+  });
+
 
   /**
    * Exports students list in CSV or Excel format.

@@ -27,4 +27,14 @@ export const zoneApi = {
     const res = await apiInstance.delete<ApiResponse>(API_ROUTES.ZONES.BY_ID(id))
     return res.data
   },
+
+  getColleges: async (zoneId: string): Promise<ApiResponse<any[]>> => {
+    const res = await apiInstance.get<ApiResponse<any[]>>(`${API_ROUTES.ZONES.BY_ID(zoneId)}/colleges`)
+    return res.data
+  },
+
+  exportColleges: async (zoneId: string, params?: Record<string, any>): Promise<Blob> => {
+    const res = await apiInstance.get(`${API_ROUTES.ZONES.BY_ID(zoneId)}/colleges/export`, { params, responseType: 'blob' })
+    return res.data
+  },
 }

@@ -3,7 +3,7 @@
  * @description Service layer containing business logic for Volunteer Management.
  */
 
-import { VolunteerProfileStatus, AuditActorRole } from '@prisma/client';
+import { VolunteerProfileStatus, AuditActorRole, VolunteerCategory, VolunteerStatus } from '@prisma/client';
 import { ApiError } from '@/common/exceptions/apiError';
 import { createAuditLog } from '@/utils/audit';
 import { parseQueryParams, buildPaginationMeta, QueryParams } from '@/utils/query-helper';
@@ -260,7 +260,11 @@ class VolunteerService {
   /**
    * Lists volunteers or volunteer submissions with pagination, search, and filtering.
    */
-  async listVolunteers(queryParams: QueryParams): Promise<{
+  async listVolunteers(
+    queryParams: QueryParams,
+    actorId?: string,
+    actorRole?: string
+  ): Promise<{
     items: any[];
     meta: ReturnType<typeof buildPaginationMeta>;
   }> {
@@ -280,21 +284,38 @@ class VolunteerService {
       );
     }
 
-    const isSubmissionQuery = lowerStatus ? SUBMISSION_STATUSES.includes(lowerStatus) : false;
+    const isStudent = actorRole === 'student';
+    const isSubmissionQuery = isStudent || (lowerStatus ? SUBMISSION_STATUSES.includes(lowerStatus) : false);
 
     if (isSubmissionQuery) {
+      let studentId: string | undefined = undefined;
+      let zoneId: string | undefined = undefined;
+
+      if (isStudent && actorId) {
+        const student = await prisma.student.findUnique({ where: { userId: actorId } });
+        if (!student) throw ApiError.notFound('Student profile not found');
+        studentId = student.id;
+      } else if (actorRole === 'zone' && actorId) {
+        const zone = await prisma.zone.findFirst({ where: { inchargeId: actorId } });
+        if (zone) {
+          zoneId = zone.id;
+        }
+      }
+
       const { items, total } = await volunteerRepository.listSubmissions({
-        page: queryParams.page as number,
-        limit: queryParams.limit as number,
+        page: queryParams.page ? Number(queryParams.page) : 1,
+        limit: queryParams.limit ? Number(queryParams.limit) : 10,
         search: queryParams.search as string,
-        status: lowerStatus,
+        status: lowerStatus || undefined,
+        studentId,
+        zoneId,
       });
 
       return {
         items,
         meta: buildPaginationMeta(total, {
-          page: (queryParams.page as number) || 1,
-          limit: (queryParams.limit as number) || 10,
+          page: queryParams.page ? Number(queryParams.page) : 1,
+          limit: queryParams.limit ? Number(queryParams.limit) : 10,
         }),
       };
     }
@@ -327,6 +348,201 @@ class VolunteerService {
       items,
       meta: buildPaginationMeta(total, options),
     };
+  }
+
+  /**
+   * Creates a volunteer activity submission for a student.
+   */
+  async createSubmission(
+    data: {
+      title: string;
+      category: VolunteerCategory;
+      description: string;
+      eventDate: string;
+      count?: number | null;
+      imageUrl?: string | null;
+    },
+    actorId: string,
+    actorRole: AuditActorRole
+  ): Promise<any> {
+    const student = await prisma.student.findUnique({
+      where: { userId: actorId },
+    });
+    if (!student) {
+      throw ApiError.notFound('Student profile not found');
+    }
+
+    if (!student.zoneId) {
+      throw ApiError.badRequest('Student is not assigned to any Zone. Cannot submit volunteer log.');
+    }
+
+    // Validate category-specific count rules
+    const countRequiredCategories: VolunteerCategory[] = [
+      VolunteerCategory.TELE_VERIFICATION,
+      VolunteerCategory.PHYSICAL_VERIFICATION,
+      VolunteerCategory.SCHOOL_VISIT,
+    ];
+
+    let countValue: number | null = null;
+    if (countRequiredCategories.includes(data.category)) {
+      if (data.count === undefined || data.count === null) {
+        throw ApiError.badRequest(`Count is mandatory for category ${data.category}`);
+      }
+      countValue = Number(data.count);
+      if (isNaN(countValue) || countValue < 1 || countValue > 1000) {
+        throw ApiError.badRequest('Count must be an integer between 1 and 1000');
+      }
+    }
+
+    const submissionCode = await volunteerRepository.generateSubmissionCode();
+
+    const submission = await volunteerRepository.createSubmission({
+      submissionCode,
+      studentId: student.id,
+      zoneId: student.zoneId,
+      title: data.title.trim(),
+      category: data.category,
+      description: data.description.trim(),
+      eventDate: new Date(data.eventDate),
+      count: countValue,
+      imageUrl: data.imageUrl || null,
+    });
+
+    await createAuditLog({
+      actorId,
+      actorRole,
+      action: 'VOLUNTEER_SUBMITTED',
+      targetEntityType: 'volunteer_submission',
+      targetEntityId: submission.id,
+      targetLabel: submission.title,
+      details: `Student submitted volunteer log with code ${submissionCode}`,
+    });
+
+    return submission;
+  }
+
+  /**
+   * Fetches a volunteer submission by ID.
+   */
+  async getSubmissionById(id: string, actorId: string, actorRole: string): Promise<any> {
+    const submission = await volunteerRepository.getSubmissionById(id);
+    if (!submission) {
+      throw ApiError.notFound(`Volunteer submission with ID "${id}" not found`);
+    }
+
+    if (actorRole === 'student') {
+      const student = await prisma.student.findUnique({ where: { userId: actorId } });
+      if (!student || submission.studentId !== student.id) {
+        throw ApiError.forbidden('You are not authorized to view this volunteer submission');
+      }
+    } else if (actorRole === 'zone') {
+      const zone = await prisma.zone.findFirst({ where: { inchargeId: actorId } });
+      if (!zone || submission.zoneId !== zone.id) {
+        throw ApiError.forbidden('You are not authorized to view submissions outside your zone');
+      }
+    }
+
+    return submission;
+  }
+
+  /**
+   * Updates a volunteer submission's approval status.
+   */
+  async updateSubmissionStatus(
+    id: string,
+    newStatus: string,
+    reviewerComment: string | undefined,
+    actorId: string,
+    actorRole: AuditActorRole
+  ): Promise<any> {
+    const statusUpper = newStatus.toUpperCase();
+    if (statusUpper !== 'APPROVED' && statusUpper !== 'REJECTED') {
+      throw ApiError.badRequest('Invalid status value. Must be APPROVED or REJECTED');
+    }
+
+    const submission = await volunteerRepository.getSubmissionById(id);
+    if (!submission) {
+      throw ApiError.notFound(`Volunteer submission with ID "${id}" not found`);
+    }
+
+    if (statusUpper === 'REJECTED' && (!reviewerComment || !reviewerComment.trim())) {
+      throw ApiError.badRequest('Rejection comments are mandatory');
+    }
+
+    if (actorRole === AuditActorRole.zone) {
+      const zone = await prisma.zone.findFirst({ where: { inchargeId: actorId } });
+      if (!zone || submission.zoneId !== zone.id) {
+        throw ApiError.forbidden('You are not authorized to review submissions outside your zone');
+      }
+    }
+
+    const statusValue = statusUpper.toLowerCase() as any;
+    const updated = await volunteerRepository.updateSubmissionStatus(
+      id,
+      statusValue,
+      reviewerComment,
+      actorId
+    );
+
+    const auditAction = statusUpper === 'APPROVED' ? 'VOLUNTEER_APPROVED' : 'VOLUNTEER_REJECTED';
+    await createAuditLog({
+      actorId,
+      actorRole,
+      action: auditAction,
+      targetEntityType: 'volunteer_submission',
+      targetEntityId: id,
+      targetLabel: submission.title,
+      details: `Volunteer submission ${id} was ${statusValue} by actor ${actorId}`,
+    });
+
+    await prisma.notification.create({
+      data: {
+        recipientId: submission.student.userId,
+        title: statusUpper === 'APPROVED' ? 'Volunteer Log Approved!' : 'Volunteer Log Rejected',
+        message: `Your submission "${submission.title}" has been ${statusValue}.${
+          reviewerComment ? ` Comment: ${reviewerComment}` : ''
+        }`,
+        type: statusUpper === 'APPROVED' ? 'approved' : 'rejected',
+      },
+    });
+
+    return updated;
+  }
+
+  /**
+   * Adds or updates a comment on a volunteer submission.
+   */
+  async addSubmissionComment(
+    id: string,
+    comment: string,
+    actorId: string,
+    actorRole: AuditActorRole
+  ): Promise<any> {
+    const submission = await volunteerRepository.getSubmissionById(id);
+    if (!submission) {
+      throw ApiError.notFound(`Volunteer submission with ID "${id}" not found`);
+    }
+
+    if (actorRole === AuditActorRole.zone) {
+      const zone = await prisma.zone.findFirst({ where: { inchargeId: actorId } });
+      if (!zone || submission.zoneId !== zone.id) {
+        throw ApiError.forbidden('You are not authorized to comment on submissions outside your zone');
+      }
+    }
+
+    const updated = await volunteerRepository.addSubmissionComment(id, comment, actorId);
+
+    await createAuditLog({
+      actorId,
+      actorRole,
+      action: 'VOLUNTEER_COMMENT_ADDED',
+      targetEntityType: 'volunteer_submission',
+      targetEntityId: id,
+      targetLabel: submission.title,
+      details: `Comment added to volunteer submission ${id}: "${comment}"`,
+    });
+
+    return updated;
   }
 }
 

@@ -203,14 +203,22 @@ export class VolunteerRepository {
     limit?: number;
     search?: string;
     status?: string;
+    studentId?: string;
+    zoneId?: string;
   }): Promise<{ items: any[]; total: number }> {
     const page = options.page || 1;
     const limit = options.limit || 10;
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, any> = {};
     if (options.status) {
-      where.status = options.status.toLowerCase();
+      where.status = options.status.toLowerCase() as any;
+    }
+    if (options.studentId) {
+      where.studentId = options.studentId;
+    }
+    if (options.zoneId) {
+      where.zoneId = options.zoneId;
     }
 
     if (options.search && options.search.trim()) {
@@ -223,12 +231,111 @@ export class VolunteerRepository {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: { student: true, zone: true },
+        include: { student: { include: { user: true, college: true, department: true, program: true } }, zone: true, reviewer: true },
       }),
       prisma.volunteerSubmission.count({ where }),
     ]);
 
     return { items, total };
+  }
+
+  /**
+   * Creates a new volunteer submission.
+   */
+  async createSubmission(data: {
+    submissionCode: string;
+    studentId: string;
+    zoneId: string;
+    title: string;
+    category: any;
+    description: string;
+    eventDate: Date;
+    count?: number | null;
+    imageUrl?: string | null;
+  }): Promise<any> {
+    return prisma.volunteerSubmission.create({
+      data: {
+        submissionCode: data.submissionCode,
+        studentId: data.studentId,
+        zoneId: data.zoneId,
+        title: data.title,
+        category: data.category,
+        description: data.description,
+        eventDate: data.eventDate,
+        count: data.count ?? null,
+        imageUrl: data.imageUrl ?? null,
+        proofFileUrl: data.imageUrl ?? null,
+      },
+      include: { student: true, zone: true },
+    });
+  }
+
+  /**
+   * Finds a volunteer submission by ID.
+   */
+  async getSubmissionById(id: string): Promise<any> {
+    return prisma.volunteerSubmission.findUnique({
+      where: { id },
+      include: { student: { include: { user: true, college: true, department: true, program: true } }, zone: true, reviewer: true },
+    });
+  }
+
+  /**
+   * Updates a volunteer submission's status.
+   */
+  async updateSubmissionStatus(
+    id: string,
+    status: any,
+    reviewerComment?: string | null,
+    reviewerId?: string | null
+  ): Promise<any> {
+    return prisma.volunteerSubmission.update({
+      where: { id },
+      data: {
+        status,
+        reviewerComment: reviewerComment ?? null,
+        reviewedById: reviewerId ?? null,
+        reviewedAt: new Date(),
+      },
+      include: { student: true, zone: true, reviewer: true },
+    });
+  }
+
+  /**
+   * Adds/updates a reviewer comment on a submission.
+   */
+  async addSubmissionComment(
+    id: string,
+    comment: string,
+    reviewerId?: string | null
+  ): Promise<any> {
+    return prisma.volunteerSubmission.update({
+      where: { id },
+      data: {
+        reviewerComment: comment,
+        reviewedById: reviewerId ?? undefined,
+      },
+      include: { student: true, zone: true, reviewer: true },
+    });
+  }
+
+  /**
+   * Generates a unique submission code.
+   */
+  async generateSubmissionCode(): Promise<string> {
+    const prefix = 'VLOG';
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    const now = new Date();
+    const dateStr = `${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+    const code = `${prefix}-${dateStr}-${rand}`;
+
+    const exists = await prisma.volunteerSubmission.findFirst({
+      where: { submissionCode: code },
+    });
+    if (exists) {
+      return this.generateSubmissionCode();
+    }
+    return code;
   }
 
   /**

@@ -12,6 +12,48 @@ import { AuditActorRole, UserProfile, Student } from '@prisma/client';
 
 export class ProfileService {
   /**
+   * Helper to calculate student profile completion percentage and track missing sections.
+   */
+  calculateCompletion(profile: any) {
+    const sections = {
+      'Personal Details': ['firstName', 'lastName', 'gender', 'dateOfBirth', 'bloodGroup', 'nationality', 'community', 'religion'],
+      'Contact Details': ['mobile', 'alternateMobile'],
+      'Parent/Guardian Details': ['parentName', 'parentMobile', 'parentOccupation'],
+      'Address Details': ['addressLine1', 'city', 'district', 'state', 'country', 'pincode'],
+      'Academic Details': ['collegeId', 'departmentId', 'programId', 'batch'],
+      'Career Details': ['careerObjective'],
+      'Media Details': ['profileImage'],
+    };
+
+    let totalFields = 0;
+    let filledFields = 0;
+    const missingSections: string[] = [];
+
+    for (const [sectionName, fields] of Object.entries(sections)) {
+      let sectionMissing = false;
+      for (const field of fields) {
+        totalFields++;
+        const val = profile[field];
+        if (val !== null && val !== undefined && String(val).trim() !== '') {
+          filledFields++;
+        } else {
+          sectionMissing = true;
+        }
+      }
+      if (sectionMissing) {
+        missingSections.push(sectionName);
+      }
+    }
+
+    const completionPercentage = totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 100;
+
+    return {
+      completionPercentage,
+      missingSections,
+    };
+  }
+
+  /**
    * Retrieves profile details for the currently logged in user.
    */
   async getProfile(userId: string, role: string) {
@@ -19,7 +61,38 @@ export class ProfileService {
     if (!profile) {
       throw ApiError.notFound('Profile details not found');
     }
+
+    if (role === 'student') {
+      const completion = this.calculateCompletion(profile);
+      return {
+        ...profile,
+        completionPercentage: completion.completionPercentage,
+        missingSections: completion.missingSections,
+      };
+    }
+
     return profile;
+  }
+
+  /**
+   * Retrieves all colleges.
+   */
+  async getColleges() {
+    return profileRepository.getColleges();
+  }
+
+  /**
+   * Retrieves all degrees.
+   */
+  async getDegrees() {
+    return profileRepository.getDegrees();
+  }
+
+  /**
+   * Retrieves all departments.
+   */
+  async getDepartments() {
+    return profileRepository.getDepartments();
   }
 
   /**
@@ -31,10 +104,18 @@ export class ProfileService {
     data: UpdateProfileDTO,
     actorRole: AuditActorRole
   ) {
-    let updated: UserProfile | Student;
+    let updated: any;
     let targetLabel = '';
 
     if (role === 'student') {
+      // Students cannot update restricted fields
+      const restrictedFields = ['email', 'registrationNumber', 'dateOfBirth', 'zoneId', 'organizationId'];
+      for (const key of restrictedFields) {
+        if ((data as any)[key] !== undefined) {
+          throw ApiError.badRequest(`Field "${key}" is restricted and cannot be updated by students.`);
+        }
+      }
+
       const studentUpdated = await profileRepository.updateStudentProfile(userId, data);
       updated = studentUpdated;
       targetLabel = [studentUpdated.firstName, studentUpdated.middleName, studentUpdated.lastName]
@@ -54,11 +135,11 @@ export class ProfileService {
       targetEntityType: 'profile',
       targetEntityId: userId,
       targetLabel,
-      details: `User updated self-service profile details: mobile=${data.mobile || 'N/A'}, designation=${data.designation || 'N/A'}`,
+      details: `User updated self-service profile details: mobile=${data.mobile || 'N/A'}`,
     });
 
     logger.info(`[PROFILE_UPDATED] Profile updated for user ID: ${userId}`);
-    return updated;
+    return this.getProfile(userId, role);
   }
 }
 

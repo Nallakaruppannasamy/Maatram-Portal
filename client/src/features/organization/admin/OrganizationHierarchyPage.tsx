@@ -12,31 +12,14 @@ import {
   RefreshCw,
   Sparkles,
   Loader2,
+  Download,
 } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { organizationApi } from '@/api/organization.api'
 import { zoneApi } from '@/api/zone.api'
-import { studentApi } from '@/api/student.api'
 import { notify } from '@/utils/toast'
-
-interface CollegeNode {
-  name: string
-  code?: string
-  studentCount: number
-  departments: Set<string>
-}
-
-interface ZoneNode {
-  id: string
-  name: string
-  code: string
-  regionLabel: string
-  inchargeName: string
-  colleges: Map<string, CollegeNode>
-  totalStudents: number
-}
 
 export const OrganizationHierarchyPage: React.FC = () => {
   const queryClient = useQueryClient()
@@ -59,26 +42,24 @@ export const OrganizationHierarchyPage: React.FC = () => {
     queryFn: () => organizationApi.list(),
   })
 
-  const { data: zonesRes, isLoading: isZonesLoading, refetch: refetchZones } = useQuery({
-    queryKey: ['zones'],
-    queryFn: () => zoneApi.list(),
-  })
-
-  const { data: studentsRes, isLoading: isStudentsLoading } = useQuery({
-    queryKey: ['students'],
-    queryFn: () => studentApi.list(),
+  const { data: hierarchyRes, isLoading: isHierarchyLoading, refetch: refetchHierarchy } = useQuery({
+    queryKey: ['hierarchy'],
+    queryFn: () => organizationApi.getHierarchy(),
   })
 
   const organizations = orgsRes?.data || []
-  const zones = zonesRes?.data || []
-  const students = studentsRes?.data || []
+  const hierarchies = hierarchyRes?.data || []
+  
+  const currentOrg = hierarchies[0] || { name: 'Maatram Foundation', zones: [] }
+  const zonesList = currentOrg.zones || []
 
+  // Mutate
   const createZoneMutation = useMutation({
     mutationFn: (data: any) => zoneApi.create(data),
     onSuccess: (res) => {
       if (res.success) {
         notify.success('Zone created successfully!')
-        queryClient.invalidateQueries({ queryKey: ['zones'] })
+        queryClient.invalidateQueries({ queryKey: ['hierarchy'] })
         setShowAddZoneModal(false)
         setNewZoneData({ name: '', code: '', regionLabel: '', organizationId: '' })
       } else {
@@ -90,80 +71,41 @@ export const OrganizationHierarchyPage: React.FC = () => {
     },
   })
 
-  const buildHierarchyTree = (): ZoneNode[] => {
-    const zoneMap = new Map<string, ZoneNode>()
-
-    zones.forEach((z: any) => {
-      const key = z.code || z.id
-      zoneMap.set(key, {
-        id: z.id,
-        name: z.name,
-        code: z.code,
-        regionLabel: z.regionLabel || z.name,
-        inchargeName: z.incharge?.fullName || 'Not Assigned',
-        colleges: new Map<string, CollegeNode>(),
-        totalStudents: 0,
-      })
-    })
-
-    students.forEach((st: any) => {
-      let zoneCode = st.zone?.code || st.operationalZone || 'ZONE-1'
-      let zoneNode = zoneMap.get(zoneCode)
-      if (!zoneNode) {
-        zoneNode = {
-          id: zoneCode,
-          name: zoneCode,
-          code: zoneCode,
-          regionLabel: `${zoneCode} Region`,
-          inchargeName: 'Unassigned',
-          colleges: new Map<string, CollegeNode>(),
-          totalStudents: 0,
-        }
-        zoneMap.set(zoneCode, zoneNode)
-      }
-
-      const collegeName = st.collegeName || 'General College'
-      const deptName = st.department || 'General'
-
-      zoneNode.totalStudents += 1
-
-      let collegeNode = zoneNode.colleges.get(collegeName)
-      if (!collegeNode) {
-        collegeNode = {
-          name: collegeName,
-          code: collegeName.substring(0, 4).toUpperCase(),
-          studentCount: 0,
-          departments: new Set<string>(),
-        }
-        zoneNode.colleges.set(collegeName, collegeNode)
-      }
-
-      collegeNode.studentCount += 1
-      if (deptName) collegeNode.departments.add(deptName)
-    })
-
-    return Array.from(zoneMap.values())
+  // Export
+  const handleExport = async (format: 'csv' | 'xlsx') => {
+    try {
+      const blob = await organizationApi.exportHierarchy({ format })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Organization_Hierarchy_${new Date().toISOString().split('T')[0]}.${format}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      notify.success(`Hierarchy exported successfully in ${format.toUpperCase()} format!`)
+    } catch (err) {
+      notify.error('Export failed. Please try again.')
+    }
   }
 
-  const hierarchyTree = buildHierarchyTree()
-  const rootOrgName = organizations.length > 0 ? organizations[0].name : 'Maatram Foundation'
-  const totalActiveZones = hierarchyTree.length
-  const totalPartnerColleges = hierarchyTree.reduce((sum, z) => sum + z.colleges.size, 0)
-  const totalEnrolledScholars = hierarchyTree.reduce((sum, z) => sum + z.totalStudents, 0) || students.length
-
-  const filteredTree = hierarchyTree.filter((z) => {
+  // Filter
+  const filteredZones = zonesList.filter((z: any) => {
     if (!searchTerm) return true
     const q = searchTerm.toLowerCase()
     return (
       z.name.toLowerCase().includes(q) ||
-      z.regionLabel.toLowerCase().includes(q) ||
       z.code.toLowerCase().includes(q) ||
-      Array.from(z.colleges.values()).some((col) => col.name.toLowerCase().includes(q))
+      z.colleges.some((col: any) => col.name.toLowerCase().includes(q))
     )
   })
 
-  const toggleExpand = (zoneKey: string) => {
-    setExpandedZones((prev) => ({ ...prev, [zoneKey]: !prev[zoneKey] }))
+  const totalActiveZones = zonesList.length
+  const totalPartnerColleges = zonesList.reduce((sum: number, z: any) => sum + (z.colleges?.length || 0), 0)
+  const totalEnrolledScholars = zonesList.reduce((sum: number, z: any) => sum + (z.totalStudents || 0), 0)
+
+  const toggleExpand = (zoneId: string) => {
+    setExpandedZones((prev) => ({ ...prev, [zoneId]: !prev[zoneId] }))
   }
 
   const handleCreateZone = (e: React.FormEvent) => {
@@ -185,7 +127,7 @@ export const OrganizationHierarchyPage: React.FC = () => {
     })
   }
 
-  const loading = isOrgsLoading || isZonesLoading || isStudentsLoading
+  const loading = isOrgsLoading || isHierarchyLoading
 
   return (
     <Fragment>
@@ -197,16 +139,22 @@ export const OrganizationHierarchyPage: React.FC = () => {
               Normalized Organization Hierarchy Tree
             </h2>
             <p className="text-xs text-[#45464c] mt-0.5">
-              Live hierarchy mapping: Organization &rarr; Zone &rarr; College &rarr; Department.
+              Live hierarchy mapping: Organization &rarr; Zone &rarr; College &rarr; Department &rarr; Program.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => refetchZones()}
+              onClick={() => refetchHierarchy()}
               className="p-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition shadow-sm cursor-pointer"
               title="Refresh Hierarchy Data"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-blue-900' : ''}`} />
+            </button>
+            <button
+              onClick={() => handleExport('xlsx')}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#FCF8FA] border border-[#E5E7EB] text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition shadow-sm cursor-pointer"
+            >
+              <Download size={16} className="text-[#D4AF37]" /> Export Hierarchy
             </button>
             <Button variant="gold" size="md" onClick={() => setShowAddZoneModal(true)} className="flex items-center gap-2">
               <Plus className="w-4 h-4" /> Add New Zone
@@ -219,11 +167,11 @@ export const OrganizationHierarchyPage: React.FC = () => {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center p-2 border border-amber-400/40 shadow-lg shrink-0 backdrop-blur-xs font-black text-xl text-[#D4AF37]">
-                M
+                {currentOrg.name?.charAt(0) || 'M'}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-extrabold text-white tracking-wide">{rootOrgName}</h3>
+                  <h3 className="text-xl font-extrabold text-white tracking-wide">{currentOrg.name}</h3>
                   <Badge variant="gold" className="text-[10px] uppercase font-bold">
                     Root Organization
                   </Badge>
@@ -254,7 +202,7 @@ export const OrganizationHierarchyPage: React.FC = () => {
           <div className="relative grow max-w-md">
             <input
               type="text"
-              placeholder="Search zones, regional label, or partner college..."
+              placeholder="Search zones, code, or partner college..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-blue-900 outline-none"
@@ -278,16 +226,16 @@ export const OrganizationHierarchyPage: React.FC = () => {
               <Loader2 className="animate-spin h-10 w-10 text-blue-900" />
               <p className="text-xs text-gray-500 font-medium">Constructing live normalized tree view from database...</p>
             </div>
-          ) : filteredTree.length === 0 ? (
+          ) : filteredZones.length === 0 ? (
             <p className="text-center py-16 text-xs text-gray-400 font-medium">
               No zones or colleges match your search query.
             </p>
           ) : (
             <div className="pl-4 sm:pl-6 border-l-2 border-dashed border-[#D4AF37]/60 space-y-6">
-              {filteredTree.map((zoneNode) => {
-                const zoneKey = zoneNode.code || zoneNode.id
+              {filteredZones.map((zoneNode: any) => {
+                const zoneKey = zoneNode.id
                 const isExpanded = expandedZones[zoneKey] ?? true
-                const collegeList = Array.from(zoneNode.colleges.values())
+                const collegeList = zoneNode.colleges || []
 
                 return (
                   <div key={zoneNode.id} className="space-y-4 transition-all">
@@ -302,9 +250,8 @@ export const OrganizationHierarchyPage: React.FC = () => {
                         <Badge variant="gold" className="font-mono text-xs px-2.5 py-0.5">
                           {zoneNode.code}
                         </Badge>
-                        <h4 className="text-sm font-bold text-[#111827] group-hover:text-blue-900 transition flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-[#111827] group-hover:text-blue-900 transition">
                           {zoneNode.name}
-                          <span className="text-xs font-normal text-gray-500">({zoneNode.regionLabel})</span>
                         </h4>
                       </div>
 
@@ -319,35 +266,74 @@ export const OrganizationHierarchyPage: React.FC = () => {
                     </div>
 
                     {isExpanded && (
-                      <div className="pl-6 sm:pl-8 border-l-2 border-[#E5E7EB] space-y-3">
+                      <div className="pl-6 sm:pl-8 border-l-2 border-[#E5E7EB] space-y-4">
                         {collegeList.length === 0 ? (
                           <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-400 italic">
                             No partner colleges recorded under this zone.
                           </div>
                         ) : (
-                          collegeList.map((col, idx) => (
+                          collegeList.map((col: any) => (
                             <div
-                              key={idx}
-                              className="p-3.5 bg-white hover:bg-slate-50 rounded-xl border border-[#E5E7EB] flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2 transition shadow-2xs"
+                              key={col.id}
+                              className="p-5 bg-white rounded-2xl border border-[#E5E7EB] space-y-4 shadow-2xs hover:shadow-sm transition-shadow"
                             >
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center">
-                                  <Building2 className="w-4 h-4 text-[#D4AF37]" />
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
+                                    <Building2 className="w-4 h-4 text-[#D4AF37]" />
+                                  </div>
+                                  <div>
+                                    <span className="font-bold text-[#111827] text-sm block">{col.name}</span>
+                                    <span className="text-[10px] text-gray-400 font-mono">Code: {col.code}</span>
+                                  </div>
                                 </div>
-                                <div>
-                                  <span className="font-bold text-[#111827] text-sm block">{col.name}</span>
-                                  <span className="text-[10px] text-gray-400 font-mono">Code: {col.code}</span>
+
+                                <div className="flex items-center gap-2 text-gray-600 font-semibold">
+                                  <span className="flex items-center gap-1 bg-gray-50 px-2.5 py-1 rounded border border-gray-200">
+                                    {col.studentCount} Scholars ({col.activeStudentCount} Active)
+                                  </span>
+                                  <span className="flex items-center gap-1 bg-gray-50 px-2.5 py-1 rounded border border-gray-200">
+                                    {col.departmentCount} Departments
+                                  </span>
+                                  <span className="flex items-center gap-1 bg-gray-50 px-2.5 py-1 rounded border border-gray-200">
+                                    {col.programCount} Programs
+                                  </span>
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-4 text-gray-600">
-                                <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                                  <Layers className="w-3.5 h-3.5 text-indigo-600" /> {col.departments.size} Departments
-                                </span>
-                                <span className="font-extrabold text-[#111827] bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded border border-emerald-200">
-                                  {col.studentCount} Active Scholars
-                                </span>
-                              </div>
+                              {/* Department & Program Subsection */}
+                              {col.departments.length > 0 && (
+                                <div className="pl-4 border-l border-gray-200 space-y-3.5">
+                                  {col.departments.map((dept: any) => (
+                                    <div key={dept.id} className="text-xs">
+                                      <div className="flex items-center gap-1.5 font-bold text-gray-800">
+                                        <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                                        {dept.name}
+                                        <span className="text-[10px] text-gray-400 font-normal">
+                                          ({dept.studentCount} students)
+                                        </span>
+                                      </div>
+                                      
+                                      {dept.programs.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1.5 mt-1.5 pl-5">
+                                          {dept.programs.map((prog: any) => (
+                                            <span
+                                              key={prog.id}
+                                              className="px-2 py-0.5 bg-slate-50 border border-slate-200 text-gray-600 rounded text-[10px] font-medium"
+                                            >
+                                              {prog.name} ({prog.studentCount})
+                                            </span>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <div className="pl-5 text-[10px] text-gray-400 italic mt-0.5">
+                                          No programs/degrees registered.
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           ))
                         )}

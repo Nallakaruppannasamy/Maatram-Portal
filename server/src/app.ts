@@ -14,6 +14,7 @@ import { verifyMailConnection } from '@/config/mail';
 import { configureCloudinary } from '@/config/cloudinary';
 import { ResponseFormatter } from '@/common/responses/formatter';
 import { ApiError } from '@/common/exceptions/apiError';
+import path from 'path';
 
 const app: Express = express();
 
@@ -72,6 +73,16 @@ app.use('/api/v1/users', userRouter);
 app.use('/api/v1/profile', profileRouter);
 app.use('/api/v1/students', studentRouter);
 app.use('/api/v1/volunteers', volunteerRouter);
+
+// Serve uploads folder statically
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+// Academic metadata direct routes (for frontend flexibility)
+import { profileController } from '@/modules/profile/profile.controller';
+import { requireAuth } from '@/common/middleware/auth';
+app.get('/api/v1/colleges', requireAuth, profileController.getColleges);
+app.get('/api/v1/degrees', requireAuth, profileController.getDegrees);
+app.get('/api/v1/departments', requireAuth, profileController.getDepartments);
 
 // 8. Health Check Endpoints
 // Standard System Health Check

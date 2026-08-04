@@ -12,6 +12,7 @@ import {
   createStudentSchema,
   updateStudentSchema,
   changeStudentStatusSchema,
+  manualStudentSchema,
 } from './student.validator';
 import multer from 'multer';
 
@@ -28,6 +29,8 @@ router.use(requireAuth);
 // Read endpoints
 router.get('/', requireRole('admin', 'zone'), studentController.listStudents);
 router.get('/export', requireRole('admin', 'zone'), studentController.exportStudents);
+router.get('/template', requireRole('admin'), studentController.getTemplate);
+router.get('/:id/resume', studentController.getResume);
 router.get('/:id', requireRole('admin', 'zone'), studentController.getStudentById);
 
 // Write endpoints (Admin only)
@@ -36,6 +39,12 @@ router.post(
   requireRole('admin'),
   validate(createStudentSchema),
   studentController.createStudent
+);
+router.post(
+  '/manual',
+  requireRole('admin'),
+  validate(manualStudentSchema),
+  studentController.manualRegister
 );
 router.put(
   '/:id',

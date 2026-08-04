@@ -88,6 +88,52 @@ export class OrganizationRepository {
       data: { isActive: false },
     });
   }
+
+  /**
+   * Fetches full nested tree from Organization down to Programs/Degrees
+   */
+  async getHierarchyTree(): Promise<any[]> {
+    return prisma.organization.findMany({
+      where: { isActive: true },
+      include: {
+        zones: {
+          where: { isActive: true },
+          include: {
+            incharge: {
+              select: {
+                id: true,
+                email: true,
+                userProfile: {
+                  select: {
+                    fullName: true,
+                  },
+                },
+              },
+            },
+            colleges: {
+              where: { isActive: true },
+              include: {
+                departments: {
+                  include: {
+                    programs: true,
+                  },
+                },
+                students: {
+                  select: {
+                    id: true,
+                    status: true,
+                    departmentId: true,
+                    programId: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
 }
 
 export const organizationRepository = new OrganizationRepository();
