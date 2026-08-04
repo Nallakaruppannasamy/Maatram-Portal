@@ -37,8 +37,23 @@ export const studentApi = {
     return res.data
   },
 
-  exportCSV: async (): Promise<Blob> => {
-    const res = await apiInstance.get(API_ROUTES.STUDENTS.EXPORT, { responseType: 'blob' })
+  exportCSV: async (params?: Record<string, any>): Promise<Blob> => {
+    const res = await apiInstance.get(API_ROUTES.STUDENTS.EXPORT, { params, responseType: 'blob' })
+    return res.data
+  },
+
+  manualRegister: async (payload: {
+    studentName: string
+    registrationNumber: string
+    email: string
+    dateOfBirth: string
+  }): Promise<ApiResponse<Student>> => {
+    const res = await apiInstance.post<ApiResponse<Student>>(`${API_ROUTES.STUDENTS.BASE}/manual`, payload)
+    return res.data
+  },
+
+  downloadTemplate: async (): Promise<Blob> => {
+    const res = await apiInstance.get(`${API_ROUTES.STUDENTS.BASE}/template`, { responseType: 'blob' })
     return res.data
   },
 }

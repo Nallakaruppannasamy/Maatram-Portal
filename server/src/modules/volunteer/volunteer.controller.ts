@@ -21,25 +21,40 @@ export class VolunteerController {
   }
 
   /**
-   * Creates a new volunteer.
+   * Creates a new volunteer or a student volunteer submission.
    */
-  createVolunteer = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  createVolunteerOrSubmission = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const actorId = req.user!.userId;
     const actorRole = this.getAuditActorRole(req.user!.role);
 
-    const volunteer = await volunteerService.createVolunteer(req.body, actorId, actorRole);
-
-    ResponseFormatter.success(res, volunteer, 'Volunteer created successfully', 201);
+    if (req.user!.role === 'student') {
+      const submission = await volunteerService.createSubmission(req.body, actorId, actorRole);
+      ResponseFormatter.success(res, submission, 'Volunteer activity log submitted successfully', 201);
+    } else {
+      const volunteer = await volunteerService.createVolunteer(req.body, actorId, actorRole);
+      ResponseFormatter.success(res, volunteer, 'Volunteer created successfully', 201);
+    }
   });
 
   /**
-   * Retrieves a single volunteer by ID.
+   * Retrieves a single volunteer or submission by ID.
    */
-  getVolunteerById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  getVolunteerOrSubmissionById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    const volunteer = await volunteerService.getVolunteerById(id);
+    const actorId = req.user!.userId;
+    const actorRole = req.user!.role;
 
-    ResponseFormatter.success(res, volunteer, 'Volunteer retrieved successfully');
+    try {
+      const submission = await volunteerService.getSubmissionById(id, actorId, actorRole);
+      ResponseFormatter.success(res, submission, 'Volunteer submission retrieved successfully');
+    } catch (err: any) {
+      if (err.status === 404) {
+        const volunteer = await volunteerService.getVolunteerById(id);
+        ResponseFormatter.success(res, volunteer, 'Volunteer retrieved successfully');
+      } else {
+        throw err;
+      }
+    }
   });
 
   /**
@@ -56,24 +71,52 @@ export class VolunteerController {
   });
 
   /**
-   * Changes the status of a volunteer.
+   * Changes the status of a volunteer or submission.
    */
   changeStatus = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, reviewerComment } = req.body;
     const actorId = req.user!.userId;
     const actorRole = this.getAuditActorRole(req.user!.role);
 
-    const volunteer = await volunteerService.changeStatus(id, status, actorId, actorRole);
+    const SUBMISSION_STATUSES = ['pending', 'approved', 'rejected', 'PENDING', 'APPROVED', 'REJECTED'];
+    const isSubmission = SUBMISSION_STATUSES.includes(status);
 
-    ResponseFormatter.success(res, volunteer, `Volunteer status changed to ${status}`);
+    if (isSubmission) {
+      const submission = await volunteerService.updateSubmissionStatus(
+        id,
+        status,
+        reviewerComment,
+        actorId,
+        actorRole
+      );
+      ResponseFormatter.success(res, submission, `Volunteer submission status changed to ${status}`);
+    } else {
+      const volunteer = await volunteerService.changeStatus(id, status, actorId, actorRole);
+      ResponseFormatter.success(res, volunteer, `Volunteer status changed to ${status}`);
+    }
   });
 
   /**
-   * Lists volunteers with pagination, search, sorting, and filters.
+   * Adds or updates a comment on a volunteer submission.
+   */
+  addComment = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { comment } = req.body;
+    const actorId = req.user!.userId;
+    const actorRole = this.getAuditActorRole(req.user!.role);
+
+    const submission = await volunteerService.addSubmissionComment(id, comment, actorId, actorRole);
+    ResponseFormatter.success(res, submission, 'Submission reviewer comment added successfully');
+  });
+
+  /**
+   * Lists volunteers or submissions with pagination, search, sorting, and filters.
    */
   listVolunteers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const result = await volunteerService.listVolunteers(req.query);
+    const actorId = req.user?.userId;
+    const actorRole = req.user?.role;
+    const result = await volunteerService.listVolunteers(req.query, actorId, actorRole);
 
     ResponseFormatter.success(
       res,

@@ -54,6 +54,7 @@ export interface AuthUser {
   registrationNumber?: string
   employeeId?: string
   tempPassword?: string
+  zoneId?: string
 }
 
 export interface Organization {
@@ -102,11 +103,13 @@ export interface Student {
   user?: AuthUser
   registrationNumber: string
   regNumber?: string
+  firstName?: string
+  lastName?: string
   fullName: string
   collegeName?: string
   collegeId?: string
   college?: any
-  department?: string
+  department?: string | any
   departmentId?: string
   batch?: string
   academicYear?: string
@@ -123,6 +126,7 @@ export interface Student {
   hours?: number
   totalVolunteerHours?: number
   accountStatus?: AccountStatus | string
+  status?: string
   createdAt?: string
   updatedAt?: string
 }

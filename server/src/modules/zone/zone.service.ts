@@ -18,6 +18,7 @@ import {
   QueryParams,
 } from '@/utils/query-helper';
 import { Zone, AuditActorRole, Prisma } from '@prisma/client';
+import * as XLSX from 'xlsx';
 
 export class ZoneService {
   /**
@@ -191,6 +192,136 @@ export class ZoneService {
 
     logger.info(`[${ZONE_LOGS.ZONE_UPDATED}] Soft-deleted zone ID: ${updated.id}`);
     return updated;
+  }
+
+  /**
+   * Retrieves detailed academic and volunteering counts for colleges assigned to a zone.
+   */
+  async getZoneColleges(zoneId: string): Promise<any[]> {
+    const colleges = await prisma.college.findMany({
+      where: { zoneId, isActive: true },
+      include: {
+        departments: {
+          include: {
+            programs: true,
+          },
+        },
+        students: {
+          select: {
+            id: true,
+            status: true,
+            batch: true,
+            volunteerSubmissions: {
+              where: { status: 'approved' },
+              select: {
+                hours: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return colleges.map((col) => {
+      const colStudents = col.students || [];
+      const studentCount = colStudents.length;
+      const activeStudents = colStudents.filter((s: any) => s.status === 'ACTIVE').length;
+
+      const departmentCount = col.departments.length;
+      const programCount = col.departments.reduce((sum: number, d: any) => sum + d.programs.length, 0);
+
+      let verifiedVolunteerHours = 0;
+      colStudents.forEach((st) => {
+        (st.volunteerSubmissions || []).forEach((sub) => {
+          verifiedVolunteerHours += Number(sub.hours || 0);
+        });
+      });
+
+      const departmentList = col.departments.map((d) => d.name);
+
+      const programList: string[] = [];
+      col.departments.forEach((d) => {
+        d.programs.forEach((p) => {
+          if (!programList.includes(p.name)) {
+            programList.push(p.name);
+          }
+        });
+      });
+
+      const batchDistribution: Record<string, number> = {};
+      colStudents.forEach((st) => {
+        if (st.batch) {
+          batchDistribution[st.batch] = (batchDistribution[st.batch] || 0) + 1;
+        }
+      });
+
+      return {
+        id: col.id,
+        name: col.name,
+        code: col.code,
+        location: col.location,
+        departmentCount,
+        programCount,
+        studentCount,
+        activeStudents,
+        verifiedVolunteerHours,
+        departmentList,
+        programList,
+        batchDistribution,
+      };
+    });
+  }
+
+  /**
+   * Exports detailed zone colleges data to Excel or CSV.
+   */
+  async exportZoneColleges(zoneId: string, format: string): Promise<Buffer | string> {
+    const list = await this.getZoneColleges(zoneId);
+    const rows = list.map((item) => ({
+      'College Name': item.name,
+      Code: item.code,
+      Location: item.location,
+      Departments: item.departmentCount,
+      Programs: item.programCount,
+      'Total Students': item.studentCount,
+      'Active Students': item.activeStudents,
+      'Verified Volunteer Hours': item.verifiedVolunteerHours,
+    }));
+
+    if (format === 'xlsx') {
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Colleges');
+      return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+    } else {
+      const headers = [
+        'College Name',
+        'Code',
+        'Location',
+        'Departments',
+        'Programs',
+        'Total Students',
+        'Active Students',
+        'Verified Volunteer Hours',
+      ];
+      const csvContent = [
+        headers.join(','),
+        ...rows.map((row) =>
+          [
+            `"${(row['College Name'] || '').replace(/"/g, '""')}"`,
+            `"${(row.Code || '').replace(/"/g, '""')}"`,
+            `"${(row.Location || '').replace(/"/g, '""')}"`,
+            row.Departments,
+            row.Programs,
+            row['Total Students'],
+            row['Active Students'],
+            row['Verified Volunteer Hours'],
+          ].join(',')
+        ),
+      ].join('\n');
+      return csvContent;
+    }
   }
 }
 

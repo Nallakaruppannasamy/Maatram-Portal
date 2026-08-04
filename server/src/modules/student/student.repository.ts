@@ -57,6 +57,39 @@ export class StudentRepository {
   }
 
   /**
+   * Finds a student by Student ID with all relations needed for a resume.
+   */
+  async findByIdWithResumeData(id: string): Promise<any | null> {
+    return prisma.student.findUnique({
+      where: { id },
+      include: {
+        user: true,
+        organization: true,
+        zone: true,
+        college: true,
+        department: true,
+        program: true,
+        semesterGrades: {
+          orderBy: { semesterNumber: 'asc' },
+        },
+        skills: {
+          orderBy: { skillName: 'asc' },
+        },
+        projects: {
+          orderBy: { createdAt: 'desc' },
+        },
+        certifications: true,
+        volunteerSubmissions: {
+          where: {
+            status: 'approved',
+          },
+          orderBy: { eventDate: 'desc' },
+        },
+      },
+    });
+  }
+
+  /**
    * Finds a student by User ID.
    */
   async findByUserId(userId: string): Promise<Student | null> {
@@ -416,6 +449,144 @@ export class StudentRepository {
       },
     }) as unknown as Promise<StudentWithRelations[]>;
   }
+  /**
+   * Provisions a single student manually inside a transaction.
+   */
+  async provisionStudent(data: {
+    firstName: string;
+    middleName?: string | null;
+    lastName: string;
+    registrationNumber: string;
+    email: string;
+    dateOfBirth: Date;
+    tempPasswordHashed: string;
+    tempPassword: string;
+    organizationId: string;
+  }): Promise<StudentWithRelations> {
+    const verificationCode = `MTM-${new Date().getFullYear()}-${data.registrationNumber.trim().toUpperCase()}`;
+
+    return prisma.$transaction(async (tx) => {
+      // 1. Create User identity
+      const user = await tx.user.create({
+        data: {
+          email: data.email.trim().toLowerCase(),
+          registerNumber: data.registrationNumber.trim(),
+          role: UserRole.student,
+          passwordHash: data.tempPasswordHashed,
+          tempPassword: data.tempPassword,
+          isFirstLogin: true,
+          isActive: true,
+          organizationId: data.organizationId,
+        },
+      });
+
+      // 2. Create Student profile
+      const student = await tx.student.create({
+        data: {
+          userId: user.id,
+          registrationNumber: data.registrationNumber.trim(),
+          firstName: data.firstName.trim(),
+          middleName: data.middleName || null,
+          lastName: data.lastName.trim(),
+          dateOfBirth: data.dateOfBirth,
+          verificationCode,
+          organizationId: data.organizationId,
+          accountStatus: AccountStatus.pending_first_login,
+          status: StudentStatus.ACTIVE,
+        },
+      });
+
+      // 3. Load relations
+      const loaded = await tx.student.findUnique({
+        where: { id: student.id },
+        include: {
+          user: true,
+          organization: true,
+          zone: true,
+          college: true,
+          department: true,
+          program: true,
+        },
+      });
+
+      return loaded as unknown as StudentWithRelations;
+    });
+  }
+
+  /**
+   * Provisions multiple students in a single transaction. Fully rolls back if any row fails.
+   */
+  async provisionStudentsBulk(
+    records: {
+      firstName: string;
+      middleName?: string | null;
+      lastName: string;
+      registrationNumber: string;
+      email: string;
+      dateOfBirth: Date;
+      tempPasswordHashed: string;
+      tempPassword: string;
+      organizationId: string;
+    }[]
+  ): Promise<StudentWithRelations[]> {
+    return prisma.$transaction(async (tx) => {
+      const createdStudents: StudentWithRelations[] = [];
+
+      for (const record of records) {
+        const verificationCode = `MTM-${new Date().getFullYear()}-${record.registrationNumber.trim().toUpperCase()}`;
+
+        // 1. Create User identity
+        const user = await tx.user.create({
+          data: {
+            email: record.email.trim().toLowerCase(),
+            registerNumber: record.registrationNumber.trim(),
+            role: UserRole.student,
+            passwordHash: record.tempPasswordHashed,
+            tempPassword: record.tempPassword,
+            isFirstLogin: true,
+            isActive: true,
+            organizationId: record.organizationId,
+          },
+        });
+
+        // 2. Create Student profile
+        const student = await tx.student.create({
+          data: {
+            userId: user.id,
+            registrationNumber: record.registrationNumber.trim(),
+            firstName: record.firstName.trim(),
+            middleName: record.middleName || null,
+            lastName: record.lastName.trim(),
+            dateOfBirth: record.dateOfBirth,
+            verificationCode,
+            organizationId: record.organizationId,
+            accountStatus: AccountStatus.pending_first_login,
+            status: StudentStatus.ACTIVE,
+          },
+        });
+
+        // 3. Load relations
+        const loaded = await tx.student.findUnique({
+          where: { id: student.id },
+          include: {
+            user: true,
+            organization: true,
+            zone: true,
+            college: true,
+            department: true,
+            program: true,
+          },
+        });
+
+        if (loaded) {
+          createdStudents.push(loaded as unknown as StudentWithRelations);
+        }
+      }
+
+      return createdStudents;
+    });
+  }
 }
 
 export const studentRepository = new StudentRepository();
+

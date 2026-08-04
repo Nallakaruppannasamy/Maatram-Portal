@@ -16,6 +16,7 @@ import {
   QueryParams,
 } from '@/utils/query-helper';
 import { Organization, AuditActorRole, Prisma } from '@prisma/client';
+import * as XLSX from 'xlsx';
 
 export class OrganizationService {
   /**
@@ -155,6 +156,152 @@ export class OrganizationService {
 
     logger.info(`[${ORG_LOGS.ORGANIZATION_UPDATED}] Soft-deleted organization ID: ${updated.id}`);
     return updated;
+  }
+
+  /**
+   * Builds and returns enriched hierarchy trees for active organizations.
+   */
+  async getHierarchy() {
+    const orgs = await organizationRepository.getHierarchyTree();
+    return orgs.map((org) => {
+      const zones = (org.zones || []).map((zone: any) => {
+        const colleges = (zone.colleges || []).map((col: any) => {
+          const colStudents = col.students || [];
+          const studentCount = colStudents.length;
+          const activeStudentCount = colStudents.filter((s: any) => s.status === 'ACTIVE').length;
+
+          const departments = (col.departments || []).map((dept: any) => {
+            const deptStudents = colStudents.filter((s: any) => s.departmentId === dept.id);
+            const deptStudentCount = deptStudents.length;
+
+            const programs = (dept.programs || []).map((prog: any) => {
+              const progStudentCount = deptStudents.filter((s: any) => s.programId === prog.id).length;
+              return {
+                id: prog.id,
+                name: prog.name,
+                durationYears: prog.durationYears,
+                studentCount: progStudentCount,
+              };
+            });
+
+            return {
+              id: dept.id,
+              name: dept.name,
+              studentCount: deptStudentCount,
+              programs,
+            };
+          });
+
+          const departmentCount = departments.length;
+          const programCount = departments.reduce((sum: number, d: any) => sum + d.programs.length, 0);
+
+          return {
+            id: col.id,
+            name: col.name,
+            code: col.code,
+            location: col.location,
+            studentCount,
+            activeStudentCount,
+            departmentCount,
+            programCount,
+            departments,
+          };
+        });
+
+        const totalStudents = colleges.reduce((sum: number, c: any) => sum + c.studentCount, 0);
+        const totalDepartments = colleges.reduce((sum: number, c: any) => sum + c.departmentCount, 0);
+        const totalPrograms = colleges.reduce((sum: number, c: any) => sum + c.programCount, 0);
+
+        return {
+          id: zone.id,
+          name: zone.name,
+          code: zone.code,
+          regionLabel: zone.regionLabel,
+          inchargeName: zone.incharge?.userProfile?.fullName || 'Not Assigned',
+          colleges,
+          totalStudents,
+          totalDepartments,
+          totalPrograms,
+        };
+      });
+
+      return {
+        id: org.id,
+        name: org.name,
+        code: org.code,
+        zones,
+      };
+    });
+  }
+
+  /**
+   * Exports full organization hierarchy to xlsx or csv.
+   */
+  async exportHierarchy(format: string): Promise<Buffer | string> {
+    const tree = await this.getHierarchy();
+    const rows: any[] = [];
+
+    tree.forEach((org: any) => {
+      org.zones.forEach((zone: any) => {
+        zone.colleges.forEach((col: any) => {
+          if (col.departments.length === 0) {
+            rows.push({
+              Zone: zone.name,
+              College: col.name,
+              Department: 'N/A',
+              Program: 'N/A',
+              'Student Count': col.studentCount,
+            });
+            return;
+          }
+
+          col.departments.forEach((dept: any) => {
+            if (dept.programs.length === 0) {
+              rows.push({
+                Zone: zone.name,
+                College: col.name,
+                Department: dept.name,
+                Program: 'N/A',
+                'Student Count': dept.studentCount,
+              });
+              return;
+            }
+
+            dept.programs.forEach((prog: any) => {
+              rows.push({
+                Zone: zone.name,
+                College: col.name,
+                Department: dept.name,
+                Program: prog.name,
+                'Student Count': prog.studentCount,
+              });
+            });
+          });
+        });
+      });
+    });
+
+    if (format === 'xlsx') {
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Hierarchy');
+      return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+    } else {
+      const headers = ['Zone', 'College', 'Department', 'Program', 'Student Count'];
+      const csvContent = [
+        headers.join(','),
+        ...rows.map((row) =>
+          [
+            `"${(row.Zone || '').replace(/"/g, '""')}"`,
+            `"${(row.College || '').replace(/"/g, '""')}"`,
+            `"${(row.Department || '').replace(/"/g, '""')}"`,
+            `"${(row.Program || '').replace(/"/g, '""')}"`,
+            row['Student Count'],
+          ].join(',')
+        ),
+      ].join('\n');
+      return csvContent;
+    }
   }
 }
 

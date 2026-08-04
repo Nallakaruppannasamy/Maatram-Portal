@@ -19,11 +19,13 @@ import { VolunteerHistoryPage } from '@/features/student/pages/VolunteerHistoryP
 
 // Resume Generator
 import { ResumeGeneratorPage } from '@/features/resume/pages/ResumeGeneratorPage'
+import { ResumeViewerPage } from '@/features/resume/pages/ResumeViewerPage'
 
 // Zone Incharge Portal Pages
 import { ZoneDashboardPage } from '@/features/dashboard/pages/ZoneDashboardPage'
 import { VolunteerApprovalPage } from '@/features/organization/incharge/VolunteerApprovalPage'
 import { ZoneStudentManagementPage } from '@/features/organization/incharge/ZoneStudentManagementPage'
+import { AssignedCollegesPage } from '@/features/organization/incharge/AssignedCollegesPage'
 import { ZoneManagementPage } from '@/features/organization/admin/ZoneManagementPage'
 import { ZoneAnalyticsPage } from '@/features/analytics/pages/ZoneAnalyticsPage'
 import { ZoneProfilePage } from '@/features/organization/incharge/ZoneProfilePage'
@@ -54,6 +56,16 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <ChangePasswordPage />
+      </ProtectedRoute>
+    ),
+  },
+
+  // Standalone Resume Viewer (no sidebar, opens in new tab for printing)
+  {
+    path: '/resume/:studentId',
+    element: (
+      <ProtectedRoute>
+        <ResumeViewerPage />
       </ProtectedRoute>
     ),
   },
@@ -137,7 +149,7 @@ export const router = createBrowserRouter([
         path: '/zone/colleges',
         element: (
           <RoleGuard allowedRoles={[ROLES.ZONE, ROLES.ADMIN]}>
-            <ZoneManagementPage />
+            <AssignedCollegesPage />
           </RoleGuard>
         ),
       },

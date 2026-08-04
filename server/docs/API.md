@@ -242,23 +242,59 @@ All base paths are prefixed with `/api/v1`. All endpoints return standard JSend-
 * **Access**: Admin, Zone
 * **Query Parameters**:
   * `format` (`csv` | `xlsx`)
-  * Filter query parameters match list students.
+  * `search`, `page`, `limit` (respects current view pagination and filters)
 
-### Import Students (CSV)
+### Get Import Template
+* **URL**: `/students/template`
+* **Method**: `GET`
+* **Access**: Admin only
+* **Response**: Binary Excel file (.xlsx) containing the 4 required columns (Student Name, Register Number, Email, Date Of Birth) and a sample data row.
+
+### Import Students (Excel / CSV)
 * **URL**: `/students/import`
 * **Method**: `POST`
 * **Access**: Admin only
-* **Payload**: Multipart form upload containing a file field named `file` (CSV format).
+* **Payload**: Multipart form upload containing a file field named `file` (Excel .xlsx, .xls or CSV format). Executes transactionally; any single failure rolls back the entire batch.
+
+### Manual Student Registration
+* **URL**: `/students/manual`
+* **Method**: `POST`
+* **Access**: Admin only
+* **Request Body**:
+  ```json
+  {
+    "studentName": "Adhithya Vardhan",
+    "registrationNumber": "2024CS109",
+    "email": "student@example.com",
+    "dateOfBirth": "2004-06-08"
+  }
+  ```
+* **Response**: Returns the created student object. Generates temporary password matching `dd/mm/yyyy` from dateOfBirth, triggers Welcome Email, and records audit trail.
 
 ---
 
 ## 6. Volunteer Management Module (`/volunteers`)
 
-### Create Volunteer
+This module manages volunteer user profiles (Admin) as well as Student volunteer activity logs and submissions (Student, Zone, Admin).
+
+### Create Volunteer / Submit Activity Log
 * **URL**: `/volunteers`
 * **Method**: `POST`
-* **Access**: Admin only
-* **Request Body**:
+* **Access**: Admin (to create profiles) or Student (to submit volunteering logs)
+* **Request Body (Student Activity Log Submission)**:
+  ```json
+  {
+    "title": "Tele-verification of candidates",
+    "category": "TELE_VERIFICATION",
+    "description": "Background check on provisional student candidates.",
+    "eventDate": "2026-08-01",
+    "count": 25,
+    "imageUrl": "/uploads/volunteer-12345.png"
+  }
+  ```
+  *(Note: `count` is mandatory only for `TELE_VERIFICATION`, `PHYSICAL_VERIFICATION`, and `SCHOOL_VISIT`.)*
+
+* **Request Body (Admin Volunteer Creation)**:
   ```json
   {
     "volunteerId": "VOL-101",
@@ -276,31 +312,58 @@ All base paths are prefixed with `/api/v1`. All endpoints return standard JSend-
   }
   ```
 
-### Update Volunteer
+### Update Volunteer Profile
 * **URL**: `/volunteers/:id`
 * **Method**: `PUT`
 * **Access**: Admin only
 
-### Change Volunteer Status
-* **URL**: `/volunteers/:id/status`
-* **Method**: `PATCH`
-* **Access**: Admin only
-* **Request Body**:
+### Upload Volunteer Proof Image
+* **URL**: `/volunteers/upload`
+* **Method**: `POST`
+* **Access**: Authenticated (Student, Zone, Admin)
+* **Request Body**: Multipart form data with file attachment under field name `file`. (JPEG, PNG, WEBP up to 5MB).
+* **Response**:
   ```json
   {
-    "status": "ON_LEAVE"
+    "success": true,
+    "data": {
+      "url": "/uploads/volunteer-17859239.png"
+    }
   }
   ```
 
-### Get Volunteer Details
+### Change Status (Profile or Submission)
+* **URL**: `/volunteers/:id/status`
+* **Method**: `PATCH`
+* **Access**: Admin, Zone
+* **Request Body (Volunteer Submission Status Review)**:
+  ```json
+  {
+    "status": "APPROVED",
+    "reviewerComment": "Excellent work verified."
+  }
+  ```
+  *(Note: `reviewerComment` is mandatory when status is `REJECTED`.)*
+
+### Add / Update Reviewer Comment
+* **URL**: `/volunteers/:id/comment`
+* **Method**: `PATCH`
+* **Access**: Admin, Zone
+* **Request Body**:
+  ```json
+  {
+    "comment": "Audit trail comment"
+  }
+  ```
+
+### Get Details (Profile or Submission)
 * **URL**: `/volunteers/:id`
 * **Method**: `GET`
-* **Access**: Admin, Zone
+* **Access**: Authenticated (Student can only access their own submissions; Zone managers can only access submissions from their assigned Zone; Admins can access all)
 
-### List Volunteers
+### List Volunteers or Submissions
 * **URL**: `/volunteers`
 * **Method**: `GET`
-* **Access**: Admin, Zone
+* **Access**: Authenticated (Student lists their own history; Zone managers list pending queue for their zone; Admins list all)
 * **Query Parameters**:
-  * `page`, `limit`, `search`, `sortBy`, `sortOrder`
-  * `organizationId`, `zoneId`, `status`, `volunteerType`, `skill`
+  * `page`, `limit`, `search`, `status`

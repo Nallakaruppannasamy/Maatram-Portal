@@ -54,11 +54,13 @@ enum BloodGroup {
 }
 
 enum VolunteerCategory {
-  Education
-  Healthcare
-  Environment
-  DisasterRelief
-  CommunityOutreach
+  TELE_VERIFICATION
+  PHYSICAL_VERIFICATION
+  SCHOOL_VISIT
+  KARPOM_KARPIPOM_TUTORING
+  OFFLINE_PANEL_VOLUNTEERING
+  SANGAMAM_VOLUNTEERING
+  OTHER_OFFLINE_EVENT_VOLUNTEERING
 }
 
 enum VolunteerStatus {
@@ -133,7 +135,7 @@ model Student {
   firstName             String        @db.VarChar(100)
   middleName            String?       @db.VarChar(100)
   lastName              String        @db.VarChar(100)
-  gender                Gender
+  gender                Gender?
   dateOfBirth           DateTime      @db.Date
   bloodGroup            BloodGroup?
   nationality           String?       @db.VarChar(50)
@@ -141,40 +143,43 @@ model Student {
   religion              String?       @db.VarChar(50)
   mobile                String?       @db.VarChar(15)
   alternateMobile       String?       @db.VarChar(15)
-  parentName            String        @db.VarChar(100)
-  parentMobile          String        @db.VarChar(15)
+  parentName            String?       @db.VarChar(100)
+  parentMobile          String?       @db.VarChar(15)
   parentOccupation      String?       @db.VarChar(100)
   guardianName          String?       @db.VarChar(100)
   guardianMobile        String?       @db.VarChar(15)
-  addressLine1          String        @db.VarChar(255)
+  addressLine1          String?       @db.VarChar(255)
   addressLine2          String?       @db.VarChar(255)
-  city                  String        @db.VarChar(100)
-  district              String        @db.VarChar(100)
-  state                 String        @db.VarChar(100)
-  country               String        @db.VarChar(100)
-  pincode               String        @db.VarChar(10)
+  city                  String?       @db.VarChar(100)
+  district              String?       @db.VarChar(100)
+  state                 String?       @db.VarChar(100)
+  country               String?       @db.VarChar(100)
+  pincode               String?       @db.VarChar(10)
   organizationId        String        @db.Uuid
-  zoneId                String        @db.Uuid
-  collegeId             String        @db.Uuid
-  departmentId          String        @db.Uuid
-  programId             String        @db.Uuid
-  course                String        @db.VarChar(100)
-  batch                 String        @db.VarChar(10)
-  academicYear          String        @db.VarChar(10)
+  zoneId                String?       @db.Uuid
+  collegeId             String?       @db.Uuid
+  departmentId          String?       @db.Uuid
+  programId             String?       @db.Uuid
+  course                String?       @db.VarChar(100)
+  batch                 String?       @db.VarChar(10)
+  academicYear          String?       @db.VarChar(10)
   semester              String?       @db.VarChar(20)
   section               String?       @db.VarChar(10)
   verificationCode      String        @unique @db.VarChar(30)
   resumeLastGeneratedAt DateTime?     @db.Timestamptz
   accountStatus         AccountStatus @default(pending_first_login)
   status                StudentStatus @default(ACTIVE)
+  cgpa                  Decimal?      @db.Decimal(4, 2)
+  careerObjective       String?       @db.Text
+  profileImage          String?       @db.VarChar(255)
 
   // Relations
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id])
-  zone         Zone         @relation(fields: [zoneId], references: [id])
-  college      College      @relation(fields: [collegeId], references: [id])
-  department   Department   @relation(fields: [departmentId], references: [id])
-  program      Program      @relation(fields: [programId], references: [id])
+  zone         Zone?        @relation(fields: [zoneId], references: [id])
+  college      College?     @relation(fields: [collegeId], references: [id])
+  department   Department?  @relation(fields: [departmentId], references: [id])
+  program      Program?     @relation(fields: [programId], references: [id])
 
   semesterGrades       SemesterGrade[]
   volunteerSubmissions VolunteerSubmission[]
@@ -292,8 +297,10 @@ model VolunteerSubmission {
   zoneId             String            @db.Uuid
   title              String            @db.VarChar(200)
   category           VolunteerCategory
-  organization       String            @db.VarChar(200)
-  hours              Decimal           @db.Decimal(5, 1)
+  organization       String?           @db.VarChar(200)
+  hours              Decimal?          @db.Decimal(5, 1)
+  count              Int?
+  imageUrl           String?           @db.Text
   eventDate          DateTime          @db.Date
   description        String            @db.Text
   proofFileUrl       String?           @db.Text

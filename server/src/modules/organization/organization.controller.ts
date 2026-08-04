@@ -67,6 +67,42 @@ export class OrganizationController {
     await organizationService.deleteOrganization(id, actorId, actorRole);
     ResponseFormatter.success(res, null, 'Organization deleted successfully');
   });
+
+  /**
+   * Retrieves enriched organization hierarchy.
+   */
+  getHierarchy = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const hierarchy = await organizationService.getHierarchy();
+    ResponseFormatter.success(res, hierarchy, 'Organization hierarchy retrieved successfully');
+  });
+
+  /**
+   * Exports organization hierarchy to Excel or CSV.
+   */
+  exportHierarchy = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const format = ((req.query.format as string) || 'csv').toLowerCase();
+
+    if (format === 'xlsx') {
+      const buffer = await organizationService.exportHierarchy('xlsx');
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=organization-hierarchy-${Date.now()}.xlsx`
+      );
+      res.status(200).send(buffer);
+    } else {
+      const csvContent = await organizationService.exportHierarchy('csv');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=organization-hierarchy-${Date.now()}.csv`
+      );
+      res.status(200).send(csvContent);
+    }
+  });
 }
 
 export const organizationController = new OrganizationController();

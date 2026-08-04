@@ -61,6 +61,44 @@ export class ZoneController {
     await zoneService.deleteZone(id, actorId, actorRole);
     ResponseFormatter.success(res, null, 'Zone deleted successfully');
   });
+
+  /**
+   * Retrieves colleges and stats assigned to a specific zone.
+   */
+  getZoneColleges = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { zoneId } = req.params;
+    const colleges = await zoneService.getZoneColleges(zoneId);
+    ResponseFormatter.success(res, colleges, 'Zone colleges retrieved successfully');
+  });
+
+  /**
+   * Exports colleges and stats assigned to a specific zone.
+   */
+  exportZoneColleges = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { zoneId } = req.params;
+    const format = ((req.query.format as string) || 'csv').toLowerCase();
+
+    if (format === 'xlsx') {
+      const buffer = await zoneService.exportZoneColleges(zoneId, 'xlsx');
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=zone-colleges-${Date.now()}.xlsx`
+      );
+      res.status(200).send(buffer);
+    } else {
+      const csvContent = await zoneService.exportZoneColleges(zoneId, 'csv');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=zone-colleges-${Date.now()}.csv`
+      );
+      res.status(200).send(csvContent);
+    }
+  });
 }
 
 export const zoneController = new ZoneController();

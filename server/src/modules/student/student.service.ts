@@ -7,6 +7,51 @@ import { ApiError } from '@/common/exceptions/apiError';
 import { prisma } from '@/config/database';
 import { logger } from '@/config/logger';
 import { studentRepository } from './student.repository';
+import { notificationService } from '@/utils/notification';
+import { env } from '@/config/env';
+
+/**
+ * Parses date of birth supporting multiple formats (YYYY-MM-DD, DD/MM/YYYY, or Excel serial numbers).
+ */
+export function parseExcelDate(val: any): Date | null {
+  if (!val) return null;
+  if (val instanceof Date) {
+    return isNaN(val.getTime()) ? null : val;
+  }
+  if (typeof val === 'number') {
+    // Excel serial date number
+    return new Date(Math.round((val - 25569) * 86400 * 1000));
+  }
+  const str = String(val).trim();
+  // Try YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  // Try DD/MM/YYYY
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+    const parts = str.split('/');
+    const d = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const y = parseInt(parts[2], 10);
+    const date = new Date(y, m, d);
+    if (date.getDate() === d && date.getMonth() === m && date.getFullYear() === y) {
+      return date;
+    }
+  }
+  const parsed = new Date(str);
+  return isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/**
+ * Formats a Date into dd/mm/yyyy string for temporary password.
+ */
+export function formatDobAsPassword(date: Date): string {
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
 import {
   CreateStudentDTO,
   UpdateStudentDTO,
@@ -67,33 +112,34 @@ export class StudentService {
    */
   private async validateEntities(
     orgId: string,
-    zoneId: string,
-    collegeId: string,
-    departmentId: string,
-    programId: string
+    zoneId: string | null,
+    collegeId: string | null,
+    departmentId: string | null,
+    programId: string | null
   ): Promise<void> {
-    const [org, zone, college, department, program] = await Promise.all([
-      prisma.organization.findUnique({ where: { id: orgId } }),
-      prisma.zone.findUnique({ where: { id: zoneId } }),
-      prisma.college.findUnique({ where: { id: collegeId } }),
-      prisma.department.findUnique({ where: { id: departmentId } }),
-      prisma.program.findUnique({ where: { id: programId } }),
+    const org = await prisma.organization.findUnique({ where: { id: orgId } });
+    if (!org) throw ApiError.badRequest(`Organization with ID ${orgId} does not exist`);
+
+    const [zone, college, department, program] = await Promise.all([
+      zoneId ? prisma.zone.findUnique({ where: { id: zoneId } }) : null,
+      collegeId ? prisma.college.findUnique({ where: { id: collegeId } }) : null,
+      departmentId ? prisma.department.findUnique({ where: { id: departmentId } }) : null,
+      programId ? prisma.program.findUnique({ where: { id: programId } }) : null,
     ]);
 
-    if (!org) throw ApiError.badRequest(`Organization with ID ${orgId} does not exist`);
-    if (!zone) throw ApiError.badRequest(`Zone with ID ${zoneId} does not exist`);
-    if (!college) throw ApiError.badRequest(`College with ID ${collegeId} does not exist`);
-    if (!department) throw ApiError.badRequest(`Department with ID ${departmentId} does not exist`);
-    if (!program) throw ApiError.badRequest(`Program with ID ${programId} does not exist`);
+    if (zoneId && !zone) throw ApiError.badRequest(`Zone with ID ${zoneId} does not exist`);
+    if (collegeId && !college) throw ApiError.badRequest(`College with ID ${collegeId} does not exist`);
+    if (departmentId && !department) throw ApiError.badRequest(`Department with ID ${departmentId} does not exist`);
+    if (programId && !program) throw ApiError.badRequest(`Program with ID ${programId} does not exist`);
 
     // Verify relations hierarchy
-    if (college.zoneId !== zoneId) {
+    if (college && zone && college.zoneId !== zoneId) {
       throw ApiError.badRequest(`College is not associated with Zone ${zoneId}`);
     }
-    if (department.collegeId !== collegeId) {
+    if (department && collegeId && department.collegeId !== collegeId) {
       throw ApiError.badRequest(`Department is not associated with College ${collegeId}`);
     }
-    if (program.departmentId !== departmentId) {
+    if (program && departmentId && program.departmentId !== departmentId) {
       throw ApiError.badRequest(`Program is not associated with Department ${departmentId}`);
     }
   }
@@ -283,6 +329,21 @@ export class StudentService {
   }
 
   /**
+   * Helper to map query sortBy field to Prisma schema field/relation paths.
+   */
+  private mapSortBy(sortBy?: string): string {
+    if (!sortBy) return 'registrationNumber';
+    const clean = sortBy.trim();
+    if (clean === 'zone') return 'zone.name';
+    if (clean === 'college') return 'college.name';
+    if (clean === 'batch') return 'batch';
+    if (clean === 'name') return 'firstName';
+    if (clean === 'registerNumber' || clean === 'registrationNumber') return 'registrationNumber';
+    if (clean === 'cgpa') return 'cgpa';
+    return clean;
+  }
+
+  /**
    * Lists paginated students.
    */
   async listStudents(queryParams: QueryParams) {
@@ -290,7 +351,7 @@ export class StudentService {
       page: queryParams.page ? Number(queryParams.page) : 1,
       limit: queryParams.limit ? Number(queryParams.limit) : 10,
       search: queryParams.search as string,
-      sortBy: queryParams.sortBy as string,
+      sortBy: this.mapSortBy(queryParams.sortBy as string),
       sortOrder: queryParams.sortOrder as 'asc' | 'desc',
       organizationId: queryParams.organizationId as string,
       zoneId: queryParams.zoneId as string,
@@ -335,130 +396,106 @@ export class StudentService {
         current += char;
       }
     }
-    result.push(current.trim());
+result.push(current.trim());
     return result.map((val) => val.replace(/^"|"$/g, '').trim());
   }
 
   /**
-   * Performs high-performance transactional CSV import using in-memory caches.
+   * Performs high-performance transactional bulk Excel/CSV import.
+   * If any row validation or database operation fails, the entire import is rolled back.
    */
   async importStudents(
-    csvContent: string,
+    fileBuffer: Buffer,
     fileName: string,
     actorId: string,
     actorRole: AuditActorRole
-  ): Promise<StudentImportReport> {
-    const lines = csvContent.split(/\r?\n/).filter((line) => line.trim() !== '');
-    if (lines.length < 2) {
-      throw ApiError.badRequest('CSV content is empty or missing headers');
-    }
-
-    const headers = this.parseCsvLine(lines[0]).map((h) => h.trim().toLowerCase());
-    const expectedHeaders = [
-      'registrationnumber',
-      'firstname',
-      'middlename',
-      'lastname',
-      'gender',
-      'dateofbirth',
-      'bloodgroup',
-      'nationality',
-      'community',
-      'religion',
-      'email',
-      'mobile',
-      'alternatemobile',
-      'parentname',
-      'parentmobile',
-      'parentoccupation',
-      'guardianname',
-      'guardianmobile',
-      'addressline1',
-      'addressline2',
-      'city',
-      'district',
-      'state',
-      'country',
-      'pincode',
-      'organizationcode',
-      'zonecode',
-      'collegecode',
-      'departmentname',
-      'programname',
-      'course',
-      'batch',
-      'academicyear',
-      'semester',
-      'section',
-    ];
-
-    // Verify headers match
-    for (const h of expectedHeaders) {
-      if (!headers.includes(h)) {
-        throw ApiError.badRequest(`Missing required CSV header: "${h}"`);
-      }
-    }
-
-    const rows: StudentImportRow[] = [];
-    for (let i = 1; i < lines.length; i++) {
-      const values = this.parseCsvLine(lines[i]);
-      if (values.length < headers.length) continue; // skip trailing malformed rows
-
-      const row: Record<string, string> = {};
-      headers.forEach((h, index) => {
-        row[h] = values[index] || '';
-      });
-
-      rows.push({
-        registrationNumber: row.registrationnumber,
-        firstName: row.firstname,
-        middleName: row.middlename || undefined,
-        lastName: row.lastname,
-        gender: row.gender,
-        dateOfBirth: row.dateofbirth,
-        bloodGroup: row.bloodgroup || undefined,
-        nationality: row.nationality || undefined,
-        community: row.community || undefined,
-        religion: row.religion || undefined,
-        email: row.email,
-        mobile: row.mobile || undefined,
-        alternateMobile: row.alternatemobile || undefined,
-        parentName: row.parentname,
-        parentMobile: row.parentmobile,
-        parentOccupation: row.parentoccupation || undefined,
-        guardianName: row.guardianname || undefined,
-        guardianMobile: row.guardianmobile || undefined,
-        addressLine1: row.addressline1,
-        addressLine2: row.addressline2 || undefined,
-        city: row.city,
-        district: row.district,
-        state: row.state,
-        country: row.country,
-        pincode: row.pincode,
-        organizationCode: row.organizationcode,
-        zoneCode: row.zonecode,
-        collegeCode: row.collegecode,
-        departmentName: row.departmentname,
-        programName: row.programname,
-        course: row.course,
-        batch: row.batch,
-        academicYear: row.academicyear,
-        semester: row.semester || undefined,
-        section: row.section || undefined,
-      });
-    }
-
-    const report: StudentImportReport = {
-      totalRows: rows.length,
+  ): Promise<any> {
+    const report = {
+      totalRows: 0,
       successCount: 0,
       duplicateCount: 0,
       errorCount: 0,
-      errors: [],
+      errors: [] as { row: number; error: string }[],
     };
 
-    if (rows.length === 0) {
-      throw ApiError.badRequest('No data rows found in CSV');
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+    } catch (err: any) {
+      throw ApiError.badRequest('Invalid Excel or CSV file structure');
     }
+
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json<any>(worksheet, { defval: '' });
+
+    if (rows.length === 0) {
+      throw ApiError.badRequest('The uploaded file is empty');
+    }
+
+    report.totalRows = rows.length;
+
+    // Normalize keys to find the required columns case-insensitively and space-insensitively
+    const normalizedRows = rows.map((row) => {
+      const normalized: any = {};
+      for (const [key, val] of Object.entries(row)) {
+        const cleanKey = key.trim().toLowerCase().replace(/\s+/g, '');
+        if (cleanKey === 'studentname' || cleanKey === 'fullname' || cleanKey === 'name') {
+          normalized.name = String(val).trim();
+        } else if (
+          cleanKey === 'registernumber' ||
+          cleanKey === 'registerno' ||
+          cleanKey === 'registrationnumber'
+        ) {
+          normalized.registrationNumber = String(val).trim();
+        } else if (cleanKey === 'email' || cleanKey === 'emailaddress') {
+          normalized.email = String(val).trim();
+        } else if (cleanKey === 'dateofbirth' || cleanKey === 'dob') {
+          normalized.dateOfBirth = val;
+        }
+      }
+      return normalized;
+    });
+
+    // Check for missing columns in headers
+    const firstRowKeys = Object.keys(normalizedRows[0] || {});
+    const requiredKeys = ['name', 'registrationNumber', 'email', 'dateOfBirth'];
+    const missingKeys = requiredKeys.filter((key) => !firstRowKeys.includes(key));
+    if (missingKeys.length > 0) {
+      throw ApiError.badRequest(
+        `Missing required columns: ${missingKeys
+          .map((k) =>
+            k === 'registrationNumber'
+              ? 'Register Number'
+              : k === 'dateOfBirth'
+              ? 'Date Of Birth'
+              : k === 'name'
+              ? 'Student Name'
+              : k
+          )
+          .join(', ')}`
+      );
+    }
+
+    // Get default organization (MTM-ORG)
+    const org = await prisma.organization.findUnique({ where: { code: 'MTM-ORG' } });
+    if (!org) {
+      throw ApiError.internal('Default organization (MTM-ORG) not found in database');
+    }
+
+    // Load existing emails and registration numbers for fast lookup
+    const allEmails = new Set(
+      (await prisma.user.findMany({ select: { email: true } })).map((u) => u.email?.toLowerCase())
+    );
+    const allRegNums = new Set(
+      (await prisma.student.findMany({ select: { registrationNumber: true } })).map((s) =>
+        s.registrationNumber.toUpperCase()
+      )
+    );
+
+    const localEmails = new Set<string>();
+    const localRegNums = new Set<string>();
+    const recordsToCreate: any[] = [];
 
     // Create record in EnrollmentImport table in database
     const dbImport = await prisma.enrollmentImport.create({
@@ -473,86 +510,16 @@ export class StudentService {
       },
     });
 
-    // ─── HIGH PERFORMANCE PRE-FETCH CACHING ───────────────────────────────────
-    const [organizations, zones, colleges, departments, programs] = await Promise.all([
-      prisma.organization.findMany(),
-      prisma.zone.findMany(),
-      prisma.college.findMany(),
-      prisma.department.findMany(),
-      prisma.program.findMany(),
-    ]);
-
-    const orgCache = new Map(organizations.map((o) => [o.code.toUpperCase(), o]));
-    const zoneCache = new Map(zones.map((z) => [z.code.toUpperCase(), z]));
-    const collegeCache = new Map(colleges.map((c) => [c.code.toUpperCase(), c]));
-
-    // Map departments: Key is `${collegeId}_${deptName.toUpperCase()}`
-    const deptCache = new Map<string, (typeof departments)[number]>();
-    departments.forEach((d) => {
-      deptCache.set(`${d.collegeId}_${d.name.toUpperCase()}`, d);
-    });
-
-    // Map programs: Key is `${deptId}_${progName.toUpperCase()}`
-    const progCache = new Map<string, (typeof programs)[number]>();
-    programs.forEach((p) => {
-      progCache.set(`${p.departmentId}_${p.name.toUpperCase()}`, p);
-    });
-
-    // Pre-fetch all emails and registration numbers in DB for fast lookup
-    const allEmails = new Set(
-      (await prisma.user.findMany({ select: { email: true } })).map((u) => u.email?.toLowerCase())
-    );
-    const allRegNums = new Set(
-      (await prisma.student.findMany({ select: { registrationNumber: true } })).map((s) =>
-        s.registrationNumber.toUpperCase()
-      )
-    );
-
-    // Track duplicates locally within the CSV
-    const localEmails = new Set<string>();
-    const localRegNums = new Set<string>();
-
-    const recordsToCreate: {
-      user: {
-        email: string;
-        registerNumber: string;
-        role: UserRole;
-        passwordHash: string;
-        isFirstLogin: boolean;
-        isActive: boolean;
-        organizationId: string;
-        zoneId: string;
-      };
-      student: Omit<Student, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
-    }[] = [];
-
     // ─── VALIDATION PHASE ────────────────────────────────────────────────────
-    for (let idx = 0; idx < rows.length; idx++) {
-      const row = rows[idx];
-      const rowNum = idx + 2; // Row number in Excel/CSV is 1-indexed header + 1-indexed offset
+    for (let idx = 0; idx < normalizedRows.length; idx++) {
+      const row = normalizedRows[idx];
+      const rowNum = idx + 2; // Offset for 1-based index and header
       const rowErrors: string[] = [];
 
-      // Required fields checks
-      if (!row.registrationNumber) rowErrors.push('Missing registration number');
-      if (!row.firstName) rowErrors.push('Missing first name');
-      if (!row.lastName) rowErrors.push('Missing last name');
-      if (!row.email) rowErrors.push('Missing email address');
-      if (!row.parentName) rowErrors.push('Missing parent name');
-      if (!row.parentMobile) rowErrors.push('Missing parent mobile');
-      if (!row.addressLine1) rowErrors.push('Missing address line 1');
-      if (!row.city) rowErrors.push('Missing city');
-      if (!row.district) rowErrors.push('Missing district');
-      if (!row.state) rowErrors.push('Missing state');
-      if (!row.country) rowErrors.push('Missing country');
-      if (!row.pincode) rowErrors.push('Missing pincode');
-      if (!row.organizationCode) rowErrors.push('Missing organization code');
-      if (!row.zoneCode) rowErrors.push('Missing zone code');
-      if (!row.collegeCode) rowErrors.push('Missing college code');
-      if (!row.departmentName) rowErrors.push('Missing department name');
-      if (!row.programName) rowErrors.push('Missing program name');
-      if (!row.course) rowErrors.push('Missing course');
-      if (!row.batch) rowErrors.push('Missing batch');
-      if (!row.academicYear) rowErrors.push('Missing academic year');
+      if (!row.name) rowErrors.push('Missing Student Name');
+      if (!row.registrationNumber) rowErrors.push('Missing Register Number');
+      if (!row.email) rowErrors.push('Missing Email');
+      if (!row.dateOfBirth) rowErrors.push('Missing Date Of Birth');
 
       if (rowErrors.length > 0) {
         report.errorCount++;
@@ -560,90 +527,34 @@ export class StudentService {
         continue;
       }
 
-      // Check enums
-      const genderUpper = row.gender.toUpperCase();
-      if (!Object.values(Gender).includes(genderUpper as Gender)) {
-        rowErrors.push(`Invalid gender value: "${row.gender}"`);
-      }
-
-      let bloodGroupVal: BloodGroup | null = null;
-      if (row.bloodGroup) {
-        const bgNormalized = row.bloodGroup
-          .toUpperCase()
-          .replace(/\s+/g, '_')
-          .replace('+', '_POSITIVE')
-          .replace('-', '_NEGATIVE');
-        if (Object.values(BloodGroup).includes(bgNormalized as BloodGroup)) {
-          bloodGroupVal = bgNormalized as BloodGroup;
-        } else {
-          rowErrors.push(`Invalid blood group: "${row.bloodGroup}"`);
-        }
-      }
-
       // Validate email format
       if (!/^\S+@\S+\.\S+$/.test(row.email)) {
         rowErrors.push(`Invalid email format: "${row.email}"`);
       }
 
-      // Validate dateOfBirth format
-      if (isNaN(Date.parse(row.dateOfBirth))) {
+      // Parse DOB date
+      const dob = parseExcelDate(row.dateOfBirth);
+      if (!dob) {
         rowErrors.push(`Invalid date format for Date of Birth: "${row.dateOfBirth}"`);
       }
 
-      // Check duplicates
-      const emailLower = row.email.trim().toLowerCase();
-      const regUpper = row.registrationNumber.trim().toUpperCase();
+      const emailLower = row.email.toLowerCase();
+      const regUpper = row.registrationNumber.toUpperCase();
 
-      if (allEmails.has(emailLower) || localEmails.has(emailLower)) {
-        report.duplicateCount++;
-        rowErrors.push(`Duplicate email: "${row.email}"`);
+      // Check duplicates in DB
+      if (allEmails.has(emailLower)) {
+        rowErrors.push(`Duplicate Email in database: "${row.email}"`);
       }
-      if (allRegNums.has(regUpper) || localRegNums.has(regUpper)) {
-        report.duplicateCount++;
-        rowErrors.push(`Duplicate registration number: "${row.registrationNumber}"`);
+      if (allRegNums.has(regUpper)) {
+        rowErrors.push(`Duplicate Register Number in database: "${row.registrationNumber}"`);
       }
 
-      // Lookups validation
-      const org = orgCache.get(row.organizationCode.toUpperCase());
-      if (!org) {
-        rowErrors.push(`Organization code "${row.organizationCode}" does not exist`);
+      // Check local duplicates in this file
+      if (localEmails.has(emailLower)) {
+        rowErrors.push(`Duplicate Email inside the file: "${row.email}"`);
       }
-
-      const zone = zoneCache.get(row.zoneCode.toUpperCase());
-      if (!zone) {
-        rowErrors.push(`Zone code "${row.zoneCode}" does not exist`);
-      }
-
-      const college = collegeCache.get(row.collegeCode.toUpperCase());
-      if (!college) {
-        rowErrors.push(`College code "${row.collegeCode}" does not exist`);
-      }
-
-      // Validate hierarchy
-      if (college && zone && college.zoneId !== zone.id) {
-        rowErrors.push(
-          `College "${row.collegeCode}" is not associated with Zone "${row.zoneCode}"`
-        );
-      }
-
-      let dept: (typeof departments)[number] | undefined;
-      if (college) {
-        dept = deptCache.get(`${college.id}_${row.departmentName.toUpperCase()}`);
-        if (!dept) {
-          rowErrors.push(
-            `Department "${row.departmentName}" does not exist under college "${row.collegeCode}"`
-          );
-        }
-      }
-
-      let prog: (typeof programs)[number] | undefined;
-      if (dept) {
-        prog = progCache.get(`${dept.id}_${row.programName.toUpperCase()}`);
-        if (!prog) {
-          rowErrors.push(
-            `Program "${row.programName}" does not exist under department "${row.departmentName}"`
-          );
-        }
+      if (localRegNums.has(regUpper)) {
+        rowErrors.push(`Duplicate Register Number inside the file: "${row.registrationNumber}"`);
       }
 
       if (rowErrors.length > 0) {
@@ -656,67 +567,30 @@ export class StudentService {
       localEmails.add(emailLower);
       localRegNums.add(regUpper);
 
-      // Generate credentials
-      const tempPassword = generateTempPassword();
+      // Names parsing
+      const parts = row.name.split(/\s+/);
+      const firstName = parts[0] || '';
+      const lastName = parts.slice(1).join(' ') || '.';
+
+      // DOB Temporary password
+      const tempPassword = formatDobAsPassword(dob!);
       const tempPasswordHashed = await bcrypt.hash(tempPassword, 10);
 
       recordsToCreate.push({
-        user: {
-          email: emailLower,
-          registerNumber: row.registrationNumber.trim(),
-          role: UserRole.student,
-          passwordHash: tempPasswordHashed,
-          isFirstLogin: true,
-          isActive: true,
-          organizationId: org!.id,
-          zoneId: zone!.id,
-        },
-        student: {
-          registrationNumber: row.registrationNumber.trim(),
-          firstName: row.firstName.trim(),
-          middleName: row.middleName?.trim() || null,
-          lastName: row.lastName.trim(),
-          gender: genderUpper as Gender,
-          dateOfBirth: new Date(row.dateOfBirth),
-          bloodGroup: bloodGroupVal,
-          nationality: row.nationality?.trim() || null,
-          community: row.community?.trim() || null,
-          religion: row.religion?.trim() || null,
-          mobile: row.mobile?.trim() || null,
-          alternateMobile: row.alternateMobile?.trim() || null,
-          parentName: row.parentName.trim(),
-          parentMobile: row.parentMobile.trim(),
-          parentOccupation: row.parentOccupation?.trim() || null,
-          guardianName: row.guardianName?.trim() || null,
-          guardianMobile: row.guardianMobile?.trim() || null,
-          addressLine1: row.addressLine1.trim(),
-          addressLine2: row.addressLine2?.trim() || null,
-          city: row.city.trim(),
-          district: row.district.trim(),
-          state: row.state.trim(),
-          country: row.country.trim(),
-          pincode: row.pincode.trim(),
-          organizationId: org!.id,
-          zoneId: zone!.id,
-          collegeId: college!.id,
-          departmentId: dept!.id,
-          programId: prog!.id,
-          course: row.course.trim(),
-          batch: row.batch.trim(),
-          academicYear: row.academicYear.trim(),
-          semester: row.semester?.trim() || null,
-          section: row.section?.trim() || null,
-          verificationCode: `MTM-${row.batch.split('-')[0] || new Date().getFullYear()}-${row.registrationNumber.trim().toUpperCase()}`,
-          accountStatus: AccountStatus.pending_first_login,
-          status: StudentStatus.ACTIVE,
-          resumeLastGeneratedAt: null,
-        },
+        firstName,
+        lastName,
+        registrationNumber: regUpper,
+        email: emailLower,
+        dateOfBirth: dob!,
+        tempPasswordHashed,
+        tempPassword,
+        organizationId: org.id,
       });
     }
 
-    // ─── COMMIT PHASE (PRISMA TRANSACTION) ──────────────────────────────────
+    // ─── COMMIT PHASE ────────────────────────────────────────────────────────
     if (report.errorCount > 0) {
-      // Abort import: update database enrollment import status to failed
+      // Update database import status to failed
       await prisma.enrollmentImport.update({
         where: { id: dbImport.id },
         data: {
@@ -732,11 +606,11 @@ export class StudentService {
     }
 
     try {
-      await studentRepository.importStudents(recordsToCreate);
+      // Execute the bulk insert inside the transaction
+      const createdStudents = await studentRepository.provisionStudentsBulk(recordsToCreate);
+      report.successCount = createdStudents.length;
 
-      report.successCount = recordsToCreate.length;
-
-      // Update database status
+      // Update database status to completed
       await prisma.enrollmentImport.update({
         where: { id: dbImport.id },
         data: {
@@ -745,7 +619,7 @@ export class StudentService {
         },
       });
 
-      // Audit Log entry
+      // Audit Log for import success
       await createAuditLog({
         actorId,
         actorRole,
@@ -755,6 +629,65 @@ export class StudentService {
         targetLabel: fileName,
         details: `Successfully imported ${report.successCount} student profiles from file: ${fileName}`,
       });
+
+      // Send Welcome Emails & Log Audit trail for individual students in background
+      for (const record of recordsToCreate) {
+        const studentName = `${record.firstName} ${record.lastName === '.' ? '' : record.lastName}`.trim();
+        const createdStudent = createdStudents.find((s) => s.registrationNumber === record.registrationNumber);
+        const studentId = createdStudent?.id || '';
+
+        // Audit Log for individual creation
+        await createAuditLog({
+          actorId,
+          actorRole,
+          action: 'STUDENT_CREATED',
+          targetEntityType: 'student',
+          targetEntityId: studentId,
+          targetLabel: studentName,
+          details: `Student account provisioned via bulk import: regNumber=${record.registrationNumber}, email=${record.email}`,
+        });
+
+        // Welcome Email
+        const portalUrl = env.FRONTEND_URL || 'http://localhost:5173';
+        const emailPayload = {
+          to: record.email,
+          subject: 'Welcome to Maatram Foundation - Your Student Account Credentials',
+          body: `Dear ${studentName},\n\nWelcome to Maatram Foundation! Your student account has been successfully provisioned.\n\nPortal URL: ${portalUrl}\nRegistration Number: ${record.registrationNumber}\nTemporary Password: ${record.tempPassword}\n\nInstructions:\n1. Log in to the portal using your credentials.\n2. You will be prompted to change your temporary password on your first login.\n3. Complete your profile fields to activate your account.\n\nBest regards,\nMaatram Foundation Team`,
+          html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 600px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 12px; padding: 24px;">
+              <h2 style="color: #D4AF37; margin-bottom: 16px;">Welcome to Maatram Foundation</h2>
+              <p>Dear <strong>${studentName}</strong>,</p>
+              <p>Welcome to Maatram Foundation! Your student account has been successfully provisioned.</p>
+              <div style="background-color: #FCF8FA; border-left: 4px solid #D4AF37; padding: 16px; margin: 20px 0; border-radius: 4px;">
+                <h3 style="margin-top: 0; color: #111827;">Portal Credentials</h3>
+                <p><strong>Portal URL:</strong> <a href="${portalUrl}" style="color: #D4AF37; text-decoration: none;">${portalUrl}</a></p>
+                <p><strong>Registration Number:</strong> <code style="font-family: monospace; font-size: 14px; font-weight: bold;">${record.registrationNumber}</code></p>
+                <p><strong>Temporary Password:</strong> <code style="font-family: monospace; font-size: 14px; font-weight: bold; color: #D4AF37;">${record.tempPassword}</code></p>
+              </div>
+              <h3 style="color: #111827;">Next Steps</h3>
+              <ol style="font-size: 14px; color: #45464c;">
+                <li>Log in using the temporary credentials.</li>
+                <li>Change your temporary password.</li>
+                <li>Fill out your personal, academic, address details in the Student Profile.</li>
+              </ol>
+              <p style="font-size: 12px; color: #76777d; margin-top: 24px;">This is an automated message. Please do not reply directly to this email.</p>
+            </div>
+          `,
+        };
+
+        await notificationService.sendEmail(emailPayload);
+
+        // Audit Log for email sent
+        await createAuditLog({
+          actorId,
+          actorRole,
+          action: 'WELCOME_EMAIL_SENT',
+          targetEntityType: 'student',
+          targetEntityId: studentId,
+          targetLabel: studentName,
+          details: `Credentials welcome email sent to ${record.email}`,
+        });
+      }
 
       logger.info(
         `[STUDENT_IMPORTED] Successfully imported ${report.successCount} students from ${fileName} by actor ${actorId}`
@@ -798,10 +731,10 @@ export class StudentService {
   /**
    * Generates CSV string for exporting filtered students list.
    */
-  async exportToCsv(queryParams: Omit<QueryParams, 'page' | 'limit'>): Promise<string> {
+  async exportToCsv(queryParams: QueryParams): Promise<string> {
     const options: StudentQueryOptions = {
       search: queryParams.search as string,
-      sortBy: queryParams.sortBy as string,
+      sortBy: this.mapSortBy(queryParams.sortBy as string),
       sortOrder: queryParams.sortOrder as 'asc' | 'desc',
       organizationId: queryParams.organizationId as string,
       zoneId: queryParams.zoneId as string,
@@ -812,7 +745,16 @@ export class StudentService {
     };
 
     const { orderBy } = parseQueryParams(options, 'registrationNumber');
-    const students = await studentRepository.exportStudents(options, orderBy);
+    
+    let students: StudentWithRelations[];
+    if (queryParams.page !== undefined && queryParams.limit !== undefined) {
+      const page = parseInt(String(queryParams.page), 10) || 1;
+      const limit = parseInt(String(queryParams.limit), 10) || 10;
+      const skip = (page - 1) * limit;
+      students = await studentRepository.listStudents(options, skip, limit, orderBy);
+    } else {
+      students = await studentRepository.exportStudents(options, orderBy);
+    }
 
     const headers = [
       'Registration Number',
@@ -846,7 +788,7 @@ export class StudentService {
     const lines = [headers.join(',')];
 
     students.forEach((student) => {
-      const dobStr = student.dateOfBirth.toISOString().split('T')[0];
+      const dobStr = student.dateOfBirth ? student.dateOfBirth.toISOString().split('T')[0] : 'N/A';
       const address = [student.addressLine1, student.addressLine2].filter(Boolean).join(', ');
       const fullName = this.computeFullName(
         student.firstName,
@@ -857,29 +799,29 @@ export class StudentService {
       const row = [
         this.formatCsvValue(student.registrationNumber),
         this.formatCsvValue(fullName),
-        this.formatCsvValue(student.gender),
+        this.formatCsvValue(student.gender || ''),
         this.formatCsvValue(dobStr),
-        this.formatCsvValue(student.bloodGroup),
-        this.formatCsvValue(student.nationality),
+        this.formatCsvValue(student.bloodGroup || ''),
+        this.formatCsvValue(student.nationality || ''),
         this.formatCsvValue(student.user.email),
-        this.formatCsvValue(student.mobile),
-        this.formatCsvValue(student.parentName),
-        this.formatCsvValue(student.parentMobile),
+        this.formatCsvValue(student.mobile || ''),
+        this.formatCsvValue(student.parentName || ''),
+        this.formatCsvValue(student.parentMobile || ''),
         this.formatCsvValue(address),
-        this.formatCsvValue(student.city),
-        this.formatCsvValue(student.district),
-        this.formatCsvValue(student.state),
-        this.formatCsvValue(student.pincode),
-        this.formatCsvValue(student.organization.name),
-        this.formatCsvValue(student.zone.name),
-        this.formatCsvValue(student.college.name),
-        this.formatCsvValue(student.department.name),
-        this.formatCsvValue(student.program.name),
-        this.formatCsvValue(student.course),
-        this.formatCsvValue(student.batch),
-        this.formatCsvValue(student.academicYear),
-        this.formatCsvValue(student.semester),
-        this.formatCsvValue(student.section),
+        this.formatCsvValue(student.city || ''),
+        this.formatCsvValue(student.district || ''),
+        this.formatCsvValue(student.state || ''),
+        this.formatCsvValue(student.pincode || ''),
+        this.formatCsvValue(student.organization?.name || ''),
+        this.formatCsvValue(student.zone?.name || ''),
+        this.formatCsvValue(student.college?.name || ''),
+        this.formatCsvValue(student.department?.name || ''),
+        this.formatCsvValue(student.program?.name || ''),
+        this.formatCsvValue(student.course || ''),
+        this.formatCsvValue(student.batch || ''),
+        this.formatCsvValue(student.academicYear || ''),
+        this.formatCsvValue(student.semester || ''),
+        this.formatCsvValue(student.section || ''),
         this.formatCsvValue(student.status),
       ];
 
@@ -892,10 +834,10 @@ export class StudentService {
   /**
    * Generates Excel file buffer for exporting filtered students list.
    */
-  async exportToExcel(queryParams: Omit<QueryParams, 'page' | 'limit'>): Promise<Buffer> {
+  async exportToExcel(queryParams: QueryParams): Promise<Buffer> {
     const options: StudentQueryOptions = {
       search: queryParams.search as string,
-      sortBy: queryParams.sortBy as string,
+      sortBy: this.mapSortBy(queryParams.sortBy as string),
       sortOrder: queryParams.sortOrder as 'asc' | 'desc',
       organizationId: queryParams.organizationId as string,
       zoneId: queryParams.zoneId as string,
@@ -906,37 +848,46 @@ export class StudentService {
     };
 
     const { orderBy } = parseQueryParams(options, 'registrationNumber');
-    const students = await studentRepository.exportStudents(options, orderBy);
+    
+    let students: StudentWithRelations[];
+    if (queryParams.page !== undefined && queryParams.limit !== undefined) {
+      const page = parseInt(String(queryParams.page), 10) || 1;
+      const limit = parseInt(String(queryParams.limit), 10) || 10;
+      const skip = (page - 1) * limit;
+      students = await studentRepository.listStudents(options, skip, limit, orderBy);
+    } else {
+      students = await studentRepository.exportStudents(options, orderBy);
+    }
 
     const rows = students.map((s) => {
-      const dobStr = s.dateOfBirth.toISOString().split('T')[0];
+      const dobStr = s.dateOfBirth ? s.dateOfBirth.toISOString().split('T')[0] : 'N/A';
       const address = [s.addressLine1, s.addressLine2].filter(Boolean).join(', ');
       const fullName = this.computeFullName(s.firstName, s.middleName, s.lastName);
 
       return {
         'Registration Number': s.registrationNumber,
         'Full Name': fullName,
-        Gender: s.gender,
+        Gender: s.gender || '',
         'Date of Birth': dobStr,
         'Blood Group': s.bloodGroup || '',
         Nationality: s.nationality || '',
         Email: s.user.email || '',
         Mobile: s.mobile || '',
-        'Parent Name': s.parentName,
-        'Parent Mobile': s.parentMobile,
+        'Parent Name': s.parentName || '',
+        'Parent Mobile': s.parentMobile || '',
         Address: address,
-        City: s.city,
-        District: s.district,
-        State: s.state,
-        Pincode: s.pincode,
-        Organization: s.organization.name,
-        Zone: s.zone.name,
-        College: s.college.name,
-        Department: s.department.name,
-        Program: s.program.name,
-        Course: s.course,
-        Batch: s.batch,
-        'Academic Year': s.academicYear,
+        City: s.city || '',
+        District: s.district || '',
+        State: s.state || '',
+        Pincode: s.pincode || '',
+        Organization: s.organization?.name || '',
+        Zone: s.zone?.name || '',
+        College: s.college?.name || '',
+        Department: s.department?.name || '',
+        Program: s.program?.name || '',
+        Course: s.course || '',
+        Batch: s.batch || '',
+        'Academic Year': s.academicYear || '',
         Semester: s.semester || '',
         Section: s.section || '',
         Status: s.status,
@@ -947,8 +898,171 @@ export class StudentService {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
 
-    // Return XLSX buffer representation
     return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+  }
+
+  /**
+   * Generates a 4-field student registration Excel template dynamically.
+   */
+  async generateTemplate(): Promise<Buffer> {
+    const headers = [['Student Name', 'Register Number', 'Email', 'Date Of Birth']];
+    const sampleRow = [['John Doe', '2024CS001', 'johndoe@example.com', '15/08/2004']];
+    const data = [...headers, ...sampleRow];
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(data);
+
+    ws['!cols'] = [
+      { wch: 25 }, // Student Name
+      { wch: 20 }, // Register Number
+      { wch: 30 }, // Email
+      { wch: 20 }, // Date of Birth
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Student Template');
+    return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+  }
+
+  /**
+   * Manually registers a student and generates a temporary password based on Date of Birth.
+   */
+  async manualRegisterStudent(
+    body: { studentName: string; registrationNumber: string; email: string; dateOfBirth: string },
+    actorId: string,
+    actorRole: AuditActorRole
+  ): Promise<StudentWithRelations> {
+    const { studentName, registrationNumber, email, dateOfBirth } = body;
+    const emailLower = email.trim().toLowerCase();
+    const regUpper = registrationNumber.trim().toUpperCase();
+
+    const dob = parseExcelDate(dateOfBirth);
+    if (!dob) {
+      throw ApiError.badRequest('Invalid date of birth format (must be YYYY-MM-DD or DD/MM/YYYY)');
+    }
+
+    // Check duplicate email or registrationNumber
+    const [existingEmail, existingReg] = await Promise.all([
+      prisma.user.findUnique({ where: { email: emailLower } }),
+      prisma.student.findUnique({ where: { registrationNumber: regUpper } }),
+    ]);
+
+    if (existingEmail) {
+      throw ApiError.badRequest(`Email "${email}" is already registered`);
+    }
+    if (existingReg) {
+      throw ApiError.badRequest(`Register Number "${registrationNumber}" is already registered`);
+    }
+
+    const org = await prisma.organization.findUnique({ where: { code: 'MTM-ORG' } });
+    if (!org) {
+      throw ApiError.internal('Default organization (MTM-ORG) not found in database');
+    }
+
+    // DOB Temporary password
+    const tempPassword = formatDobAsPassword(dob);
+    const tempPasswordHashed = await bcrypt.hash(tempPassword, 10);
+
+    const parts = studentName.trim().split(/\s+/);
+    const firstName = parts[0] || '';
+    const lastName = parts.slice(1).join(' ') || '.';
+
+    const student = await studentRepository.provisionStudent({
+      firstName,
+      lastName,
+      registrationNumber: regUpper,
+      email: emailLower,
+      dateOfBirth: dob,
+      tempPasswordHashed,
+      tempPassword,
+      organizationId: org.id,
+    });
+
+    const fullStudentName = `${firstName} ${lastName === '.' ? '' : lastName}`.trim();
+
+    // Log audits
+    await createAuditLog({
+      actorId,
+      actorRole,
+      action: 'STUDENT_CREATED',
+      targetEntityType: 'student',
+      targetEntityId: student.id,
+      targetLabel: fullStudentName,
+      details: `Student account manually provisioned: regNumber=${regUpper}, email=${emailLower}`,
+    });
+
+    // Send credentials email
+    const portalUrl = env.FRONTEND_URL || 'http://localhost:5173';
+    await notificationService.sendEmail({
+      to: emailLower,
+      subject: 'Welcome to Maatram Foundation - Your Student Account Credentials',
+      body: `Dear ${fullStudentName},\n\nWelcome to Maatram Foundation! Your student account has been successfully provisioned.\n\nPortal URL: ${portalUrl}\nRegistration Number: ${regUpper}\nTemporary Password: ${tempPassword}\n\nInstructions:\n1. Log in to the portal using your credentials.\n2. You will be prompted to change your temporary password on your first login.\n3. Complete your profile fields to activate your account.\n\nBest regards,\nMaatram Foundation Team`,
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 600px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 12px; padding: 24px;">
+          <h2 style="color: #D4AF37; margin-bottom: 16px;">Welcome to Maatram Foundation</h2>
+          <p>Dear <strong>${fullStudentName}</strong>,</p>
+          <p>Welcome to Maatram Foundation! Your student account has been successfully provisioned.</p>
+          <div style="background-color: #FCF8FA; border-left: 4px solid #D4AF37; padding: 16px; margin: 20px 0; border-radius: 4px;">
+            <h3 style="margin-top: 0; color: #111827;">Portal Credentials</h3>
+            <p><strong>Portal URL:</strong> <a href="${portalUrl}" style="color: #D4AF37; text-decoration: none;">${portalUrl}</a></p>
+            <p><strong>Registration Number:</strong> <code style="font-family: monospace; font-size: 14px; font-weight: bold;">${regUpper}</code></p>
+            <p><strong>Temporary Password:</strong> <code style="font-family: monospace; font-size: 14px; font-weight: bold; color: #D4AF37;">${tempPassword}</code></p>
+          </div>
+          <h3 style="color: #111827;">Next Steps</h3>
+          <ol style="font-size: 14px; color: #45464c;">
+            <li>Log in using the temporary credentials.</li>
+            <li>Change your temporary password.</li>
+            <li>Fill out your personal, academic, address details in the Student Profile.</li>
+          </ol>
+          <p style="font-size: 12px; color: #76777d; margin-top: 24px;">This is an automated message. Please do not reply directly to this email.</p>
+        </div>
+      `,
+    });
+
+    await createAuditLog({
+      actorId,
+      actorRole,
+      action: 'WELCOME_EMAIL_SENT',
+      targetEntityType: 'student',
+      targetEntityId: student.id,
+      targetLabel: fullStudentName,
+      details: `Credentials welcome email sent to ${emailLower}`,
+    });
+
+    return student;
+  }
+
+  /**
+   * Retrieves student resume data, checking permissions.
+   */
+  async getStudentResume(
+    studentId: string,
+    requesterId: string,
+    requesterRole: string,
+    requesterZoneId?: string
+  ): Promise<any> {
+    const student = await studentRepository.findByIdWithResumeData(studentId);
+    if (!student) {
+      throw ApiError.notFound(`Student with ID ${studentId} not found`);
+    }
+
+    // Role access validation
+    if (requesterRole === 'student') {
+      if (student.userId !== requesterId) {
+        throw new ApiError(403, 'Forbidden: You do not have permission to view this resume');
+      }
+    } else if (requesterRole === 'zone') {
+      if (!requesterZoneId || student.zoneId !== requesterZoneId) {
+        throw new ApiError(403, 'Forbidden: You do not have permission to view student resumes outside your zone');
+      }
+    } else if (requesterRole !== 'admin') {
+      throw new ApiError(403, 'Forbidden: Unauthorized access');
+    }
+
+    const fullName = this.computeFullName(student.firstName, student.middleName, student.lastName);
+    return {
+      ...student,
+      fullName,
+    };
   }
 }
 

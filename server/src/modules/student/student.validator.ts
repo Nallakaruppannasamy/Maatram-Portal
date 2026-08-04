@@ -175,3 +175,44 @@ export const changeStudentStatusSchema = z.object({
     }),
   }),
 });
+
+export const manualStudentSchema = z.object({
+  body: z.object({
+    studentName: z
+      .string({ required_error: 'Student Name is required' })
+      .trim()
+      .min(1, 'Student Name is required')
+      .max(100),
+    registrationNumber: z
+      .string({ required_error: 'Registration Number is required' })
+      .trim()
+      .min(2, 'Registration Number must be at least 2 characters')
+      .max(50),
+    email: z
+      .string({ required_error: 'Email is required' })
+      .trim()
+      .email('Invalid email address'),
+    dateOfBirth: z
+      .string({ required_error: 'Date of Birth is required' })
+      .refine(
+        (val) => {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+            return !isNaN(Date.parse(val));
+          }
+          if (/^\d{2}\/\d{2}\/\d{4}$/.test(val)) {
+            const parts = val.split('/');
+            const d = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10) - 1;
+            const y = parseInt(parts[2], 10);
+            const date = new Date(y, m, d);
+            return date.getDate() === d && date.getMonth() === m && date.getFullYear() === y;
+          }
+          return !isNaN(Date.parse(val));
+        },
+        {
+          message: 'Invalid date of birth format (must be YYYY-MM-DD or DD/MM/YYYY)',
+        }
+      ),
+  }),
+});
+

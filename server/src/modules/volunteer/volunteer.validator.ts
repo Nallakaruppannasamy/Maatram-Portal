@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { Gender, VolunteerProfileStatus } from '@prisma/client';
+import { Gender, VolunteerProfileStatus, VolunteerCategory } from '@prisma/client';
 
 export const createVolunteerSchema = z.object({
   body: z.object({
@@ -103,5 +103,60 @@ export const changeVolunteerStatusSchema = z.object({
       errorMap: () => ({ message: 'Invalid volunteer status' }),
     }),
     reason: z.string().trim().optional(),
+  }),
+});
+
+export const createVolunteerSubmissionSchema = z.object({
+  body: z.object({
+    title: z
+      .string({ required_error: 'Activity title is required' })
+      .trim()
+      .min(3, 'Activity title must be at least 3 characters')
+      .max(200, 'Activity title must not exceed 200 characters'),
+    category: z.nativeEnum(VolunteerCategory, {
+      errorMap: () => ({ message: 'Invalid volunteer activity category' }),
+    }),
+    description: z
+      .string({ required_error: 'Description is required' })
+      .trim()
+      .min(10, 'Description must be at least 10 characters'),
+    eventDate: z
+      .string({ required_error: 'Event date is required' })
+      .refine((val) => !isNaN(Date.parse(val)), {
+        message: 'Invalid event date format (must be YYYY-MM-DD)',
+      }),
+    count: z
+      .number()
+      .int('Count must be an integer')
+      .min(1, 'Count must be at least 1')
+      .max(1000, 'Count cannot exceed 1000')
+      .optional()
+      .nullable(),
+    imageUrl: z.string().trim().optional().nullable(),
+  }),
+});
+
+export const updateSubmissionStatusSchema = z.object({
+  body: z.object({
+    status: z.string({ required_error: 'Status is required' }).trim(),
+    reviewerComment: z.string().trim().optional().nullable(),
+  }).refine(
+    (data) => {
+      const isRejected = String(data.status).toUpperCase() === 'REJECTED';
+      return !isRejected || (data.reviewerComment && data.reviewerComment.trim().length > 0);
+    },
+    {
+      message: 'Rejection comments are mandatory',
+      path: ['reviewerComment'],
+    }
+  ),
+});
+
+export const addSubmissionCommentSchema = z.object({
+  body: z.object({
+    comment: z
+      .string({ required_error: 'Comment is required' })
+      .trim()
+      .min(1, 'Comment cannot be empty'),
   }),
 });

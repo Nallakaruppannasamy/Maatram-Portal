@@ -17,6 +17,8 @@ router.use(requireAuth);
 
 // Read-only endpoints accessible to both admins and zone incharges
 router.get('/', requireRole('admin', 'zone'), organizationController.list);
+router.get('/hierarchy', requireRole('admin', 'zone'), organizationController.getHierarchy);
+router.get('/export', requireRole('admin'), organizationController.exportHierarchy);
 router.get('/:id', requireRole('admin', 'zone'), organizationController.getOne);
 
 // Write endpoints restricted to admins only

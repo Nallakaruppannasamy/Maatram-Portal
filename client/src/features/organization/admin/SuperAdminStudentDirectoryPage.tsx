@@ -12,10 +12,14 @@ import {
   Users,
   MapPin,
   LucideIcon,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
-import * as XLSX from 'xlsx'
 import { TableLoader } from '@/components/ui/TableLoader'
 import { studentApi } from '@/api/student.api'
+import { zoneApi } from '@/api/zone.api'
+import { profileApi } from '@/api/profile.api'
 import { notify } from '@/utils/toast'
 import { useDebounce } from '@/hooks/useDebounce'
 
@@ -55,41 +59,107 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [collegeFilter, setCollegeFilter] = useState<string>('All')
   const [zoneFilter, setZoneFilter] = useState<string>('All')
+  const [statusFilter, setStatusFilter] = useState<string>('All')
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [showExportMenu, setShowExportMenu] = useState<boolean>(false)
+  const [sortBy, setSortBy] = useState<string>('')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const exportMenuRef = useRef<HTMLDivElement>(null)
 
   const debouncedSearch = useDebounce(searchTerm, 400)
 
+  // Fetch Master Data
+  const { data: zonesRes } = useQuery({
+    queryKey: ['zones'],
+    queryFn: () => zoneApi.list(),
+  })
+  const zones = zonesRes?.data || []
+
+  const { data: collegesRes } = useQuery({
+    queryKey: ['colleges'],
+    queryFn: () => profileApi.getColleges(),
+  })
+  const colleges = collegesRes?.data || []
+
+  // Fetch Students
   const { data: studentsRes, isLoading } = useQuery({
-    queryKey: ['students', debouncedSearch, currentPage],
-    queryFn: () => studentApi.list({ search: debouncedSearch, page: currentPage, limit: 10 }),
+    queryKey: [
+      'students',
+      debouncedSearch,
+      currentPage,
+      zoneFilter,
+      collegeFilter,
+      statusFilter,
+      sortBy,
+      sortOrder,
+    ],
+    queryFn: () =>
+      studentApi.list({
+        search: debouncedSearch,
+        page: currentPage,
+        limit: 10,
+        zoneId: zoneFilter !== 'All' ? zoneFilter : undefined,
+        collegeId: collegeFilter !== 'All' ? collegeFilter : undefined,
+        status: statusFilter !== 'All' ? statusFilter : undefined,
+        sortBy: sortBy || undefined,
+        sortOrder: sortBy ? sortOrder : undefined,
+      }),
   })
 
   const students = studentsRes?.data || []
-  const meta = studentsRes?.meta || { total: students.length, page: currentPage, totalPages: 1 }
+  const meta = studentsRes?.meta || { total: 0, page: currentPage, totalPages: 1 }
 
-  const handleExport = () => {
+  // Sorting Handler
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortBy(field)
+      setSortOrder('asc')
+    }
+    setCurrentPage(1)
+  }
+
+  const renderSortIndicator = (field: string) => {
+    if (sortBy !== field) return <ArrowUpDown size={12} className="ml-1 text-gray-400 inline" />
+    return sortOrder === 'asc' ? (
+      <ArrowUp size={12} className="ml-1 text-blue-900 inline" />
+    ) : (
+      <ArrowDown size={12} className="ml-1 text-blue-900 inline" />
+    )
+  }
+
+  // Export File (Backend Powered, respects pagination/sorting/filtering)
+  const handleExport = async (format: 'csv' | 'xlsx') => {
     if (students.length === 0) return notify.info('No student records found to export.')
 
-    const worksheetData = students.map((s, index) => ({
-      'S. No.': index + 1,
-      'Register Number': safeString(s.registrationNumber || s.regNumber, 'UNASSIGNED'),
-      'Student Name': safeString(s.fullName || s.user?.fullName, 'N/A'),
-      'Mobile Number': safeString(s.user?.email, 'N/A'),
-      'College Name': safeString(s.college || s.collegeName, 'N/A'),
-      Degree: safeString(s.degree || s.course, 'N/A'),
-      Department: safeString(s.department, 'N/A'),
-      CGPA: safeString(s.cgpa, 'N/A'),
-    }))
+    try {
+      const blob = await studentApi.exportCSV({
+        format,
+        search: debouncedSearch,
+        sortBy: sortBy || undefined,
+        sortOrder: sortBy ? sortOrder : undefined,
+        zoneId: zoneFilter !== 'All' ? zoneFilter : undefined,
+        collegeId: collegeFilter !== 'All' ? collegeFilter : undefined,
+        status: statusFilter !== 'All' ? statusFilter : undefined,
+        page: currentPage,
+        limit: 10,
+      })
 
-    const worksheet = XLSX.utils.json_to_sheet(worksheetData)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Students')
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Maatram_Students_Report_${new Date().toISOString().split('T')[0]}.${format}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
 
-    XLSX.writeFile(workbook, `Maatram_Students_Report_${new Date().toISOString().split('T')[0]}.xlsx`)
-    setShowExportMenu(false)
-    notify.success('Spreadsheet data exported into Excel successfully!')
+      setShowExportMenu(false)
+      notify.success(`Spreadsheet data exported into ${format.toUpperCase()} successfully!`)
+    } catch (err) {
+      notify.error('Failed to export student records. Please try again.')
+    }
   }
 
   useEffect(() => {
@@ -108,9 +178,9 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
         {/* Header Title */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 font-display">Student Portfolio Management</h2>
+            <h2 className="text-3xl font-bold text-gray-900 font-display">Student Portfolio Directory</h2>
             <p className="text-sm text-gray-500 mt-0.5">
-              Audit, monitor and track multi-semester academic profiles across operational regional sectors.
+              Audit, monitor, and print student portfolios and verified resume metrics.
             </p>
           </div>
           <div className="relative" ref={exportMenuRef}>
@@ -118,16 +188,22 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
               onClick={() => setShowExportMenu(!showExportMenu)}
               className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg text-sm font-medium hover:bg-blue-950 transition shadow-sm cursor-pointer"
             >
-              <Download size={16} /> Export Matrix <ChevronDown size={14} className="ml-1" />
+              <Download size={16} /> Export Options <ChevronDown size={14} className="ml-1" />
             </button>
             {showExportMenu && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-100 overflow-hidden">
                 <div className="py-1">
                   <button
-                    onClick={handleExport}
+                    onClick={() => handleExport('xlsx')}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
                   >
-                    Export Filtered Staged Data
+                    Export Current Table (Excel)
+                  </button>
+                  <button
+                    onClick={() => handleExport('csv')}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                  >
+                    Export Current Table (CSV)
                   </button>
                 </div>
               </div>
@@ -135,13 +211,15 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 5 Sector Stat Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <StatCard title="Total Tracked" value={meta.total || students.length} icon={Users} colorClass="bg-blue-50" iconColor="text-blue-600" />
-          <StatCard title="Sector Zone-1" value={students.length} icon={MapPin} colorClass="bg-emerald-50" iconColor="text-emerald-600" />
-          <StatCard title="Sector Zone-2" value={0} icon={MapPin} colorClass="bg-indigo-50" iconColor="text-indigo-600" />
-          <StatCard title="Sector Zone-3" value={0} icon={MapPin} colorClass="bg-amber-50" iconColor="text-amber-600" />
-          <StatCard title="Sector Zone-4" value={0} icon={MapPin} colorClass="bg-rose-50" iconColor="text-rose-600" />
+        {/* Total Students Stat Card (Removed hardcoded Zone 1-4 cards) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <StatCard
+            title="Total Tracked Students"
+            value={meta.total}
+            icon={Users}
+            colorClass="bg-blue-50"
+            iconColor="text-blue-600"
+          />
         </div>
 
         {/* Search & Filter Toolbar */}
@@ -149,7 +227,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
           <div className="relative grow">
             <input
               type="text"
-              placeholder="Search by student name or tracking registration code..."
+              placeholder="Search by student name or registration code..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value)
@@ -160,62 +238,189 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
 
-          {(zoneFilter !== 'All' || collegeFilter !== 'All' || searchTerm) && (
-            <button
-              onClick={() => {
-                setZoneFilter('All')
-                setCollegeFilter('All')
-                setSearchTerm('')
+          <div className="flex flex-wrap gap-2.5">
+            {/* Zone Filter */}
+            <select
+              value={zoneFilter}
+              onChange={(e) => {
+                setZoneFilter(e.target.value)
+                setCurrentPage(1)
               }}
-              className="flex items-center gap-1 p-2 bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 rounded-lg transition cursor-pointer"
-              title="Reset Parameters"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none"
             >
-              <X size={16} /> Clear
-            </button>
-          )}
+              <option value="All">All Zones</option>
+              {zones.map((z) => (
+                <option key={z.id} value={z.id}>
+                  {z.name}
+                </option>
+              ))}
+            </select>
+
+            {/* College Filter */}
+            <select
+              value={collegeFilter}
+              onChange={(e) => {
+                setCollegeFilter(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none max-w-xs"
+            >
+              <option value="All">All Colleges</option>
+              {colleges.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none"
+            >
+              <option value="All">All Statuses</option>
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="INACTIVE">INACTIVE</option>
+              <option value="ON_LEAVE">ON LEAVE</option>
+              <option value="SUSPENDED">SUSPENDED</option>
+              <option value="EXITED">EXITED</option>
+            </select>
+
+            {(zoneFilter !== 'All' ||
+              collegeFilter !== 'All' ||
+              statusFilter !== 'All' ||
+              searchTerm ||
+              sortBy) && (
+              <button
+                onClick={() => {
+                  setZoneFilter('All')
+                  setCollegeFilter('All')
+                  setStatusFilter('All')
+                  setSearchTerm('')
+                  setSortBy('')
+                  setCurrentPage(1)
+                }}
+                className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 rounded-lg transition cursor-pointer"
+                title="Reset Parameters"
+              >
+                <X size={16} /> Clear
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Table Container */}
         <div className="grow">
           {isLoading ? (
-            <TableLoader rows={6} columns={7} />
+            <TableLoader rows={6} columns={8} />
           ) : students.length === 0 ? (
             <p className="text-center py-12 text-gray-400 font-medium">
-              No student records match your current search query.
+              No student records match your current criteria.
             </p>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">S. No.</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Register Number</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">College Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Department</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Batch</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      S. No.
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('registerNumber')}
+                    >
+                      Register Number {renderSortIndicator('registerNumber')}
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('name')}
+                    >
+                      Name {renderSortIndicator('name')}
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('college')}
+                    >
+                      College Name {renderSortIndicator('college')}
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('zone')}
+                    >
+                      Zone {renderSortIndicator('zone')}
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('batch')}
+                    >
+                      Batch {renderSortIndicator('batch')}
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                      onClick={() => handleSort('cgpa')}
+                    >
+                      CGPA {renderSortIndicator('cgpa')}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200 text-xs">
                   {students.map((student, index) => {
-                    const regNo = safeString(student.registrationNumber || student.user?.regNumber || student.id, 'UNASSIGNED')
-                    const name = safeString(student.fullName || student.user?.fullName || student.user?.email, 'Scholar Student')
-                    const college = safeString(student.college || student.collegeName, 'Maatram College')
-                    const dept = safeString(student.department, 'General')
+                    const regNo = safeString(
+                      student.registrationNumber || student.user?.regNumber || student.id,
+                      'UNASSIGNED'
+                    )
+                    const name = safeString(
+                      student.fullName || student.user?.fullName || student.user?.email,
+                      'Scholar Student'
+                    )
+                    const college = safeString(student.college?.name || student.collegeName, 'Maatram College')
+                    const zone = safeString(student.zone?.name || (student as any).zoneName, 'N/A')
                     const batch = safeString(student.batch, '2024-2028')
+                    const cgpa = student.cgpa ? Number(student.cgpa).toFixed(2) : 'N/A'
+                    const status = student.status || 'ACTIVE'
 
                     return (
                       <tr key={student.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-4 whitespace-nowrap text-gray-500 font-medium">
                           {(currentPage - 1) * 10 + index + 1}
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap font-bold text-blue-900 font-mono">{regNo}</td>
-                        <td className="px-4 py-4 whitespace-nowrap font-semibold text-gray-900">{name}</td>
+                        <td className="px-4 py-4 whitespace-nowrap font-bold text-blue-900 font-mono">
+                          <a
+                            href={`/resume/${student.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline hover:text-blue-950 cursor-pointer"
+                          >
+                            {regNo}
+                          </a>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap font-semibold text-gray-900">
+                          {name}
+                        </td>
                         <td className="px-4 py-4 whitespace-nowrap text-gray-700">{college}</td>
-                        <td className="px-4 py-4 whitespace-nowrap text-gray-600">{dept}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-gray-600">{zone}</td>
                         <td className="px-4 py-4 whitespace-nowrap text-gray-600">{batch}</td>
-                        <td className="px-4 py-4 whitespace-nowrap text-emerald-600 font-bold">ACTIVE</td>
+                        <td className="px-4 py-4 whitespace-nowrap font-mono font-bold text-[#D4AF37]">
+                          {cgpa}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              status === 'ACTIVE'
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-amber-50 text-amber-700'
+                            }`}
+                          >
+                            {status}
+                          </span>
+                        </td>
                       </tr>
                     )
                   })}
