@@ -31,8 +31,6 @@ export const ChangePasswordPage = () => {
       )
       return
     }
-      return
-    }
 
     if (newPass !== confirmPass) {
       notify.error('New password and confirm password do not match.')
