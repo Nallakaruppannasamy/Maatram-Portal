@@ -37,7 +37,7 @@ export const authApi = {
     return res.data
   },
 
-  changePassword: async (payload: { currentPassword: string; newPassword: string }): Promise<ApiResponse> => {
+  changePassword: async (payload: { currentPassword: string; newPassword: string; confirmPassword: string }): Promise<ApiResponse> => {
     const res = await apiInstance.post<ApiResponse>(API_ROUTES.AUTH.CHANGE_PASSWORD, payload)
     return res.data
   },

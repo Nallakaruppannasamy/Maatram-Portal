@@ -1,10 +1,10 @@
 import apiInstance from './axios'
 import { API_ROUTES } from '@/constants/api'
-import { ApiResponse, AuthUser } from '@/types/api'
+import { ApiResponse, AuthUser, PaginatedUsers } from '@/types/api'
 
 export const userApi = {
-  list: async (params?: Record<string, any>): Promise<ApiResponse<AuthUser[]>> => {
-    const res = await apiInstance.get<ApiResponse<AuthUser[]>>(API_ROUTES.USERS.BASE, { params })
+  list: async (params?: Record<string, any>): Promise<ApiResponse<PaginatedUsers>> => {
+    const res = await apiInstance.get<ApiResponse<PaginatedUsers>>(API_ROUTES.USERS.BASE, { params })
     return res.data
   },
 

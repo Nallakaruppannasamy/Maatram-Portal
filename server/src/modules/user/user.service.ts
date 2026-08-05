@@ -221,7 +221,7 @@ export class UserService {
       );
     }
 
-    const [users, totalCount] = await Promise.all([
+    const [users, totalCount, totalMembers, superAdmins, zoneIncharges, activeAccounts] = await Promise.all([
       userRepository.list(
         where,
         skip,
@@ -229,11 +229,29 @@ export class UserService {
         orderBy as Prisma.UserOrderByWithRelationInput | undefined
       ),
       userRepository.count(where),
+      prisma.user.count(),
+      prisma.user.count({ where: { role: 'admin' } }),
+      prisma.user.count({ where: { role: 'zone' } }),
+      prisma.user.count({ where: { isActive: true } }),
     ]);
 
     const meta = buildPaginationMeta(totalCount, params);
 
-    return { data: users, meta };
+    return {
+      items: users,
+      pagination: {
+        page: meta.page,
+        limit: meta.limit,
+        totalItems: totalCount,
+        totalPages: meta.totalPages,
+      },
+      stats: {
+        totalMembers,
+        superAdmins,
+        zoneIncharges,
+        activeAccounts,
+      },
+    };
   }
 
   /**

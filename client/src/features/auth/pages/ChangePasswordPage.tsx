@@ -24,8 +24,9 @@ export const ChangePasswordPage = () => {
       return
     }
 
-    if (newPass.length < 6) {
-      notify.error('New password must be at least 6 characters long.')
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+    if (!passwordRegex.test(newPass)) {
+      notify.error('Password must be at least 8 characters long, and contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&).')
       return
     }
 
@@ -40,6 +41,7 @@ export const ChangePasswordPage = () => {
       const res = await authApi.changePassword({
         currentPassword: tempPass,
         newPassword: newPass,
+        confirmPassword: confirmPass,
       })
 
       if (res.success) {
@@ -58,8 +60,12 @@ export const ChangePasswordPage = () => {
         notify.error(res.message || 'Failed to update password.')
       }
     } catch (err: any) {
-      const errMsg =
+      let errMsg =
         err?.response?.data?.message || err?.message || 'Error updating password. Please check your credentials.'
+      const validationErrors = err?.response?.data?.errors
+      if (Array.isArray(validationErrors) && validationErrors.length > 0) {
+        errMsg = validationErrors.map((e: any) => e.message).join('\n')
+      }
       notify.error(errMsg)
     } finally {
       setLoading(false)
@@ -95,7 +101,7 @@ export const ChangePasswordPage = () => {
             <Input
               label="New Password"
               type="password"
-              placeholder="Minimum 6 characters"
+              placeholder="Minimum 8 characters"
               value={newPass}
               onChange={(e) => setNewPass(e.target.value)}
               icon={<Lock className="w-4 h-4" />}
@@ -117,8 +123,9 @@ export const ChangePasswordPage = () => {
             <div className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] space-y-1">
               <p className="text-[11px] font-semibold text-[#111827]">Password Requirements:</p>
               <ul className="text-[11px] text-[#45464c] space-y-0.5 list-disc pl-4">
-                <li>At least 6 characters long</li>
-                <li>Contains at least one number or special character</li>
+                <li>At least 8 characters long</li>
+                <li>One uppercase and one lowercase letter</li>
+                <li>One number and one special character (@$!%*?&)</li>
               </ul>
             </div>
 
