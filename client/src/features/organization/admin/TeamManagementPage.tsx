@@ -211,7 +211,6 @@ export const TeamManagementPage: React.FC = () => {
       employeeId: formData.employeeId.trim() || undefined,
       mobile: formData.mobile.trim() || undefined,
       designation: formData.designation.trim() || undefined,
-      zoneId: formData.zoneId || undefined,
     })
   }
 
@@ -387,24 +386,6 @@ export const TeamManagementPage: React.FC = () => {
                 </select>
               </div>
 
-              {formData.role === 'zone' && zones.length > 0 && (
-                <div>
-                  <label className="block text-[9px] font-black text-[#76777d] uppercase tracking-wider mb-1">
-                    Assign Zone
-                  </label>
-                  <select
-                    name="zoneId"
-                    value={formData.zoneId}
-                    onChange={handleInputChange}
-                    className="w-full h-10 px-2 bg-[#FCF8FA] border border-[#E5E7EB] rounded-xl text-xs font-bold outline-none cursor-pointer focus:border-[#D4AF37] transition-all"
-                  >
-                    <option value="">— No Zone Assigned —</option>
-                    {zones.map((z: any) => (
-                      <option key={z.id} value={z.id}>{z.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
 
               <div className="flex gap-2 pt-1">
                 <button

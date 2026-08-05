@@ -241,9 +241,9 @@ export const ZoneStudentManagementPage = () => {
                       </th>
                       <th
                         className="py-3 px-3 font-bold cursor-pointer hover:bg-gray-100 select-none"
-                        onClick={() => handleSort('cgpa')}
+                        onClick={() => handleSort('academicYear')}
                       >
-                        CGPA {renderSortIndicator('cgpa')}
+                        Current Year {renderSortIndicator('academicYear')}
                       </th>
                       <th className="py-3 px-3 font-bold">Status</th>
                       <th className="py-3 px-3 font-bold">Action</th>
@@ -258,7 +258,16 @@ export const ZoneStudentManagementPage = () => {
                       const dept = safeString((st as any).department?.name || (st as any).departmentName || st.department, 'General')
                       const zoneLabel = safeString(st.zone?.name || (st as any).zoneName, 'Assigned Zone')
                       const batch = safeString(st.batch, '2024-2028')
-                      const cgpa = st.cgpa ? Number(st.cgpa).toFixed(2) : 'N/A'
+                      const getYearLabel = (year?: string | number | null) => {
+                        if (!year) return 'N/A'
+                        const y = String(year)
+                        if (y === '1') return '1st Year'
+                        if (y === '2') return '2nd Year'
+                        if (y === '3') return '3rd Year'
+                        if (y === '4') return '4th Year'
+                        return `${y}th Year`
+                      }
+                      const academicYearLabel = getYearLabel(st.academicYear)
                       const status = safeString((st as any).status || st.accountStatus, 'ACTIVE')
 
                       return (
@@ -282,7 +291,7 @@ export const ZoneStudentManagementPage = () => {
                           </td>
                           <td className="py-3.5 px-3 font-medium text-gray-700">{zoneLabel}</td>
                           <td className="py-3.5 px-3 text-[#76777d] font-mono">{batch}</td>
-                          <td className="py-3.5 px-3 font-mono font-bold text-[#D4AF37]">{cgpa}</td>
+                          <td className="py-3.5 px-3 font-semibold text-gray-700">{academicYearLabel}</td>
                           <td className="py-3.5 px-3">
                             <Badge variant={status === 'ACTIVE' ? 'approved' : 'pending'}>
                               {status.toUpperCase()}

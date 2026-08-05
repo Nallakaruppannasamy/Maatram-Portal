@@ -369,9 +369,9 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                     </th>
                     <th
                       className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                      onClick={() => handleSort('cgpa')}
+                      onClick={() => handleSort('academicYear')}
                     >
-                      CGPA {renderSortIndicator('cgpa')}
+                      Current Year {renderSortIndicator('academicYear')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                       Status
@@ -391,7 +391,16 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                     const college = safeString(student.college?.name || student.collegeName, 'Maatram College')
                     const zone = safeString(student.zone?.name || (student as any).zoneName, 'N/A')
                     const batch = safeString(student.batch, '2024-2028')
-                    const cgpa = student.cgpa ? Number(student.cgpa).toFixed(2) : 'N/A'
+                    const getYearLabel = (year?: string | number | null) => {
+                      if (!year) return 'N/A'
+                      const y = String(year)
+                      if (y === '1') return '1st Year'
+                      if (y === '2') return '2nd Year'
+                      if (y === '3') return '3rd Year'
+                      if (y === '4') return '4th Year'
+                      return `${y}th Year`
+                    }
+                    const academicYearLabel = getYearLabel(student.academicYear)
                     const status = student.status || 'ACTIVE'
 
                     return (
@@ -415,8 +424,8 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                         <td className="px-4 py-4 whitespace-nowrap text-gray-700">{college}</td>
                         <td className="px-4 py-4 whitespace-nowrap text-gray-600">{zone}</td>
                         <td className="px-4 py-4 whitespace-nowrap text-gray-600">{batch}</td>
-                        <td className="px-4 py-4 whitespace-nowrap font-mono font-bold text-[#D4AF37]">
-                          {cgpa}
+                        <td className="px-4 py-4 whitespace-nowrap font-semibold text-gray-700">
+                          {academicYearLabel}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           <span
