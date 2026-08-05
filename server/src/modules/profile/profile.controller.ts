@@ -10,6 +10,8 @@ import { asyncHandler } from '@/common/responses/asyncHandler';
 import { ApiError } from '@/common/exceptions/apiError';
 import { AuditActorRole } from '@prisma/client';
 
+import { uploadToCloudinary } from '@/utils/cloudinary';
+
 export class ProfileController {
   /**
    * Retrieve active user's profile
@@ -66,8 +68,8 @@ export class ProfileController {
       throw ApiError.badRequest('No image file provided');
     }
 
-    // Return the relative URL path for local access
-    const fileUrl = `/uploads/${req.file.filename}`;
+    const uploadResult = await uploadToCloudinary(req.file.buffer, 'profiles');
+    const fileUrl = uploadResult.secure_url;
 
     ResponseFormatter.success(
       res,

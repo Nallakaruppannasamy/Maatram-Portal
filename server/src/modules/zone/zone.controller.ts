@@ -99,6 +99,87 @@ export class ZoneController {
       res.status(200).send(csvContent);
     }
   });
+
+  // --- College CRUD ---
+  addCollege = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { zoneId } = req.params;
+    const college = await zoneService.addCollege(zoneId, req.body);
+    ResponseFormatter.success(res, college, 'College added successfully', 201);
+  });
+
+  updateCollege = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { collegeId } = req.params;
+    const college = await zoneService.updateCollege(collegeId, req.body);
+    ResponseFormatter.success(res, college, 'College updated successfully');
+  });
+
+  deleteCollege = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { collegeId } = req.params;
+    const result = await zoneService.deleteCollege(collegeId);
+    ResponseFormatter.success(res, result, 'College deleted successfully');
+  });
+
+  // --- Department CRUD ---
+  addDepartment = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { collegeId } = req.params;
+    const dept = await zoneService.addDepartment(collegeId, req.body.name);
+    ResponseFormatter.success(res, dept, 'Department added successfully', 201);
+  });
+
+  updateDepartment = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { departmentId } = req.params;
+    const dept = await zoneService.updateDepartment(departmentId, req.body.name);
+    ResponseFormatter.success(res, dept, 'Department updated successfully');
+  });
+
+  deleteDepartment = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { departmentId } = req.params;
+    const result = await zoneService.deleteDepartment(departmentId);
+    ResponseFormatter.success(res, result, 'Department deleted successfully');
+  });
+
+  // --- Program/Degree CRUD ---
+  addProgram = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { departmentId } = req.params;
+    const prog = await zoneService.addProgram(departmentId, req.body.name, req.body.durationYears);
+    ResponseFormatter.success(res, prog, 'Degree/Program added successfully', 201);
+  });
+
+  updateProgram = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { programId } = req.params;
+    const prog = await zoneService.updateProgram(programId, req.body.name, req.body.durationYears);
+    ResponseFormatter.success(res, prog, 'Degree/Program updated successfully');
+  });
+
+  deleteProgram = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { programId } = req.params;
+    const result = await zoneService.deleteProgram(programId);
+    ResponseFormatter.success(res, result, 'Degree/Program deleted successfully');
+  });
+
+  // --- Excel Bulk Import & Template ---
+  importStructure = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { zoneId } = req.params;
+    if (!req.file) {
+      ResponseFormatter.error(res, 'No Excel file uploaded', 400);
+      return;
+    }
+    const result = await zoneService.importZoneStructure(zoneId, req.file.buffer);
+    ResponseFormatter.success(res, result, 'Zone structure imported successfully');
+  });
+
+  downloadTemplate = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const buffer = await zoneService.getTemplateBuffer();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=zone-import-template.xlsx'
+    );
+    res.status(200).send(buffer);
+  });
 }
 
 export const zoneController = new ZoneController();

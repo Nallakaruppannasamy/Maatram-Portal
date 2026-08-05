@@ -105,7 +105,55 @@ export class ZoneService {
       await this.validateIncharge(data.inchargeId);
     }
 
-    const updated = await zoneRepository.update(id, data);
+    const updated = await prisma.$transaction(async (tx) => {
+      // If inchargeId is changing, handle bidirectional user zoneId mapping updates
+      if (data.inchargeId !== undefined) {
+        const currentZone = await tx.zone.findUnique({
+          where: { id },
+          select: { inchargeId: true }
+        });
+
+        // 1. If there was a previous incharge, remove their zoneId mapping
+        if (currentZone?.inchargeId && currentZone.inchargeId !== data.inchargeId) {
+          await tx.user.update({
+            where: { id: currentZone.inchargeId },
+            data: { zoneId: null }
+          });
+        }
+
+        // 2. If a new incharge is being assigned
+        if (data.inchargeId) {
+          // If the new incharge was previously assigned as incharge to another zone, clear that zone's inchargeId
+          const prevZone = await tx.zone.findFirst({
+            where: { inchargeId: data.inchargeId, NOT: { id } }
+          });
+          if (prevZone) {
+            await tx.zone.update({
+              where: { id: prevZone.id },
+              data: { inchargeId: null }
+            });
+          }
+
+          // Set their zoneId
+          await tx.user.update({
+            where: { id: data.inchargeId },
+            data: { zoneId: id }
+          });
+        }
+      }
+
+      // Perform the actual update
+      return tx.zone.update({
+        where: { id },
+        data: {
+          name: data.name,
+          regionLabel: data.regionLabel,
+          organizationId: data.organizationId,
+          isActive: data.isActive,
+          inchargeId: data.inchargeId === undefined ? undefined : (data.inchargeId || null)
+        }
+      });
+    });
 
     await createAuditLog({
       actorId,
@@ -322,6 +370,249 @@ export class ZoneService {
       ].join('\n');
       return csvContent;
     }
+  }
+
+  // --- College CRUD ---
+  async addCollege(zoneId: string, data: { name: string; code: string; location: string }): Promise<any> {
+    const uppercaseCode = data.code.toUpperCase();
+    const existing = await prisma.college.findUnique({ where: { code: uppercaseCode } });
+    if (existing) {
+      if (existing.isActive) {
+        throw ApiError.badRequest(`College code "${uppercaseCode}" is already in use`);
+      } else {
+        // Reactivate soft-deleted college
+        return prisma.college.update({
+          where: { id: existing.id },
+          data: { name: data.name, location: data.location, zoneId, isActive: true }
+        });
+      }
+    }
+    return prisma.college.create({
+      data: {
+        name: data.name,
+        code: uppercaseCode,
+        location: data.location,
+        zoneId,
+        isActive: true
+      }
+    });
+  }
+
+  async updateCollege(collegeId: string, data: { name: string; location: string }): Promise<any> {
+    const college = await prisma.college.findUnique({ where: { id: collegeId } });
+    if (!college) throw ApiError.notFound('College not found');
+    return prisma.college.update({
+      where: { id: collegeId },
+      data: {
+        name: data.name,
+        location: data.location
+      }
+    });
+  }
+
+  async deleteCollege(collegeId: string): Promise<any> {
+    const college = await prisma.college.findUnique({ where: { id: collegeId } });
+    if (!college) throw ApiError.notFound('College not found');
+    // Check if students are registered
+    const studentCount = await prisma.student.count({ where: { collegeId } });
+    if (studentCount > 0) {
+      // Soft delete
+      return prisma.college.update({
+        where: { id: collegeId },
+        data: { isActive: false }
+      });
+    }
+    // Hard delete if no students exist
+    return prisma.college.delete({ where: { id: collegeId } });
+  }
+
+  // --- Department CRUD ---
+  async addDepartment(collegeId: string, name: string): Promise<any> {
+    const college = await prisma.college.findUnique({ where: { id: collegeId } });
+    if (!college) throw ApiError.notFound('College not found');
+    // Validate duplicate department name case-insensitively in same college
+    const existing = await prisma.department.findFirst({
+      where: { collegeId, name: { equals: name, mode: 'insensitive' } }
+    });
+    if (existing) {
+      throw ApiError.badRequest(`Department "${name}" already exists in this college`);
+    }
+    return prisma.department.create({
+      data: { name, collegeId }
+    });
+  }
+
+  async updateDepartment(departmentId: string, name: string): Promise<any> {
+    const dept = await prisma.department.findUnique({ where: { id: departmentId } });
+    if (!dept) throw ApiError.notFound('Department not found');
+    const existing = await prisma.department.findFirst({
+      where: { collegeId: dept.collegeId, name: { equals: name, mode: 'insensitive' }, NOT: { id: departmentId } }
+    });
+    if (existing) {
+      throw ApiError.badRequest(`Department "${name}" already exists in this college`);
+    }
+    return prisma.department.update({
+      where: { id: departmentId },
+      data: { name }
+    });
+  }
+
+  async deleteDepartment(departmentId: string): Promise<any> {
+    const dept = await prisma.department.findUnique({ where: { id: departmentId } });
+    if (!dept) throw ApiError.notFound('Department not found');
+    const studentCount = await prisma.student.count({ where: { departmentId } });
+    if (studentCount > 0) {
+      throw ApiError.badRequest('Cannot delete department because students are currently enrolled in it');
+    }
+    // Delete associated programs first or check program count
+    const programCount = await prisma.program.count({ where: { departmentId } });
+    if (programCount > 0) {
+      await prisma.program.deleteMany({ where: { departmentId } });
+    }
+    return prisma.department.delete({ where: { id: departmentId } });
+  }
+
+  // --- Program/Degree CRUD ---
+  async addProgram(departmentId: string, name: string, durationYears: number): Promise<any> {
+    const dept = await prisma.department.findUnique({ where: { id: departmentId } });
+    if (!dept) throw ApiError.notFound('Department not found');
+    const existing = await prisma.program.findFirst({
+      where: { departmentId, name: { equals: name, mode: 'insensitive' } }
+    });
+    if (existing) {
+      throw ApiError.badRequest(`Degree/Program "${name}" already exists in this department`);
+    }
+    return prisma.program.create({
+      data: { name, departmentId, durationYears: durationYears || 4 }
+    });
+  }
+
+  async updateProgram(programId: string, name: string, durationYears: number): Promise<any> {
+    const prog = await prisma.program.findUnique({ where: { id: programId } });
+    if (!prog) throw ApiError.notFound('Degree/Program not found');
+    const existing = await prisma.program.findFirst({
+      where: { departmentId: prog.departmentId, name: { equals: name, mode: 'insensitive' }, NOT: { id: programId } }
+    });
+    if (existing) {
+      throw ApiError.badRequest(`Degree/Program "${name}" already exists in this department`);
+    }
+    return prisma.program.update({
+      where: { id: programId },
+      data: { name, durationYears }
+    });
+  }
+
+  async deleteProgram(programId: string): Promise<any> {
+    const prog = await prisma.program.findUnique({ where: { id: programId } });
+    if (!prog) throw ApiError.notFound('Degree/Program not found');
+    const studentCount = await prisma.student.count({ where: { programId } });
+    if (studentCount > 0) {
+      throw ApiError.badRequest('Cannot delete program because students are currently enrolled in it');
+    }
+    return prisma.program.delete({ where: { id: programId } });
+  }
+
+  // --- Excel Bulk Import & Template ---
+  async importZoneStructure(zoneId: string, fileBuffer: Buffer): Promise<any> {
+    const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const rawData = XLSX.utils.sheet_to_json<any>(worksheet);
+
+    let collegesCreated = 0;
+    let departmentsCreated = 0;
+    let programsCreated = 0;
+
+    await prisma.$transaction(async (tx) => {
+      for (let i = 0; i < rawData.length; i++) {
+        const row = rawData[i];
+        const collegeName = row['College Name']?.toString().trim();
+        const collegeCode = row['College Code']?.toString().trim().toUpperCase();
+        const collegeLocation = row['College Location']?.toString().trim();
+        const departmentName = row['Department Name']?.toString().trim();
+        const programName = row['Degree/Program Name']?.toString().trim();
+        const duration = parseInt(row['Duration (Years)']?.toString() || '4', 10);
+
+        if (!collegeName || !collegeCode || !collegeLocation || !departmentName || !programName) {
+          throw ApiError.badRequest(`Row ${i + 2} has missing required fields`);
+        }
+
+        // 1. College resolve
+        let college = await tx.college.findUnique({ where: { code: collegeCode } });
+        if (college) {
+          if (college.zoneId !== zoneId) {
+            throw ApiError.badRequest(`Row ${i + 2}: College "${collegeName}" with code "${collegeCode}" belongs to a different zone.`);
+          }
+          if (!college.isActive) {
+            college = await tx.college.update({
+              where: { id: college.id },
+              data: { isActive: true, name: collegeName, location: collegeLocation }
+            });
+            collegesCreated++;
+          }
+        } else {
+          college = await tx.college.create({
+            data: { name: collegeName, code: collegeCode, location: collegeLocation, zoneId, isActive: true }
+          });
+          collegesCreated++;
+        }
+
+        // 2. Department resolve
+        let department = await tx.department.findFirst({
+          where: { collegeId: college.id, name: { equals: departmentName, mode: 'insensitive' } }
+        });
+        if (!department) {
+          department = await tx.department.create({
+            data: { name: departmentName, collegeId: college.id }
+          });
+          departmentsCreated++;
+        }
+
+        // 3. Program resolve
+        const program = await tx.program.findFirst({
+          where: { departmentId: department.id, name: { equals: programName, mode: 'insensitive' } }
+        });
+        if (!program) {
+          await tx.program.create({
+            data: { name: programName, departmentId: department.id, durationYears: duration || 4 }
+          });
+          programsCreated++;
+        }
+      }
+    });
+
+    return {
+      totalRows: rawData.length,
+      collegesCreated,
+      departmentsCreated,
+      programsCreated
+    };
+  }
+
+  async getTemplateBuffer(): Promise<Buffer> {
+    const headers = [
+      {
+        'College Name': 'Madras Institute of Technology',
+        'College Code': 'MIT-CHE',
+        'College Location': 'Chromepet, Chennai',
+        'Department Name': 'Computer Science and Engineering',
+        'Degree/Program Name': 'B.E. Computer Science and Engineering',
+        'Duration (Years)': 4
+      },
+      {
+        'College Name': 'College of Engineering Guindy',
+        'College Code': 'CEG-CHE',
+        'College Location': 'Guindy, Chennai',
+        'Department Name': 'Mechanical Engineering',
+        'Degree/Program Name': 'B.E. Mechanical Engineering',
+        'Duration (Years)': 4
+      }
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(headers);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
   }
 }
 

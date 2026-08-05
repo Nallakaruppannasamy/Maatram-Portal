@@ -9,8 +9,7 @@ import { validate } from '@/common/middleware/validate';
 import { requireAuth } from '@/common/middleware/auth';
 import { requireRole } from '@/common/middleware/rbac';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { uploadToCloudinary } from '@/utils/cloudinary';
 import {
   createVolunteerSchema,
   updateVolunteerSchema,
@@ -25,21 +24,8 @@ const router = Router();
 // Protect all routes with authentication
 router.use(requireAuth);
 
-// Configure local multer disk storage for volunteer proofs
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, 'volunteer-' + uniqueSuffix + ext);
-  },
-});
+// Configure memory storage for Cloudinary upload
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
@@ -73,7 +59,7 @@ const validateChangeStatus = (req: any, res: any, next: any) => {
 
 // ─── Image Upload Endpoint ──────────────────────────────────────────────────
 router.post('/upload', requireRole('admin', 'zone', 'student'), (req, res, next) => {
-  upload.single('file')(req, res, (err) => {
+  upload.single('file')(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
         success: false,
@@ -86,11 +72,18 @@ router.post('/upload', requireRole('admin', 'zone', 'student'), (req, res, next)
         message: 'No file uploaded',
       });
     }
-    const relativePath = `/uploads/${req.file.filename}`;
-    res.status(200).json({
-      success: true,
-      data: { url: relativePath },
-    });
+    try {
+      const uploadResult = await uploadToCloudinary(req.file.buffer, 'volunteers');
+      res.status(200).json({
+        success: true,
+        data: { url: uploadResult.secure_url },
+      });
+    } catch (uploadError: any) {
+      res.status(500).json({
+        success: false,
+        message: uploadError.message || 'Cloudinary upload failed',
+      });
+    }
   });
 });
 

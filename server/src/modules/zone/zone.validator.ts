@@ -48,3 +48,31 @@ export const updateZoneValidator = z.object({
     isActive: z.boolean().optional(),
   }),
 });
+
+export const createCollegeValidator = z.object({
+  body: z.object({
+    name: z.string().min(3, 'College name must be at least 3 characters long').max(150).trim(),
+    code: z.string().min(2, 'College code must be at least 2 characters long').max(20).trim(),
+    location: z.string().min(3, 'Location must be at least 3 characters long').max(200).trim(),
+  }),
+});
+
+export const updateCollegeValidator = z.object({
+  body: z.object({
+    name: z.string().min(3).max(150).trim(),
+    location: z.string().min(3).max(200).trim(),
+  }),
+});
+
+export const createDepartmentValidator = z.object({
+  body: z.object({
+    name: z.string().min(3, 'Department name must be at least 3 characters long').max(100).trim(),
+  }),
+});
+
+export const createProgramValidator = z.object({
+  body: z.object({
+    name: z.string().min(3, 'Degree name must be at least 3 characters long').max(100).trim(),
+    durationYears: z.number().int().min(1).max(6).default(4),
+  }),
+});
