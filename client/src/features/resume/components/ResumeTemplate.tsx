@@ -1,5 +1,6 @@
 import React from 'react'
 import { Mail, Phone, MapPin, Globe, Github, Award, CheckCircle2, BookOpen, GraduationCap, Briefcase } from 'lucide-react'
+import { getMediaUrl } from '@/utils/media'
 
 export interface ResumeTemplateProps {
   data: {
@@ -104,11 +105,7 @@ export const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ data }) => {
   const displayName = [firstName, middleName, lastName].filter(Boolean).join(' ') || 'Scholar Student'
 
   // Image formatting
-  const imageUrl = profileImage
-    ? profileImage.startsWith('/')
-      ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${profileImage}`
-      : profileImage
-    : null
+  const imageUrl = profileImage ? getMediaUrl(profileImage) : null
 
   return (
     <div className="w-full max-w-4xl bg-white border border-[#E5E7EB] rounded-2xl shadow-xl p-8 sm:p-10 space-y-6 print:p-0 print:border-none print:shadow-none text-[#111827] font-sans">

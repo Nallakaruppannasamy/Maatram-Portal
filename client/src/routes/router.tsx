@@ -26,7 +26,6 @@ import { ZoneDashboardPage } from '@/features/dashboard/pages/ZoneDashboardPage'
 import { VolunteerApprovalPage } from '@/features/organization/incharge/VolunteerApprovalPage'
 import { ZoneStudentManagementPage } from '@/features/organization/incharge/ZoneStudentManagementPage'
 import { AssignedCollegesPage } from '@/features/organization/incharge/AssignedCollegesPage'
-import { ZoneManagementPage } from '@/features/organization/admin/ZoneManagementPage'
 import { ZoneAnalyticsPage } from '@/features/analytics/pages/ZoneAnalyticsPage'
 import { ZoneProfilePage } from '@/features/organization/incharge/ZoneProfilePage'
 
@@ -34,6 +33,7 @@ import { ZoneProfilePage } from '@/features/organization/incharge/ZoneProfilePag
 import { SuperAdminDashboardPage } from '@/features/dashboard/pages/SuperAdminDashboardPage'
 import { StudentProvisioningPage } from '@/features/organization/admin/StudentProvisioningPage'
 import { SuperAdminStudentDirectoryPage } from '@/features/organization/admin/SuperAdminStudentDirectoryPage'
+import { ZoneManagementPage } from '@/features/organization/admin/ZoneManagementPage'
 import { OrganizationHierarchyPage } from '@/features/organization/admin/OrganizationHierarchyPage'
 import { TeamManagementPage } from '@/features/organization/admin/TeamManagementPage'
 import { SuperAdminAnalyticsPage } from '@/features/analytics/pages/SuperAdminAnalyticsPage'
@@ -41,7 +41,6 @@ import { AuditLogsPage } from '@/features/organization/pages/AuditLogsPage'
 
 // Shared Tools
 import { NotificationsPage } from '@/features/notifications/pages/NotificationsPage'
-import { ReportsPage } from '@/features/reports/pages/ReportsPage'
 
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 
@@ -204,6 +203,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: '/admin/zones',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+            <ZoneManagementPage />
+          </RoleGuard>
+        ),
+      },
+      {
         path: '/admin/team',
         element: (
           <RoleGuard allowedRoles={[ROLES.ADMIN]}>
@@ -234,14 +241,6 @@ export const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={[ROLES.STUDENT, ROLES.ZONE, ROLES.ADMIN]}>
             <NotificationsPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        path: '/reports',
-        element: (
-          <RoleGuard allowedRoles={[ROLES.STUDENT, ROLES.ZONE, ROLES.ADMIN]}>
-            <ReportsPage />
           </RoleGuard>
         ),
       },

@@ -57,11 +57,19 @@ export const requireAuth = async (
       return next(ApiError.unauthorized('User role is no longer valid'));
     }
 
+    let effectiveZoneId = user.zoneId || undefined;
+    if (!effectiveZoneId && user.role === 'zone') {
+      const assignedZone = await prisma.zone.findFirst({ where: { inchargeId: user.id } });
+      if (assignedZone) {
+        effectiveZoneId = assignedZone.id;
+      }
+    }
+
     req.user = {
       userId: user.id,
       email: user.email || '',
       role: user.role,
-      zoneId: user.zoneId || undefined,
+      zoneId: effectiveZoneId,
       registerNumber: user.registerNumber || undefined,
     };
     next();

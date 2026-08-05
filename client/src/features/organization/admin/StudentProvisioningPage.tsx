@@ -152,6 +152,7 @@ export const StudentProvisioningPage: React.FC = () => {
         page,
         limit,
         format: 'xlsx',
+        view: 'provisioning',
       })
       const url = window.URL.createObjectURL(
         new Blob([blob], {

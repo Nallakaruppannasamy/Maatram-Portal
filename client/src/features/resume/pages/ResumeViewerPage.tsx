@@ -26,8 +26,10 @@ export const ResumeViewerPage: React.FC = () => {
   }
 
   if (error || !resumeRes?.success || !resumeRes?.data) {
+    const status = (error as any)?.response?.status
     const apiErr = (error as any)?.response?.data || {}
-    const message = apiErr.message || 'You are unauthorized to view this student\'s resume portfolio.'
+    const message = apiErr.message || (status === 404 ? 'The requested student resume portfolio was not found.' : 'You are unauthorized to view this student\'s resume portfolio.')
+    const title = status === 404 ? 'Resume Not Found (404)' : 'Access Denied (403)'
     
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6 font-sans">
@@ -35,11 +37,11 @@ export const ResumeViewerPage: React.FC = () => {
           <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto text-red-600">
             <AlertCircle className="w-6 h-6" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Access Denied</h2>
+          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
           <p className="text-sm text-gray-500 leading-relaxed">{message}</p>
           <div className="pt-2">
-            <Button variant="outline" size="sm" onClick={() => window.close()}>
-              Close Tab
+            <Button variant="outline" size="sm" onClick={() => window.history.back()}>
+              Go Back
             </Button>
           </div>
         </div>

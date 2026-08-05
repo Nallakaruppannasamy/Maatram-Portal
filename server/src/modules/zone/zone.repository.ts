@@ -84,6 +84,11 @@ export class ZoneRepository {
             userProfile: true,
           },
         },
+        _count: {
+          select: {
+            students: true,
+          },
+        },
       },
     });
   }

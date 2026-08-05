@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/Badge'
 import { assets } from '@/assets'
 import { UserRole } from '@/constants/roles'
 import { volunteerApi } from '@/api/volunteer.api'
+import { getMediaUrl } from '@/utils/media'
 
 export type { UserRole }
 
@@ -98,6 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeRole, user, onLogout }) 
     { title: 'Excel Provisioning', path: '/admin/provisioning', icon: FileSpreadsheet },
     { title: 'Student Directory', path: '/admin/students', icon: Users },
     { title: 'Organization Hierarchy', path: '/admin/hierarchy', icon: FolderGit2 },
+    { title: 'Zone Management', path: '/admin/zones', icon: Building2 },
     { title: 'Team Management', path: '/admin/team', icon: ShieldCheck },
     { title: 'Global Analytics', path: '/admin/analytics', icon: BarChart3 },
     { title: 'Audit Logs', path: '/admin/audit-logs', icon: CheckSquare },
@@ -105,7 +107,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeRole, user, onLogout }) 
 
   const commonNav: NavItem[] = [
     { title: 'Notifications', path: '/notifications', icon: Bell },
-    { title: 'Export Reports', path: '/reports', icon: FileText },
   ]
 
   const currentNav = activeRole === 'student' ? studentNav : activeRole === 'zone' ? zoneNav : adminNav
@@ -161,7 +162,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeRole, user, onLogout }) 
       >
         <div className="relative min-w-10 h-10 rounded-full border-2 border-[#D4AF37] bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
           {user?.avatarUrl ? (
-            <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            <img src={getMediaUrl(user.avatarUrl)} alt="Avatar" className="w-full h-full object-cover" />
           ) : (
             <span className="font-bold text-[#111827] text-sm uppercase">
               {user?.name ? user.name.charAt(0) : activeRole.charAt(0).toUpperCase()}

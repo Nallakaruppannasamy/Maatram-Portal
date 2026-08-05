@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { FileCheck2, Users, Building2, Clock, CheckCircle2, ArrowRight, TrendingUp } from 'lucide-react'
+import { FileCheck2, Users, Building2, Clock, CheckCircle2, ArrowRight, TrendingUp, AlertTriangle, RefreshCw } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -11,33 +11,53 @@ import { volunteerApi } from '@/api/volunteer.api'
 import { studentApi } from '@/api/student.api'
 
 export const ZoneDashboardPage = () => {
-  const { data: volunteersRes, isLoading: isVolunteersLoading } = useQuery({
+  const {
+    data: volunteersRes,
+    isLoading: isVolunteersLoading,
+    isError: isVolunteersError,
+    refetch: refetchVolunteers,
+  } = useQuery({
     queryKey: ['volunteers'],
     queryFn: () => volunteerApi.list(),
   })
 
-  const { data: studentsRes, isLoading: isStudentsLoading } = useQuery({
+  const {
+    data: studentsRes,
+    isLoading: isStudentsLoading,
+    isError: isStudentsError,
+    refetch: refetchStudents,
+  } = useQuery({
     queryKey: ['students'],
     queryFn: () => studentApi.list(),
   })
 
   const volunteers = volunteersRes?.data || []
   const students = studentsRes?.data || []
+  const totalStudentsCount = studentsRes?.meta?.total || students.length
 
   const pendingLogs = volunteers.filter(
-    (v) => v.status === 'pending' || v.status === 'PENDING'
+    (v: any) => v.status === 'pending' || v.status === 'PENDING'
   )
   const approvedLogs = volunteers.filter(
-    (v) => v.status === 'approved' || v.status === 'APPROVED'
+    (v: any) => v.status === 'approved' || v.status === 'APPROVED'
   )
   const rejectedLogs = volunteers.filter(
-    (v) => v.status === 'rejected' || v.status === 'REJECTED'
+    (v: any) => v.status === 'rejected' || v.status === 'REJECTED'
   )
 
-  const totalApprovedHours = approvedLogs.reduce((acc, curr) => acc + (Number(curr.hours) || 0), 0)
+  const totalApprovedHours = approvedLogs.reduce(
+    (acc: number, curr: any) => acc + (Number(curr.hours) || 0),
+    0
+  )
 
   const reviewedTotal = approvedLogs.length + rejectedLogs.length
-  const approvalRate = reviewedTotal > 0 ? ((approvedLogs.length / reviewedTotal) * 100).toFixed(1) : '100'
+  const approvalRate =
+    reviewedTotal > 0 ? ((approvedLogs.length / reviewedTotal) * 100).toFixed(1) : '100'
+
+  const handleRetryAll = () => {
+    refetchVolunteers()
+    refetchStudents()
+  }
 
   if (isVolunteersLoading || isStudentsLoading) {
     return (
@@ -48,9 +68,32 @@ export const ZoneDashboardPage = () => {
     )
   }
 
+  if (isVolunteersError || isStudentsError) {
+    return (
+      <Card className="p-8 text-center space-y-4 max-w-xl mx-auto my-12 bg-red-50/50 border-red-200">
+        <AlertTriangle className="w-10 h-10 text-red-600 mx-auto" />
+        <div>
+          <h3 className="text-lg font-bold text-red-900">Failed to load Dashboard data</h3>
+          <p className="text-xs text-red-700 mt-1">
+            An unexpected error occurred while fetching live metrics for your zone.
+          </p>
+        </div>
+        <Button
+          variant="gold"
+          size="sm"
+          onClick={handleRetryAll}
+          icon={<RefreshCw className="w-4 h-4" />}
+          className="mx-auto font-semibold"
+        >
+          Retry Connection
+        </Button>
+      </Card>
+    )
+  }
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
-      {/* Zone Title */}
+    <div className="space-y-8 animate-in fade-in duration-300 font-sans">
+      {/* Zone Title Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -68,8 +111,8 @@ export const ZoneDashboardPage = () => {
       </div>
 
       {/* Zone Overview Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#76777d] uppercase tracking-wider">Assigned Students</span>
             <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -77,12 +120,12 @@ export const ZoneDashboardPage = () => {
             </div>
           </div>
           <p className="text-3xl font-extrabold text-[#111827] mt-3">
-            {students.length} <span className="text-xs font-normal text-[#76777d]">students</span>
+            {totalStudentsCount} <span className="text-xs font-normal text-[#76777d]">students</span>
           </p>
           <p className="text-xs text-emerald-600 font-semibold mt-2">Active Scholars</p>
         </Card>
 
-        <Card>
+        <Card className="p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#76777d] uppercase tracking-wider">Pending Approvals</span>
             <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
@@ -95,7 +138,7 @@ export const ZoneDashboardPage = () => {
           <p className="text-xs text-amber-600 font-semibold mt-2">Requires review</p>
         </Card>
 
-        <Card>
+        <Card className="p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#76777d] uppercase tracking-wider">Total Approved Hours</span>
             <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -110,7 +153,7 @@ export const ZoneDashboardPage = () => {
           </p>
         </Card>
 
-        <Card>
+        <Card className="p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#76777d] uppercase tracking-wider">Approval Rate</span>
             <div className="w-9 h-9 rounded-xl bg-[#FCF8FA] text-[#111827] flex items-center justify-center">
@@ -124,7 +167,7 @@ export const ZoneDashboardPage = () => {
 
       {/* Approval Inbox Queue Preview */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <CardTitle>Volunteering Submissions Queue</CardTitle>
             <CardDescription>Review proof images and approve hours submitted by your zone students</CardDescription>
@@ -138,7 +181,7 @@ export const ZoneDashboardPage = () => {
 
         <CardContent>
           {pendingLogs.length === 0 ? (
-            <div className="py-8 text-center text-xs text-gray-500">
+            <div className="py-12 text-center text-xs text-gray-500">
               No pending volunteer logs requiring approval. All submissions reviewed!
             </div>
           ) : (
@@ -154,15 +197,22 @@ export const ZoneDashboardPage = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E5E7EB]">
-                  {pendingLogs.slice(0, 5).map((log) => (
-                    <tr key={log.id}>
+                  {pendingLogs.slice(0, 5).map((log: any) => (
+                    <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                       <td className="py-3.5 px-3">
                         <p className="font-bold text-[#111827]">{log.title}</p>
-                        <p className="text-[10px] text-[#76777d]">{log.organization}</p>
+                        <p className="text-[10px] text-[#76777d]">{log.organization || log.student?.name}</p>
                       </td>
                       <td className="py-3.5 px-3 text-[#45464c]">{log.category}</td>
-                      <td className="py-3.5 px-3 font-extrabold text-[#D4AF37]">{log.hours} hrs</td>
-                      <td className="py-3.5 px-3 text-[#76777d]">{log.eventDate}</td>
+                      <td className="py-3.5 px-3 font-extrabold text-[#D4AF37]">{log.hours || log.count || 0} hrs</td>
+                      <td className="py-3.5 px-3 text-[#76777d]">
+                        {log.eventDate
+                          ? new Date(log.eventDate).toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                            })
+                          : 'N/A'}
+                      </td>
                       <td className="py-3.5 px-3">
                         <Link to="/zone/approvals">
                           <Button variant="gold" size="sm">

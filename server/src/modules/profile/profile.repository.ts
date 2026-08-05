@@ -25,6 +25,15 @@ export class ProfileRepository {
           semesterGrades: {
             orderBy: { semesterNumber: 'asc' },
           },
+          skills: {
+            orderBy: { skillName: 'asc' },
+          },
+          projects: {
+            orderBy: { createdAt: 'desc' },
+          },
+          certifications: {
+            orderBy: { issueDate: 'desc' },
+          },
         },
       });
     }
@@ -213,8 +222,128 @@ export class ProfileRepository {
           semesterGrades: {
             orderBy: { semesterNumber: 'asc' },
           },
+          skills: {
+            orderBy: { skillName: 'asc' },
+          },
+          projects: {
+            orderBy: { createdAt: 'desc' },
+          },
+          certifications: {
+            orderBy: { issueDate: 'desc' },
+          },
         },
       });
+    });
+  }
+
+  // ─── Skill CRUD ──────────────────────────────────────────────────────────
+  async addSkill(studentId: string, skillName: string) {
+    return prisma.skill.create({
+      data: {
+        studentId,
+        skillName: skillName.trim(),
+      },
+    });
+  }
+
+  async updateSkill(studentId: string, id: string, skillName: string) {
+    const existing = await prisma.skill.findFirst({
+      where: { id, studentId },
+    });
+    if (!existing) throw ApiError.notFound('Skill not found or access denied');
+    return prisma.skill.update({
+      where: { id },
+      data: { skillName: skillName.trim() },
+    });
+  }
+
+  async deleteSkill(studentId: string, id: string) {
+    const existing = await prisma.skill.findFirst({
+      where: { id, studentId },
+    });
+    if (!existing) throw ApiError.notFound('Skill not found or access denied');
+    return prisma.skill.delete({
+      where: { id },
+    });
+  }
+
+  // ─── Project CRUD ────────────────────────────────────────────────────────
+  async addProject(studentId: string, data: any) {
+    return prisma.project.create({
+      data: {
+        studentId,
+        title: data.title.trim(),
+        description: data.description.trim(),
+        techStack: data.techStack.trim(),
+        githubUrl: data.githubUrl ? data.githubUrl.trim() : null,
+        demoUrl: data.demoUrl ? data.demoUrl.trim() : null,
+      },
+    });
+  }
+
+  async updateProject(studentId: string, id: string, data: any) {
+    const existing = await prisma.project.findFirst({
+      where: { id, studentId },
+    });
+    if (!existing) throw ApiError.notFound('Project not found or access denied');
+    return prisma.project.update({
+      where: { id },
+      data: {
+        title: data.title !== undefined ? data.title.trim() : undefined,
+        description: data.description !== undefined ? data.description.trim() : undefined,
+        techStack: data.techStack !== undefined ? data.techStack.trim() : undefined,
+        githubUrl: data.githubUrl !== undefined ? (data.githubUrl ? data.githubUrl.trim() : null) : undefined,
+        demoUrl: data.demoUrl !== undefined ? (data.demoUrl ? data.demoUrl.trim() : null) : undefined,
+      },
+    });
+  }
+
+  async deleteProject(studentId: string, id: string) {
+    const existing = await prisma.project.findFirst({
+      where: { id, studentId },
+    });
+    if (!existing) throw ApiError.notFound('Project not found or access denied');
+    return prisma.project.delete({
+      where: { id },
+    });
+  }
+
+  // ─── Certification CRUD ──────────────────────────────────────────────────
+  async addCertification(studentId: string, data: any) {
+    return prisma.certification.create({
+      data: {
+        studentId,
+        title: data.title.trim(),
+        issuer: data.issuer.trim(),
+        issueDate: new Date(data.issueDate),
+        certificateUrl: data.certificateUrl ? data.certificateUrl.trim() : null,
+      },
+    });
+  }
+
+  async updateCertification(studentId: string, id: string, data: any) {
+    const existing = await prisma.certification.findFirst({
+      where: { id, studentId },
+    });
+    if (!existing) throw ApiError.notFound('Certification not found or access denied');
+    return prisma.certification.update({
+      where: { id },
+      data: {
+        title: data.title !== undefined ? data.title.trim() : undefined,
+        issuer: data.issuer !== undefined ? data.issuer.trim() : undefined,
+        issueDate: data.issueDate ? new Date(data.issueDate) : undefined,
+        certificateUrl: data.certificateUrl !== undefined ? (data.certificateUrl ? data.certificateUrl.trim() : null) : undefined,
+      },
+    });
+  }
+
+  async deleteCertification(studentId: string, id: string) {
+    const existing = await prisma.certification.findFirst({
+      where: { id, studentId },
+    });
+    if (!existing) throw ApiError.notFound('Certification not found or access denied');
+    return prisma.certification.delete({
+      where: { id },
     });
   }
 }

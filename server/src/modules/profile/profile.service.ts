@@ -141,6 +141,76 @@ export class ProfileService {
     logger.info(`[PROFILE_UPDATED] Profile updated for user ID: ${userId}`);
     return this.getProfile(userId, role);
   }
+
+  /**
+   * Helper to ensure active user is a student and resolve their Student entity ID.
+   */
+  private async getStudentIdForUser(userId: string, role: string): Promise<string> {
+    if (role !== 'student') {
+      throw ApiError.forbidden('Only students can manage their skills, projects, and certifications');
+    }
+    const profile = await profileRepository.findProfileByUserId(userId, 'student');
+    if (!profile || !profile.id) {
+      throw ApiError.notFound('Student profile not found');
+    }
+    return profile.id;
+  }
+
+  // ─── Skill Services ──────────────────────────────────────────────────────
+  async addSkill(userId: string, role: string, skillName: string) {
+    if (!skillName || !skillName.trim()) throw ApiError.badRequest('Skill name is required');
+    const studentId = await this.getStudentIdForUser(userId, role);
+    return profileRepository.addSkill(studentId, skillName);
+  }
+
+  async updateSkill(userId: string, role: string, id: string, skillName: string) {
+    if (!skillName || !skillName.trim()) throw ApiError.badRequest('Skill name is required');
+    const studentId = await this.getStudentIdForUser(userId, role);
+    return profileRepository.updateSkill(studentId, id, skillName);
+  }
+
+  async deleteSkill(userId: string, role: string, id: string) {
+    const studentId = await this.getStudentIdForUser(userId, role);
+    return profileRepository.deleteSkill(studentId, id);
+  }
+
+  // ─── Project Services ────────────────────────────────────────────────────
+  async addProject(userId: string, role: string, data: any) {
+    if (!data.title || !data.title.trim()) throw ApiError.badRequest('Project title is required');
+    if (!data.description || !data.description.trim()) throw ApiError.badRequest('Project description is required');
+    if (!data.techStack || !data.techStack.trim()) throw ApiError.badRequest('Tech stack is required');
+    const studentId = await this.getStudentIdForUser(userId, role);
+    return profileRepository.addProject(studentId, data);
+  }
+
+  async updateProject(userId: string, role: string, id: string, data: any) {
+    const studentId = await this.getStudentIdForUser(userId, role);
+    return profileRepository.updateProject(studentId, id, data);
+  }
+
+  async deleteProject(userId: string, role: string, id: string) {
+    const studentId = await this.getStudentIdForUser(userId, role);
+    return profileRepository.deleteProject(studentId, id);
+  }
+
+  // ─── Certification Services ──────────────────────────────────────────────
+  async addCertification(userId: string, role: string, data: any) {
+    if (!data.title || !data.title.trim()) throw ApiError.badRequest('Certification title is required');
+    if (!data.issuer || !data.issuer.trim()) throw ApiError.badRequest('Issuer is required');
+    if (!data.issueDate) throw ApiError.badRequest('Issue date is required');
+    const studentId = await this.getStudentIdForUser(userId, role);
+    return profileRepository.addCertification(studentId, data);
+  }
+
+  async updateCertification(userId: string, role: string, id: string, data: any) {
+    const studentId = await this.getStudentIdForUser(userId, role);
+    return profileRepository.updateCertification(studentId, id, data);
+  }
+
+  async deleteCertification(userId: string, role: string, id: string) {
+    const studentId = await this.getStudentIdForUser(userId, role);
+    return profileRepository.deleteCertification(studentId, id);
+  }
 }
 
 export const profileService = new ProfileService();

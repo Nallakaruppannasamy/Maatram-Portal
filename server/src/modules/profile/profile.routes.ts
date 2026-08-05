@@ -57,5 +57,20 @@ router.put('/', validate(updateProfileValidator), profileController.update);
 // Profile image upload route
 router.post('/upload', upload.single('file'), profileController.uploadImage);
 
+// Skill CRUD routes
+router.post('/skills', profileController.addSkill);
+router.put('/skills/:id', profileController.updateSkill);
+router.delete('/skills/:id', profileController.deleteSkill);
+
+// Project CRUD routes
+router.post('/projects', profileController.addProject);
+router.put('/projects/:id', profileController.updateProject);
+router.delete('/projects/:id', profileController.deleteProject);
+
+// Certification CRUD routes
+router.post('/certifications', profileController.addCertification);
+router.put('/certifications/:id', profileController.updateCertification);
+router.delete('/certifications/:id', profileController.deleteCertification);
+
 export default router;
 export const profileRoutes = router;

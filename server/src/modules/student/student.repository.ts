@@ -57,11 +57,16 @@ export class StudentRepository {
   }
 
   /**
-   * Finds a student by Student ID with all relations needed for a resume.
+   * Finds a student by Student ID or User ID with all relations needed for a resume.
    */
-  async findByIdWithResumeData(id: string): Promise<any | null> {
-    return prisma.student.findUnique({
-      where: { id },
+  async findByIdWithResumeData(identifier: string): Promise<any | null> {
+    return prisma.student.findFirst({
+      where: {
+        OR: [
+          { id: identifier },
+          { userId: identifier },
+        ],
+      },
       include: {
         user: true,
         organization: true,
@@ -78,7 +83,9 @@ export class StudentRepository {
         projects: {
           orderBy: { createdAt: 'desc' },
         },
-        certifications: true,
+        certifications: {
+          orderBy: { issueDate: 'desc' },
+        },
         volunteerSubmissions: {
           where: {
             status: 'approved',
@@ -370,6 +377,9 @@ export class StudentRepository {
     }
     if (options.batch) {
       where.batch = { equals: options.batch.trim(), mode: 'insensitive' };
+    }
+    if (options.academicYear) {
+      where.academicYear = { equals: options.academicYear.trim(), mode: 'insensitive' };
     }
 
     // Search query

@@ -15,8 +15,15 @@ import { configureCloudinary } from '@/config/cloudinary';
 import { ResponseFormatter } from '@/common/responses/formatter';
 import { ApiError } from '@/common/exceptions/apiError';
 import path from 'path';
+import fs from 'fs';
 
 const app: Express = express();
+
+// Ensure uploads directory exists on startup
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // 1. Configure Cloudinary configuration bindings
 configureCloudinary();
@@ -34,7 +41,7 @@ const globalLimiter = rateLimit({
 });
 
 // 3. Security & Optimization Middlewares
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(
   cors({
     origin: [env.FRONTEND_URL, 'http://localhost:3000', 'http://localhost:5173'],
@@ -75,7 +82,7 @@ app.use('/api/v1/students', studentRouter);
 app.use('/api/v1/volunteers', volunteerRouter);
 
 // Serve uploads folder statically
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use('/uploads', express.static(uploadsDir));
 
 // Academic metadata direct routes (for frontend flexibility)
 import { profileController } from '@/modules/profile/profile.controller';

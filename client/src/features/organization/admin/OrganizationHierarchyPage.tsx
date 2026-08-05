@@ -191,7 +191,7 @@ export const OrganizationHierarchyPage: React.FC = () => {
               </div>
               <div>
                 <p className="text-[10px] uppercase font-bold text-gray-400">Enrolled Scholars</p>
-                <p className="text-2xl font-black text-blue-400">{totalEnrolledScholars.toLocaleString()}</p>
+                <p className="text-2xl font-black text-blue-400">{(totalEnrolledScholars ?? 0).toLocaleString()}</p>
               </div>
             </div>
           </div>

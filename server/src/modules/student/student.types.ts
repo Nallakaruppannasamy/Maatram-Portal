@@ -113,6 +113,7 @@ export interface StudentQueryOptions {
   departmentId?: string;
   status?: StudentStatus;
   batch?: string;
+  academicYear?: string;
   [key: string]: unknown;
 }
 

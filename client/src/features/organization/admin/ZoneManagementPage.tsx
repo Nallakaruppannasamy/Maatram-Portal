@@ -48,7 +48,7 @@ export const ZoneManagementPage = () => {
                   <Badge variant="gold" className="mb-2 font-mono">{zone.code || zone.id.slice(0, 8)}</Badge>
                   <h3 className="text-lg font-bold text-[#111827]">{zone.name}</h3>
                   <p className="text-xs text-[#76777d] flex items-center gap-1 mt-1">
-                    <MapPin className="w-3.5 h-3.5 text-[#D4AF37]" /> {zone.location || 'Regional Zone'}
+                    <MapPin className="w-3.5 h-3.5 text-[#D4AF37]" /> {zone.location || 'Zone'}
                   </p>
                 </div>
               </div>

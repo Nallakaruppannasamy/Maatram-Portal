@@ -34,7 +34,7 @@ export const AssignedCollegesPage: React.FC = () => {
   }, [user, zones, selectedZoneId])
 
   // Fetch colleges assigned to the selected zone
-  const { data: collegesRes, isLoading, refetch } = useQuery({
+  const { data: collegesRes, isLoading } = useQuery({
     queryKey: ['zone-colleges', selectedZoneId],
     queryFn: () => zoneApi.getColleges(selectedZoneId),
     enabled: !!selectedZoneId,
@@ -80,6 +80,12 @@ export const AssignedCollegesPage: React.FC = () => {
     }
   }
 
+  // Summary Metrics
+  const totalColleges = colleges.length
+  const totalDepartments = colleges.reduce((sum: number, c: any) => sum + (c.departmentCount || 0), 0)
+  const totalScholars = colleges.reduce((sum: number, c: any) => sum + (c.studentCount || 0), 0)
+  const totalHours = colleges.reduce((sum: number, c: any) => sum + (c.verifiedVolunteerHours || 0), 0)
+
   // Export
   const handleExport = async (format: 'csv' | 'xlsx') => {
     if (!selectedZoneId) return notify.error('No zone selected.')
@@ -123,13 +129,13 @@ export const AssignedCollegesPage: React.FC = () => {
           <h2 className="text-2xl font-extrabold text-[#111827] tracking-tight">Assigned Zone Colleges</h2>
           <p className="text-xs text-[#45464c]">Colleges, campuses, and departments under zone governance.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Admin Zone Selector */}
           {user?.role === 'admin' && zones.length > 0 && (
             <select
               value={selectedZoneId}
               onChange={(e) => setSelectedZoneId(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-blue-900 outline-none"
             >
               {zones.map((z) => (
                 <option key={z.id} value={z.id}>
@@ -138,13 +144,35 @@ export const AssignedCollegesPage: React.FC = () => {
               ))}
             </select>
           )}
-          <button
+          <Button
             onClick={() => handleExport('xlsx')}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg text-sm font-medium hover:bg-blue-950 transition shadow-sm cursor-pointer"
+            variant="gold"
+            size="md"
+            icon={<Download className="w-4 h-4" />}
           >
-            <Download size={16} /> Export Assigned Colleges
-          </button>
+            Export Assigned Colleges
+          </Button>
         </div>
+      </div>
+
+      {/* Zone Colleges Summary Banner */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-4 bg-white border border-[#E5E7EB] rounded-xl">
+          <span className="text-[#76777d] block text-[10px] uppercase font-bold">Colleges</span>
+          <span className="text-2xl font-black text-[#111827]">{totalColleges}</span>
+        </Card>
+        <Card className="p-4 bg-white border border-[#E5E7EB] rounded-xl">
+          <span className="text-[#76777d] block text-[10px] uppercase font-bold">Departments</span>
+          <span className="text-2xl font-black text-[#111827]">{totalDepartments}</span>
+        </Card>
+        <Card className="p-4 bg-white border border-[#E5E7EB] rounded-xl">
+          <span className="text-[#76777d] block text-[10px] uppercase font-bold">Assigned Scholars</span>
+          <span className="text-2xl font-black text-blue-900">{totalScholars}</span>
+        </Card>
+        <Card className="p-4 bg-white border border-[#E5E7EB] rounded-xl">
+          <span className="text-[#76777d] block text-[10px] uppercase font-bold">Verified Hours</span>
+          <span className="text-2xl font-black text-emerald-600">{totalHours} hrs</span>
+        </Card>
       </div>
 
       {/* Toolbar */}
@@ -160,7 +188,7 @@ export const AssignedCollegesPage: React.FC = () => {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => handleSort('name')}
             className={`flex items-center gap-1 px-3 py-1.5 border rounded-lg text-xs font-semibold cursor-pointer transition ${
@@ -206,28 +234,37 @@ export const AssignedCollegesPage: React.FC = () => {
                   </Badge>
                   <h3 className="text-base font-bold text-[#111827]">{col.name}</h3>
                   <p className="text-xs text-[#76777d] flex items-center gap-1 mt-1">
-                    <MapPin className="w-3.5 h-3.5 text-[#D4AF37]" /> {col.location || 'Regional Zone'}
+                    <MapPin className="w-3.5 h-3.5 text-[#D4AF37]" /> {col.location || 'Zone'}
                   </p>
                 </div>
               </div>
 
-              {/* Main Counts */}
-              <div className="grid grid-cols-3 gap-3 pt-3 border-t border-[#E5E7EB] text-center text-xs">
-                <div className="p-2.5 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB]">
-                  <span className="text-[#76777d] block text-[9px] uppercase font-bold">Departments</span>
-                  <span className="text-base font-black text-gray-900">{col.departmentCount}</span>
+              {/* Organization Hierarchy Tree Breakdown */}
+              <div className="bg-[#FAF9F6] p-3.5 rounded-xl border border-[#E5E7EB] space-y-2 text-xs">
+                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                  <Layers className="w-3 h-3 text-[#D4AF37]" /> Organization Hierarchy Breakdown
                 </div>
-                <div className="p-2.5 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB]">
-                  <span className="text-[#76777d] block text-[9px] uppercase font-bold">Programs</span>
-                  <span className="text-base font-black text-gray-900">{col.programCount}</span>
-                </div>
-                <div className="p-2.5 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB]">
-                  <span className="text-[#76777d] block text-[9px] uppercase font-bold">Total Scholars</span>
-                  <span className="text-base font-black text-blue-900">{col.studentCount}</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  <div>
+                    <span className="text-[10px] text-gray-500 block">Total Students:</span>
+                    <span className="font-bold text-blue-900">{col.studentCount}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-500 block">Active Students:</span>
+                    <span className="font-bold text-emerald-700">{col.studentCount}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-500 block">Departments:</span>
+                    <span className="font-bold text-gray-900">{col.departmentCount}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-500 block">Programs/Degrees:</span>
+                    <span className="font-bold text-gray-900">{col.programCount}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* volunteering count */}
+              {/* Volunteering Hours Banner */}
               <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs">
                 <span className="font-semibold text-emerald-800 flex items-center gap-1">
                   <HeartHandshake className="w-4 h-4 text-emerald-600" /> Verified volunteering:
@@ -239,7 +276,7 @@ export const AssignedCollegesPage: React.FC = () => {
               <div className="space-y-3.5 pt-1 text-xs">
                 {col.departmentList?.length > 0 && (
                   <div>
-                    <span className="text-[#76777d] block font-bold text-[10px] uppercase mb-1.5">Department List</span>
+                    <span className="text-[#76777d] block font-bold text-[10px] uppercase mb-1.5">Departments</span>
                     <div className="flex flex-wrap gap-1">
                       {col.departmentList.map((deptName: string, idx: number) => (
                         <span
@@ -255,7 +292,7 @@ export const AssignedCollegesPage: React.FC = () => {
 
                 {col.programList?.length > 0 && (
                   <div>
-                    <span className="text-[#76777d] block font-bold text-[10px] uppercase mb-1.5">Programs</span>
+                    <span className="text-[#76777d] block font-bold text-[10px] uppercase mb-1.5">Degrees / Programs</span>
                     <div className="flex flex-wrap gap-1">
                       {col.programList.map((progName: string, idx: number) => (
                         <span

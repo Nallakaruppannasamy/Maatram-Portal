@@ -87,7 +87,11 @@ export class StudentController {
    * Lists students with pagination, search, sorting, and filters.
    */
   listStudents = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const result = await studentService.listStudents(req.query);
+    const queryParams = { ...req.query };
+    if (req.user?.role === 'zone' && req.user.zoneId) {
+      queryParams.zoneId = req.user.zoneId;
+    }
+    const result = await studentService.listStudents(queryParams);
 
     ResponseFormatter.success(res, result.items, 'Students listed successfully', 200, result.meta);
   });
@@ -158,9 +162,13 @@ export class StudentController {
    */
   exportStudents = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const format = ((req.query.format as string) || 'csv').toLowerCase();
+    const queryParams = { ...req.query };
+    if (req.user?.role === 'zone' && req.user.zoneId) {
+      queryParams.zoneId = req.user.zoneId;
+    }
 
     if (format === 'xlsx') {
-      const buffer = await studentService.exportToExcel(req.query);
+      const buffer = await studentService.exportToExcel(queryParams);
       res.setHeader(
         'Content-Type',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -171,7 +179,7 @@ export class StudentController {
       );
       res.status(200).send(buffer);
     } else if (format === 'csv') {
-      const csvContent = await studentService.exportToCsv(req.query);
+      const csvContent = await studentService.exportToCsv(queryParams);
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader(
         'Content-Disposition',

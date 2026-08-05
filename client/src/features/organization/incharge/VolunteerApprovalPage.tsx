@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input'
 import { TableLoader } from '@/components/ui/TableLoader'
 import { volunteerApi } from '@/api/volunteer.api'
 import { notify } from '@/utils/toast'
+import { getMediaUrl } from '@/utils/media'
 
 const safeString = (val: any, fallback: string = 'N/A'): string => {
   if (val === null || val === undefined) return fallback
@@ -142,7 +143,7 @@ export const VolunteerApprovalPage = () => {
                     </div>
                     <p className="text-[11px] font-semibold text-[#45464c] mt-1.5 flex items-center gap-1">
                       <User className="w-3 h-3 text-[#76777d]" />
-                      {sub.student?.name || 'Anonymous Student'}
+                      {sub.student ? ([sub.student.firstName, sub.student.middleName, sub.student.lastName].filter(Boolean).join(' ') || sub.student.name || 'Scholar Student') : 'Scholar Student'}
                     </p>
                     <div className="flex justify-between items-center mt-2 text-[10px] text-[#76777d]">
                       <span>{CATEGORY_MAP[sub.category] || safeString(sub.category, 'General')}</span>
@@ -182,11 +183,15 @@ export const VolunteerApprovalPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-xs">
                     <div>
                       <span className="text-[#76777d]">Full Name:</span>
-                      <p className="font-bold text-[#111827]">{selectedSubmission.student?.name || 'N/A'}</p>
+                      <p className="font-bold text-[#111827]">
+                        {selectedSubmission.student
+                          ? ([selectedSubmission.student.firstName, selectedSubmission.student.middleName, selectedSubmission.student.lastName].filter(Boolean).join(' ') || selectedSubmission.student.name || 'Scholar Student')
+                          : 'Scholar Student'}
+                      </p>
                     </div>
                     <div>
                       <span className="text-[#76777d]">Register Number:</span>
-                      <p className="font-bold text-[#111827] font-mono">{selectedSubmission.student?.registerNumber || 'N/A'}</p>
+                      <p className="font-bold text-[#111827] font-mono">{selectedSubmission.student?.registrationNumber || selectedSubmission.student?.registerNumber || 'N/A'}</p>
                     </div>
                     <div className="mt-1">
                       <span className="text-[#76777d]">College:</span>
@@ -238,11 +243,11 @@ export const VolunteerApprovalPage = () => {
                   <span className="text-[#76777d] block text-[10px] uppercase font-bold">Uploaded Evidence</span>
                   {selectedSubmission.imageUrl || selectedSubmission.proofFileUrl ? (
                     <div
-                      onClick={() => setActiveImage(selectedSubmission.imageUrl || selectedSubmission.proofFileUrl)}
+                      onClick={() => setActiveImage(getMediaUrl(selectedSubmission.imageUrl || selectedSubmission.proofFileUrl))}
                       className="group w-full h-48 bg-slate-900 rounded-2xl flex items-center justify-center relative overflow-hidden border border-slate-700 cursor-zoom-in"
                     >
                       <img
-                        src={selectedSubmission.imageUrl || selectedSubmission.proofFileUrl}
+                        src={getMediaUrl(selectedSubmission.imageUrl || selectedSubmission.proofFileUrl)}
                         alt="Proof document"
                         className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform"
                       />

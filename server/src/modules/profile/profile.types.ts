@@ -54,3 +54,38 @@ export interface UpdateProfileDTO {
   // Career
   careerObjective?: string | null;
 }
+
+export interface CreateSkillDTO {
+  skillName: string;
+}
+export interface UpdateSkillDTO {
+  skillName: string;
+}
+
+export interface CreateProjectDTO {
+  title: string;
+  description: string;
+  techStack: string;
+  githubUrl?: string | null;
+  demoUrl?: string | null;
+}
+export interface UpdateProjectDTO {
+  title?: string;
+  description?: string;
+  techStack?: string;
+  githubUrl?: string | null;
+  demoUrl?: string | null;
+}
+
+export interface CreateCertificationDTO {
+  title: string;
+  issuer: string;
+  issueDate: string;
+  certificateUrl?: string | null;
+}
+export interface UpdateCertificationDTO {
+  title?: string;
+  issuer?: string;
+  issueDate?: string;
+  certificateUrl?: string | null;
+}

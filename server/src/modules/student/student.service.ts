@@ -742,6 +742,7 @@ result.push(current.trim());
       departmentId: queryParams.departmentId as string,
       status: queryParams.status as StudentStatus,
       batch: queryParams.batch as string,
+      academicYear: queryParams.academicYear as string,
     };
 
     const { orderBy } = parseQueryParams(options, 'registrationNumber');
@@ -756,40 +757,51 @@ result.push(current.trim());
       students = await studentRepository.exportStudents(options, orderBy);
     }
 
+    if (queryParams.view === 'provisioning') {
+      const headers = [
+        'Student Name',
+        'Register No.',
+        'Email Address',
+        'Temp Password',
+        'Import Date',
+        'Lifecycle Status',
+      ];
+      const lines = [headers.join(',')];
+      students.forEach((student) => {
+        const fullName = this.computeFullName(
+          student.firstName,
+          student.middleName,
+          student.lastName
+        );
+        const importDate = student.user?.createdAt ? student.user.createdAt.toISOString().split('T')[0] : 'N/A';
+        const rawStatus = (student.user as any)?.accountStatus || student.accountStatus || 'pending_first_login';
+
+        const row = [
+          this.formatCsvValue(fullName || student.user?.email || ''),
+          this.formatCsvValue(student.registrationNumber || ''),
+          this.formatCsvValue(student.user?.email || ''),
+          this.formatCsvValue(student.user?.tempPassword || 'Set by user'),
+          this.formatCsvValue(importDate),
+          this.formatCsvValue(rawStatus),
+        ];
+        lines.push(row.join(','));
+      });
+      return lines.join('\n');
+    }
+
     const headers = [
-      'Registration Number',
-      'Full Name',
-      'Gender',
-      'Date of Birth',
-      'Blood Group',
-      'Nationality',
-      'Email',
-      'Mobile',
-      'Parent Name',
-      'Parent Mobile',
-      'Address',
-      'City',
-      'District',
-      'State',
-      'Pincode',
-      'Organization',
+      'Register Number',
+      'Name',
+      'College Name',
       'Zone',
-      'College',
-      'Department',
-      'Program',
-      'Course',
       'Batch',
-      'Academic Year',
-      'Semester',
-      'Section',
+      'CGPA',
       'Status',
     ];
 
     const lines = [headers.join(',')];
 
     students.forEach((student) => {
-      const dobStr = student.dateOfBirth ? student.dateOfBirth.toISOString().split('T')[0] : 'N/A';
-      const address = [student.addressLine1, student.addressLine2].filter(Boolean).join(', ');
       const fullName = this.computeFullName(
         student.firstName,
         student.middleName,
@@ -797,32 +809,13 @@ result.push(current.trim());
       );
 
       const row = [
-        this.formatCsvValue(student.registrationNumber),
-        this.formatCsvValue(fullName),
-        this.formatCsvValue(student.gender || ''),
-        this.formatCsvValue(dobStr),
-        this.formatCsvValue(student.bloodGroup || ''),
-        this.formatCsvValue(student.nationality || ''),
-        this.formatCsvValue(student.user.email),
-        this.formatCsvValue(student.mobile || ''),
-        this.formatCsvValue(student.parentName || ''),
-        this.formatCsvValue(student.parentMobile || ''),
-        this.formatCsvValue(address),
-        this.formatCsvValue(student.city || ''),
-        this.formatCsvValue(student.district || ''),
-        this.formatCsvValue(student.state || ''),
-        this.formatCsvValue(student.pincode || ''),
-        this.formatCsvValue(student.organization?.name || ''),
-        this.formatCsvValue(student.zone?.name || ''),
-        this.formatCsvValue(student.college?.name || ''),
-        this.formatCsvValue(student.department?.name || ''),
-        this.formatCsvValue(student.program?.name || ''),
-        this.formatCsvValue(student.course || ''),
-        this.formatCsvValue(student.batch || ''),
-        this.formatCsvValue(student.academicYear || ''),
-        this.formatCsvValue(student.semester || ''),
-        this.formatCsvValue(student.section || ''),
-        this.formatCsvValue(student.status),
+        this.formatCsvValue(student.registrationNumber || 'UNASSIGNED'),
+        this.formatCsvValue(fullName || 'Scholar Student'),
+        this.formatCsvValue(student.college?.name || 'Maatram College'),
+        this.formatCsvValue(student.zone?.name || 'N/A'),
+        this.formatCsvValue(student.batch || '2024-2028'),
+        this.formatCsvValue(student.cgpa ? Number(student.cgpa).toFixed(2) : 'N/A'),
+        this.formatCsvValue(student.status || 'ACTIVE'),
       ];
 
       lines.push(row.join(','));
@@ -845,6 +838,7 @@ result.push(current.trim());
       departmentId: queryParams.departmentId as string,
       status: queryParams.status as StudentStatus,
       batch: queryParams.batch as string,
+      academicYear: queryParams.academicYear as string,
     };
 
     const { orderBy } = parseQueryParams(options, 'registrationNumber');
@@ -859,40 +853,36 @@ result.push(current.trim());
       students = await studentRepository.exportStudents(options, orderBy);
     }
 
-    const rows = students.map((s) => {
-      const dobStr = s.dateOfBirth ? s.dateOfBirth.toISOString().split('T')[0] : 'N/A';
-      const address = [s.addressLine1, s.addressLine2].filter(Boolean).join(', ');
-      const fullName = this.computeFullName(s.firstName, s.middleName, s.lastName);
+    let rows: Record<string, any>[];
+    if (queryParams.view === 'provisioning') {
+      rows = students.map((s) => {
+        const fullName = this.computeFullName(s.firstName, s.middleName, s.lastName);
+        const importDate = s.user?.createdAt ? s.user.createdAt.toISOString().split('T')[0] : 'N/A';
+        const rawStatus = (s.user as any)?.accountStatus || s.accountStatus || 'pending_first_login';
 
-      return {
-        'Registration Number': s.registrationNumber,
-        'Full Name': fullName,
-        Gender: s.gender || '',
-        'Date of Birth': dobStr,
-        'Blood Group': s.bloodGroup || '',
-        Nationality: s.nationality || '',
-        Email: s.user.email || '',
-        Mobile: s.mobile || '',
-        'Parent Name': s.parentName || '',
-        'Parent Mobile': s.parentMobile || '',
-        Address: address,
-        City: s.city || '',
-        District: s.district || '',
-        State: s.state || '',
-        Pincode: s.pincode || '',
-        Organization: s.organization?.name || '',
-        Zone: s.zone?.name || '',
-        College: s.college?.name || '',
-        Department: s.department?.name || '',
-        Program: s.program?.name || '',
-        Course: s.course || '',
-        Batch: s.batch || '',
-        'Academic Year': s.academicYear || '',
-        Semester: s.semester || '',
-        Section: s.section || '',
-        Status: s.status,
-      };
-    });
+        return {
+          'Student Name': fullName || s.user?.email || '',
+          'Register No.': s.registrationNumber || '',
+          'Email Address': s.user?.email || '',
+          'Temp Password': s.user?.tempPassword || 'Set by user',
+          'Import Date': importDate,
+          'Lifecycle Status': rawStatus,
+        };
+      });
+    } else {
+      rows = students.map((s) => {
+        const fullName = this.computeFullName(s.firstName, s.middleName, s.lastName);
+        return {
+          'Register Number': s.registrationNumber || 'UNASSIGNED',
+          Name: fullName || 'Scholar Student',
+          'College Name': s.college?.name || 'Maatram College',
+          Zone: s.zone?.name || 'N/A',
+          Batch: s.batch || '2024-2028',
+          CGPA: s.cgpa ? Number(s.cgpa).toFixed(2) : 'N/A',
+          Status: s.status || 'ACTIVE',
+        };
+      });
+    }
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
@@ -1032,27 +1022,34 @@ result.push(current.trim());
   }
 
   /**
-   * Retrieves student resume data, checking permissions.
+   * Retrieves student resume data, checking role-based permissions strictly.
    */
   async getStudentResume(
-    studentId: string,
+    studentIdentifier: string,
     requesterId: string,
     requesterRole: string,
     requesterZoneId?: string
   ): Promise<any> {
-    const student = await studentRepository.findByIdWithResumeData(studentId);
-    if (!student) {
-      throw ApiError.notFound(`Student with ID ${studentId} not found`);
+    let targetId = studentIdentifier;
+    if (studentIdentifier === 'me' && requesterRole === 'student') {
+      const selfStudent = await studentRepository.findByUserId(requesterId);
+      if (!selfStudent) throw ApiError.notFound('Student profile not found');
+      targetId = selfStudent.id;
     }
 
-    // Role access validation
+    const student = await studentRepository.findByIdWithResumeData(targetId);
+    if (!student) {
+      throw ApiError.notFound(`Student record with ID "${studentIdentifier}" not found`);
+    }
+
+    // Strict Role access validation
     if (requesterRole === 'student') {
       if (student.userId !== requesterId) {
-        throw new ApiError(403, 'Forbidden: You do not have permission to view this resume');
+        throw new ApiError(403, 'Forbidden: You do not have permission to view another student\'s resume');
       }
     } else if (requesterRole === 'zone') {
       if (!requesterZoneId || student.zoneId !== requesterZoneId) {
-        throw new ApiError(403, 'Forbidden: You do not have permission to view student resumes outside your zone');
+        throw new ApiError(403, 'Forbidden: You do not have permission to view student resumes outside your assigned zone');
       }
     } else if (requesterRole !== 'admin') {
       throw new ApiError(403, 'Forbidden: Unauthorized access');

@@ -75,6 +75,60 @@ export class ProfileController {
       'Profile image uploaded successfully'
     );
   });
+
+  // ─── Skill Handlers ──────────────────────────────────────────────────────
+  addSkill = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const skill = await profileService.addSkill(req.user!.userId, req.user!.role, req.body.skillName);
+    ResponseFormatter.success(res, skill, 'Skill added successfully', 201);
+  });
+
+  updateSkill = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const skill = await profileService.updateSkill(req.user!.userId, req.user!.role, id, req.body.skillName);
+    ResponseFormatter.success(res, skill, 'Skill updated successfully');
+  });
+
+  deleteSkill = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    await profileService.deleteSkill(req.user!.userId, req.user!.role, id);
+    ResponseFormatter.success(res, null, 'Skill deleted successfully');
+  });
+
+  // ─── Project Handlers ────────────────────────────────────────────────────
+  addProject = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const project = await profileService.addProject(req.user!.userId, req.user!.role, req.body);
+    ResponseFormatter.success(res, project, 'Project added successfully', 201);
+  });
+
+  updateProject = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const project = await profileService.updateProject(req.user!.userId, req.user!.role, id, req.body);
+    ResponseFormatter.success(res, project, 'Project updated successfully');
+  });
+
+  deleteProject = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    await profileService.deleteProject(req.user!.userId, req.user!.role, id);
+    ResponseFormatter.success(res, null, 'Project deleted successfully');
+  });
+
+  // ─── Certification Handlers ──────────────────────────────────────────────
+  addCertification = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const cert = await profileService.addCertification(req.user!.userId, req.user!.role, req.body);
+    ResponseFormatter.success(res, cert, 'Certification added successfully', 201);
+  });
+
+  updateCertification = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const cert = await profileService.updateCertification(req.user!.userId, req.user!.role, id, req.body);
+    ResponseFormatter.success(res, cert, 'Certification updated successfully');
+  });
+
+  deleteCertification = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    await profileService.deleteCertification(req.user!.userId, req.user!.role, id);
+    ResponseFormatter.success(res, null, 'Certification deleted successfully');
+  });
 }
 
 export const profileController = new ProfileController();

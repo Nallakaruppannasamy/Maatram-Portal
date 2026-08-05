@@ -2,6 +2,7 @@ import React from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
+import { ErrorBoundary } from './ErrorBoundary'
 import { useAuth } from '@/context/AuthContext'
 import { UserRole, ROLES } from '@/constants/roles'
 
@@ -50,7 +51,9 @@ export const AppLayout = () => {
           className="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl w-full mx-auto focus:outline-none"
           tabIndex={-1}
         >
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

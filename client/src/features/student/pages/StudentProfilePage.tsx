@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { User, BookOpen, Code, Award, FolderGit2, Save, Plus, Loader2, Upload, AlertCircle } from 'lucide-react'
+import { User, BookOpen, Code, Award, FolderGit2, Save, Plus, Loader2, Upload, AlertCircle, Trash2, Edit3, ExternalLink, Github, Globe, X, Check } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -9,6 +9,7 @@ import { LoadingPage } from '@/components/ui/LoadingPage'
 import { profileApi } from '@/api/profile.api'
 import { useAuth } from '@/hooks/useAuth'
 import { notify } from '@/utils/toast'
+import { getMediaUrl } from '@/utils/media'
 
 export const StudentProfilePage = () => {
   const queryClient = useQueryClient()
@@ -85,6 +86,139 @@ export const StudentProfilePage = () => {
   })
 
   const profile = profileRes?.data
+
+  // Skills CRUD State
+  const [newSkillInput, setNewSkillInput] = useState('')
+  const [editingSkillId, setEditingSkillId] = useState<string | null>(null)
+  const [editingSkillName, setEditingSkillName] = useState('')
+
+  // Projects CRUD State
+  const [projectForm, setProjectForm] = useState({
+    id: '',
+    title: '',
+    description: '',
+    techStack: '',
+    githubUrl: '',
+    demoUrl: '',
+  })
+  const [isEditingProject, setIsEditingProject] = useState(false)
+  const [showProjectModal, setShowProjectModal] = useState(false)
+
+  // Certifications CRUD State
+  const [certForm, setCertForm] = useState({
+    id: '',
+    title: '',
+    issuer: '',
+    issueDate: '',
+    certificateUrl: '',
+  })
+  const [isEditingCert, setIsEditingCert] = useState(false)
+  const [showCertModal, setShowCertModal] = useState(false)
+
+  // React Query Cache Invalidation Helper
+  const invalidateProfileQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['profile'] })
+    if (profile?.id) {
+      queryClient.invalidateQueries({ queryKey: ['resume', profile.id] })
+    }
+  }
+
+  // Skill Mutations
+  const addSkillMutation = useMutation({
+    mutationFn: (skillName: string) => profileApi.addSkill(skillName),
+    onSuccess: () => {
+      invalidateProfileQueries()
+      setNewSkillInput('')
+      notify.success('Skill added successfully!')
+    },
+    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to add skill'),
+  })
+
+  const updateSkillMutation = useMutation({
+    mutationFn: ({ id, skillName }: { id: string; skillName: string }) => profileApi.updateSkill(id, skillName),
+    onSuccess: () => {
+      invalidateProfileQueries()
+      setEditingSkillId(null)
+      setEditingSkillName('')
+      notify.success('Skill updated successfully!')
+    },
+    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to update skill'),
+  })
+
+  const deleteSkillMutation = useMutation({
+    mutationFn: (id: string) => profileApi.deleteSkill(id),
+    onSuccess: () => {
+      invalidateProfileQueries()
+      notify.success('Skill deleted!')
+    },
+    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to delete skill'),
+  })
+
+  // Project Mutations
+  const addProjectMutation = useMutation({
+    mutationFn: (data: typeof projectForm) => profileApi.addProject(data),
+    onSuccess: () => {
+      invalidateProfileQueries()
+      setShowProjectModal(false)
+      setProjectForm({ id: '', title: '', description: '', techStack: '', githubUrl: '', demoUrl: '' })
+      notify.success('Project added successfully!')
+    },
+    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to add project'),
+  })
+
+  const updateProjectMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: typeof projectForm }) => profileApi.updateProject(id, data),
+    onSuccess: () => {
+      invalidateProfileQueries()
+      setShowProjectModal(false)
+      setIsEditingProject(false)
+      setProjectForm({ id: '', title: '', description: '', techStack: '', githubUrl: '', demoUrl: '' })
+      notify.success('Project updated successfully!')
+    },
+    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to update project'),
+  })
+
+  const deleteProjectMutation = useMutation({
+    mutationFn: (id: string) => profileApi.deleteProject(id),
+    onSuccess: () => {
+      invalidateProfileQueries()
+      notify.success('Project deleted!')
+    },
+    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to delete project'),
+  })
+
+  // Certification Mutations
+  const addCertMutation = useMutation({
+    mutationFn: (data: typeof certForm) => profileApi.addCertification(data),
+    onSuccess: () => {
+      invalidateProfileQueries()
+      setShowCertModal(false)
+      setCertForm({ id: '', title: '', issuer: '', issueDate: '', certificateUrl: '' })
+      notify.success('Certification added successfully!')
+    },
+    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to add certification'),
+  })
+
+  const updateCertMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: typeof certForm }) => profileApi.updateCertification(id, data),
+    onSuccess: () => {
+      invalidateProfileQueries()
+      setShowCertModal(false)
+      setIsEditingCert(false)
+      setCertForm({ id: '', title: '', issuer: '', issueDate: '', certificateUrl: '' })
+      notify.success('Certification updated successfully!')
+    },
+    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to update certification'),
+  })
+
+  const deleteCertMutation = useMutation({
+    mutationFn: (id: string) => profileApi.deleteCertification(id),
+    onSuccess: () => {
+      invalidateProfileQueries()
+      notify.success('Certification deleted!')
+    },
+    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to delete certification'),
+  })
 
   useEffect(() => {
     if (profile) {
@@ -396,9 +530,12 @@ export const StudentProfilePage = () => {
                 <div className="w-24 h-24 rounded-full border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center relative">
                   {profileImage ? (
                     <img 
-                      src={profileImage.startsWith('/') ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${profileImage}` : profileImage} 
+                      src={getMediaUrl(profileImage)} 
                       alt="Profile" 
                       className="w-full h-full object-cover" 
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
                     />
                   ) : (
                     <User className="w-12 h-12 text-gray-400" />
@@ -844,19 +981,110 @@ export const StudentProfilePage = () => {
         </Card>
       )}
 
+      {/* Skills Tab (Task 1 CRUD) */}
       {activeTab === 'skills' && (
         <Card className="space-y-6">
-          <CardHeader>
-            <CardTitle>Technical & Soft Skills</CardTitle>
-            <CardDescription>Tag technologies, programming languages, and competencies</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Technical & Soft Skills</CardTitle>
+              <CardDescription>Tag technologies, programming languages, and core competencies</CardDescription>
+            </div>
           </CardHeader>
 
-          <CardContent className="space-y-4">
-            <p className="text-xs text-[#76777d]">Skill tags can be specified in your student profile configuration.</p>
+          <CardContent className="space-y-6">
+            {/* Add Skill Input Form */}
+            <div className="flex gap-3">
+              <Input
+                placeholder="e.g. React.js, Python, Data Structures..."
+                value={newSkillInput}
+                onChange={(e) => setNewSkillInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newSkillInput.trim()) {
+                    e.preventDefault()
+                    addSkillMutation.mutate(newSkillInput.trim())
+                  }
+                }}
+              />
+              <Button
+                variant="gold"
+                icon={<Plus size={16} />}
+                disabled={!newSkillInput.trim() || addSkillMutation.isPending}
+                onClick={() => addSkillMutation.mutate(newSkillInput.trim())}
+              >
+                {addSkillMutation.isPending ? 'Adding...' : 'Add Skill'}
+              </Button>
+            </div>
+
+            {/* Skill Tags List */}
+            {profile?.skills && profile.skills.length > 0 ? (
+              <div className="flex flex-wrap gap-2.5 pt-2">
+                {profile.skills.map((skill: any) => (
+                  <div
+                    key={skill.id}
+                    className="flex items-center gap-2 bg-[#FAF9F6] text-[#111827] px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-sm font-semibold shadow-xs"
+                  >
+                    {editingSkillId === skill.id ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={editingSkillName}
+                          onChange={(e) => setEditingSkillName(e.target.value)}
+                          className="px-2 py-0.5 text-xs border border-gray-300 rounded bg-white outline-none"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && editingSkillName.trim()) {
+                              updateSkillMutation.mutate({ id: skill.id, skillName: editingSkillName.trim() })
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() => updateSkillMutation.mutate({ id: skill.id, skillName: editingSkillName.trim() })}
+                          className="text-emerald-600 hover:text-emerald-700 p-0.5 cursor-pointer"
+                          title="Save"
+                        >
+                          <Check size={14} />
+                        </button>
+                        <button
+                          onClick={() => setEditingSkillId(null)}
+                          className="text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                          title="Cancel"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <span>{skill.skillName}</span>
+                        <button
+                          onClick={() => {
+                            setEditingSkillId(skill.id)
+                            setEditingSkillName(skill.skillName)
+                          }}
+                          className="text-gray-400 hover:text-blue-600 cursor-pointer transition ml-1"
+                          title="Edit Skill"
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                        <button
+                          onClick={() => deleteSkillMutation.mutate(skill.id)}
+                          className="text-gray-400 hover:text-red-600 cursor-pointer transition"
+                          title="Delete Skill"
+                        >
+                          <X size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-[#76777d] italic">No skills tagged yet. Add your first skill tag above.</p>
+            )}
           </CardContent>
         </Card>
       )}
 
+      {/* Projects Tab (Task 2 CRUD) */}
       {activeTab === 'projects' && (
         <Card className="space-y-6">
           <CardHeader className="flex flex-row items-center justify-between">
@@ -864,14 +1092,84 @@ export const StudentProfilePage = () => {
               <CardTitle>Projects & Demos</CardTitle>
               <CardDescription>Showcase your academic and personal software projects</CardDescription>
             </div>
+            <Button
+              variant="gold"
+              size="sm"
+              icon={<Plus size={16} />}
+              onClick={() => {
+                setIsEditingProject(false)
+                setProjectForm({ id: '', title: '', description: '', techStack: '', githubUrl: '', demoUrl: '' })
+                setShowProjectModal(true)
+              }}
+            >
+              Add Project
+            </Button>
           </CardHeader>
 
           <CardContent className="space-y-4">
-            <p className="text-xs text-[#76777d]">No projects recorded. Use backend profile updates to add projects.</p>
+            {profile?.projects && profile.projects.length > 0 ? (
+              <div className="space-y-4">
+                {profile.projects.map((proj: any) => (
+                  <div key={proj.id} className="p-4 bg-[#FAF9F6] rounded-xl border border-[#E5E7EB] space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-bold text-sm text-[#111827]">{proj.title}</h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          <span className="font-semibold text-gray-700">Tech Stack:</span> {proj.techStack}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setIsEditingProject(true)
+                            setProjectForm({
+                              id: proj.id,
+                              title: proj.title || '',
+                              description: proj.description || '',
+                              techStack: proj.techStack || '',
+                              githubUrl: proj.githubUrl || '',
+                              demoUrl: proj.demoUrl || '',
+                            })
+                            setShowProjectModal(true)
+                          }}
+                          className="p-1.5 text-gray-500 hover:text-blue-900 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                          title="Edit Project"
+                        >
+                          <Edit3 size={15} />
+                        </button>
+                        <button
+                          onClick={() => deleteProjectMutation.mutate(proj.id)}
+                          className="p-1.5 text-gray-500 hover:text-red-600 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                          title="Delete Project"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-[#45464c] leading-relaxed">{proj.description}</p>
+                    <div className="flex gap-4 text-xs font-semibold pt-1">
+                      {proj.githubUrl && (
+                        <a href={proj.githubUrl} target="_blank" rel="noreferrer" className="text-blue-900 hover:underline flex items-center gap-1">
+                          <Github size={13} /> GitHub Repo
+                        </a>
+                      )}
+                      {proj.demoUrl && (
+                        <a href={proj.demoUrl} target="_blank" rel="noreferrer" className="text-[#D4AF37] hover:underline flex items-center gap-1">
+                          <Globe size={13} /> Live Demo
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-[#76777d] italic">No projects recorded. Click &quot;Add Project&quot; to showcase your software work.</p>
+            )}
           </CardContent>
         </Card>
       )}
 
+      {/* Certifications Tab (Task 3 CRUD) */}
       {activeTab === 'achievements' && (
         <Card className="space-y-6">
           <CardHeader className="flex flex-row items-center justify-between">
@@ -879,12 +1177,213 @@ export const StudentProfilePage = () => {
               <CardTitle>Certifications & Honours</CardTitle>
               <CardDescription>Verified course certificates, hackathons, and awards</CardDescription>
             </div>
+            <Button
+              variant="gold"
+              size="sm"
+              icon={<Plus size={16} />}
+              onClick={() => {
+                setIsEditingCert(false)
+                setCertForm({ id: '', title: '', issuer: '', issueDate: '', certificateUrl: '' })
+                setShowCertModal(true)
+              }}
+            >
+              Add Certification
+            </Button>
           </CardHeader>
 
           <CardContent className="space-y-4">
-            <p className="text-xs text-[#76777d]">No certifications recorded. Use backend profile updates to add certifications.</p>
+            {profile?.certifications && profile.certifications.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {profile.certifications.map((cert: any) => {
+                  const issueDateFormatted = cert.issueDate
+                    ? new Date(cert.issueDate).toISOString().split('T')[0]
+                    : ''
+                  return (
+                    <div key={cert.id} className="p-4 bg-[#FAF9F6] rounded-xl border border-[#E5E7EB] flex justify-between items-start">
+                      <div className="space-y-1">
+                        <h4 className="font-bold text-sm text-[#111827]">{cert.title}</h4>
+                        <p className="text-xs text-gray-500">
+                          {cert.issuer} {issueDateFormatted && `• ${issueDateFormatted}`}
+                        </p>
+                        {cert.certificateUrl && (
+                          <a href={cert.certificateUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-900 hover:underline flex items-center gap-1 mt-1">
+                            <ExternalLink size={12} /> View Certificate
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            setIsEditingCert(true)
+                            setCertForm({
+                              id: cert.id,
+                              title: cert.title || '',
+                              issuer: cert.issuer || '',
+                              issueDate: issueDateFormatted,
+                              certificateUrl: cert.certificateUrl || '',
+                            })
+                            setShowCertModal(true)
+                          }}
+                          className="p-1.5 text-gray-500 hover:text-blue-900 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                          title="Edit Certification"
+                        >
+                          <Edit3 size={15} />
+                        </button>
+                        <button
+                          onClick={() => deleteCertMutation.mutate(cert.id)}
+                          className="p-1.5 text-gray-500 hover:text-red-600 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                          title="Delete Certification"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-[#76777d] italic">No certifications recorded. Click &quot;Add Certification&quot; to add course completion records.</p>
+            )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Project Modal */}
+      {showProjectModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-gray-100 animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <h3 className="text-lg font-bold text-gray-900">{isEditingProject ? 'Edit Project' : 'Add New Project'}</h3>
+              <button onClick={() => setShowProjectModal(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-sm">
+              <Input
+                label="Project Title"
+                placeholder="e.g. Student SIS Portal"
+                value={projectForm.title}
+                onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })}
+                required
+              />
+              <Input
+                label="Tech Stack (Comma Separated)"
+                placeholder="e.g. React, Node.js, PostgreSQL"
+                value={projectForm.techStack}
+                onChange={(e) => setProjectForm({ ...projectForm, techStack: e.target.value })}
+                required
+              />
+              <div>
+                <label className="block text-xs font-semibold text-gray-900 uppercase tracking-wider mb-1">Description</label>
+                <textarea
+                  rows={3}
+                  placeholder="Describe key features, challenges, and impact..."
+                  value={projectForm.description}
+                  onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
+                  className="w-full border border-gray-300 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-900"
+                  required
+                />
+              </div>
+              <Input
+                label="GitHub Repository URL (Optional)"
+                placeholder="https://github.com/..."
+                value={projectForm.githubUrl}
+                onChange={(e) => setProjectForm({ ...projectForm, githubUrl: e.target.value })}
+              />
+              <Input
+                label="Live Demo URL (Optional)"
+                placeholder="https://my-app.vercel.app"
+                value={projectForm.demoUrl}
+                onChange={(e) => setProjectForm({ ...projectForm, demoUrl: e.target.value })}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+              <Button variant="outline" size="sm" onClick={() => setShowProjectModal(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="gold"
+                size="sm"
+                disabled={!projectForm.title || !projectForm.description || !projectForm.techStack || addProjectMutation.isPending || updateProjectMutation.isPending}
+                onClick={() => {
+                  if (isEditingProject) {
+                    updateProjectMutation.mutate({ id: projectForm.id, data: projectForm })
+                  } else {
+                    addProjectMutation.mutate(projectForm)
+                  }
+                }}
+              >
+                {isEditingProject ? 'Save Changes' : 'Create Project'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Certification Modal */}
+      {showCertModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-gray-100 animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <h3 className="text-lg font-bold text-gray-900">{isEditingCert ? 'Edit Certification' : 'Add New Certification'}</h3>
+              <button onClick={() => setShowCertModal(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-sm">
+              <Input
+                label="Certification Title"
+                placeholder="e.g. AWS Certified Developer"
+                value={certForm.title}
+                onChange={(e) => setCertForm({ ...certForm, title: e.target.value })}
+                required
+              />
+              <Input
+                label="Issuing Organization"
+                placeholder="e.g. Amazon Web Services / Coursera"
+                value={certForm.issuer}
+                onChange={(e) => setCertForm({ ...certForm, issuer: e.target.value })}
+                required
+              />
+              <Input
+                label="Issue Date"
+                type="date"
+                value={certForm.issueDate}
+                onChange={(e) => setCertForm({ ...certForm, issueDate: e.target.value })}
+                required
+              />
+              <Input
+                label="Certificate URL / Verification Link (Optional)"
+                placeholder="https://..."
+                value={certForm.certificateUrl}
+                onChange={(e) => setCertForm({ ...certForm, certificateUrl: e.target.value })}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+              <Button variant="outline" size="sm" onClick={() => setShowCertModal(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="gold"
+                size="sm"
+                disabled={!certForm.title || !certForm.issuer || !certForm.issueDate || addCertMutation.isPending || updateCertMutation.isPending}
+                onClick={() => {
+                  if (isEditingCert) {
+                    updateCertMutation.mutate({ id: certForm.id, data: certForm })
+                  } else {
+                    addCertMutation.mutate(certForm)
+                  }
+                }}
+              >
+                {isEditingCert ? 'Save Changes' : 'Add Certification'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

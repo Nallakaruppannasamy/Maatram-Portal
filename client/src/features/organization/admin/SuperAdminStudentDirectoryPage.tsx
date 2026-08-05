@@ -37,7 +37,7 @@ const safeString = (val: any, fallback: string = 'N/A'): string => {
 
 interface StatCardProps {
   title: string
-  value: number
+  value?: number
   icon: LucideIcon
   colorClass: string
   iconColor: string
@@ -50,7 +50,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, colorClas
     </div>
     <div>
       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{title}</p>
-      <p className="text-xl font-bold text-gray-900">{value.toLocaleString()}</p>
+      <p className="text-xl font-bold text-gray-900">{(value ?? 0).toLocaleString()}</p>
     </div>
   </div>
 )
@@ -59,7 +59,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [collegeFilter, setCollegeFilter] = useState<string>('All')
   const [zoneFilter, setZoneFilter] = useState<string>('All')
-  const [statusFilter, setStatusFilter] = useState<string>('All')
+  const [academicYearFilter, setAcademicYearFilter] = useState<string>('All')
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [showExportMenu, setShowExportMenu] = useState<boolean>(false)
   const [sortBy, setSortBy] = useState<string>('')
@@ -89,7 +89,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
       currentPage,
       zoneFilter,
       collegeFilter,
-      statusFilter,
+      academicYearFilter,
       sortBy,
       sortOrder,
     ],
@@ -100,7 +100,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
         limit: 10,
         zoneId: zoneFilter !== 'All' ? zoneFilter : undefined,
         collegeId: collegeFilter !== 'All' ? collegeFilter : undefined,
-        status: statusFilter !== 'All' ? statusFilter : undefined,
+        academicYear: academicYearFilter !== 'All' ? academicYearFilter : undefined,
         sortBy: sortBy || undefined,
         sortOrder: sortBy ? sortOrder : undefined,
       }),
@@ -141,7 +141,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
         sortOrder: sortBy ? sortOrder : undefined,
         zoneId: zoneFilter !== 'All' ? zoneFilter : undefined,
         collegeId: collegeFilter !== 'All' ? collegeFilter : undefined,
-        status: statusFilter !== 'All' ? statusFilter : undefined,
+        academicYear: academicYearFilter !== 'All' ? academicYearFilter : undefined,
         page: currentPage,
         limit: 10,
       })
@@ -149,22 +149,21 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `Maatram_Students_Report_${new Date().toISOString().split('T')[0]}.${format}`
+      a.download = `Student_Directory_${Date.now()}.${format}`
       document.body.appendChild(a)
       a.click()
-      document.body.removeChild(a)
+      a.remove()
       window.URL.revokeObjectURL(url)
-
-      setShowExportMenu(false)
-      notify.success(`Spreadsheet data exported into ${format.toUpperCase()} successfully!`)
-    } catch (err) {
-      notify.error('Failed to export student records. Please try again.')
+      notify.success(`Exported table data as ${format.toUpperCase()}`)
+    } catch {
+      notify.error('Failed to export student directory data.')
     }
   }
 
+  // Click outside listener for export dropdown
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
         setShowExportMenu(false)
       }
     }
@@ -174,13 +173,13 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
 
   return (
     <Fragment>
-      <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 min-h-[80vh] flex flex-col font-sans">
-        {/* Header Title */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 pb-4">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 font-display">Student Portfolio Directory</h2>
-            <p className="text-sm text-gray-500 mt-0.5">
-              Audit, monitor, and print student portfolios and verified resume metrics.
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Super Admin Student Directory</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Global directory of all scholar students across zones, colleges, and programs.
             </p>
           </div>
           <div className="relative" ref={exportMenuRef}>
@@ -211,15 +210,25 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Total Students Stat Card (Removed hardcoded Zone 1-4 cards) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        {/* Live Dynamic Zone Student Statistics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           <StatCard
-            title="Total Tracked Students"
+            title="Total Students"
             value={meta.total}
             icon={Users}
             colorClass="bg-blue-50"
             iconColor="text-blue-600"
           />
+          {zones.map((zone) => (
+            <StatCard
+              key={zone.id}
+              title={`Students in ${zone.name}`}
+              value={(zone as any)._count?.students ?? 0}
+              icon={Users}
+              colorClass="bg-amber-50"
+              iconColor="text-[#D4AF37]"
+            />
+          ))}
         </div>
 
         {/* Search & Filter Toolbar */}
@@ -273,33 +282,32 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
               ))}
             </select>
 
-            {/* Status Filter */}
+            {/* Academic Year Filter (Replaces Status Filter) */}
             <select
-              value={statusFilter}
+              value={academicYearFilter}
               onChange={(e) => {
-                setStatusFilter(e.target.value)
+                setAcademicYearFilter(e.target.value)
                 setCurrentPage(1)
               }}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none"
             >
-              <option value="All">All Statuses</option>
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="INACTIVE">INACTIVE</option>
-              <option value="ON_LEAVE">ON LEAVE</option>
-              <option value="SUSPENDED">SUSPENDED</option>
-              <option value="EXITED">EXITED</option>
+              <option value="All">All Academic Years</option>
+              <option value="1st Year">1st Year</option>
+              <option value="2nd Year">2nd Year</option>
+              <option value="3rd Year">3rd Year</option>
+              <option value="4th Year">4th Year</option>
             </select>
 
             {(zoneFilter !== 'All' ||
               collegeFilter !== 'All' ||
-              statusFilter !== 'All' ||
+              academicYearFilter !== 'All' ||
               searchTerm ||
               sortBy) && (
               <button
                 onClick={() => {
                   setZoneFilter('All')
                   setCollegeFilter('All')
-                  setStatusFilter('All')
+                  setAcademicYearFilter('All')
                   setSearchTerm('')
                   setSortBy('')
                   setCurrentPage(1)
