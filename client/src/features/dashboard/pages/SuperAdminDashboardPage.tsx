@@ -42,7 +42,7 @@ export const SuperAdminDashboardPage = () => {
   const zones = zonesRes?.data || []
   const students = studentsRes?.data || []
   const volunteers = volunteersRes?.data || []
-  const users = usersRes?.data || []
+  const users = usersRes?.data?.items || []
 
   const approvedLogs = volunteers.filter(
     (v) => v.status === 'approved' || v.status === 'APPROVED'

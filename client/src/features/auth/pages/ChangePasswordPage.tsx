@@ -24,16 +24,13 @@ export const ChangePasswordPage = () => {
       return
     }
 
-    if (newPass.length < 8) {
-      notify.error('New password must be at least 8 characters long.')
-      return
-    }
-
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
     if (!passwordRegex.test(newPass)) {
       notify.error(
         'Password must contain at least 1 uppercase letter (A-Z), 1 lowercase letter (a-z), 1 number, and 1 special character (@$!%*?&).'
       )
+      return
+    }
       return
     }
 
@@ -67,8 +64,12 @@ export const ChangePasswordPage = () => {
         notify.error(res.message || 'Failed to update password.')
       }
     } catch (err: any) {
-      const errMsg =
+      let errMsg =
         err?.response?.data?.message || err?.message || 'Error updating password. Please check your credentials.'
+      const validationErrors = err?.response?.data?.errors
+      if (Array.isArray(validationErrors) && validationErrors.length > 0) {
+        errMsg = validationErrors.map((e: any) => e.message).join('\n')
+      }
       notify.error(errMsg)
     } finally {
       setLoading(false)

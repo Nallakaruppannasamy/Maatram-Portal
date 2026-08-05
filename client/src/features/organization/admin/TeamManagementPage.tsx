@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { userApi } from '@/api/user.api'
 import { zoneApi } from '@/api/zone.api'
+import { ApiResponse, PaginatedUsers } from '@/types/api'
 import { notify } from '@/utils/toast'
 
 interface FormData {
@@ -112,6 +113,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
 export const TeamManagementPage: React.FC = () => {
   const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
   const [searchFilter, setSearchFilter] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'zone'>('all')
 
@@ -139,13 +141,27 @@ export const TeamManagementPage: React.FC = () => {
     queryFn: () => zoneApi.list(),
   })
 
-  const { data: usersRes, isLoading, refetch: refetchTeam } = useQuery({
-    queryKey: ['users', roleFilter],
-    queryFn: () => userApi.list({ role: roleFilter === 'all' ? undefined : roleFilter }),
+  const { data: usersRes, isLoading, isFetching, refetch: refetchTeam } = useQuery<ApiResponse<PaginatedUsers>>({
+    queryKey: ['team-users', page, searchFilter, roleFilter],
+    queryFn: async () => {
+      try {
+        return await userApi.list({
+          page,
+          limit: 10,
+          search: searchFilter || undefined,
+          role: roleFilter === 'all' ? undefined : roleFilter,
+        })
+      } catch (err: any) {
+        notify.error(err?.response?.data?.message || err?.message || 'Failed to load team directory')
+        throw err
+      }
+    },
   })
 
   const zones = zonesRes?.data || []
-  const team = (usersRes?.data || []).filter((u: any) => u.role === 'admin' || u.role === 'zone')
+  const team = usersRes?.data?.items || []
+  const stats = usersRes?.data?.stats
+  const pagination = usersRes?.data?.pagination
 
   // Mutations
   const createUserMutation = useMutation({
@@ -153,7 +169,7 @@ export const TeamManagementPage: React.FC = () => {
     onSuccess: (res) => {
       if (res.success) {
         notify.success('Account provisioned successfully!')
-        queryClient.invalidateQueries({ queryKey: ['users'] })
+        queryClient.invalidateQueries({ queryKey: ['team-users'] })
         resetForm()
       } else {
         notify.error(res.message || 'Account provisioning failed.')
@@ -170,7 +186,7 @@ export const TeamManagementPage: React.FC = () => {
     onSuccess: (res, variables) => {
       if (res.success) {
         notify.success(variables.isActive ? 'Account deactivated.' : 'Account activated.')
-        queryClient.invalidateQueries({ queryKey: ['users'] })
+        queryClient.invalidateQueries({ queryKey: ['team-users'] })
       } else {
         notify.error(res.message || 'Status toggle failed.')
       }
@@ -229,19 +245,20 @@ export const TeamManagementPage: React.FC = () => {
     toggleStatusMutation.mutate({ id: memberId, isActive: type === 'deactivate' })
   }
 
-  const adminsCount = team.filter((u: any) => u.role === 'admin').length
-  const zoneCount = team.filter((u: any) => u.role === 'zone').length
-  const activeCount = team.filter((u: any) => u.isActive !== false).length
+  const handleRoleFilterChange = (role: 'all' | 'admin' | 'zone') => {
+    setRoleFilter(role)
+    setPage(1)
+  }
 
-  const filteredRoster = team.filter((user: any) => {
-    const name = user.fullName || user.userProfile?.fullName || ''
-    const matchesSearch =
-      name.toLowerCase().includes(searchFilter.toLowerCase()) ||
-      (user.email || '').toLowerCase().includes(searchFilter.toLowerCase()) ||
-      (user.employeeId || '').toLowerCase().includes(searchFilter.toLowerCase())
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter
-    return matchesSearch && matchesRole
-  })
+  const handleSearchFilterChange = (val: string) => {
+    setSearchFilter(val)
+    setPage(1)
+  }
+
+  const totalMembers = stats?.totalMembers || 0
+  const superAdmins = stats?.superAdmins || 0
+  const zoneIncharges = stats?.zoneIncharges || 0
+  const activeAccounts = stats?.activeAccounts || 0
 
   if (isLoading) {
     return (
@@ -292,7 +309,7 @@ export const TeamManagementPage: React.FC = () => {
               <Users size={20} />
             </div>
             <div>
-              <p className="text-2xl font-extrabold text-[#111827]">{team.length}</p>
+              <p className="text-2xl font-extrabold text-[#111827]">{totalMembers}</p>
               <p className="text-[10px] uppercase font-bold tracking-wider text-[#76777d]">Total Members</p>
             </div>
           </div>
@@ -302,7 +319,7 @@ export const TeamManagementPage: React.FC = () => {
               <Shield size={20} />
             </div>
             <div>
-              <p className="text-2xl font-extrabold text-[#111827]">{adminsCount}</p>
+              <p className="text-2xl font-extrabold text-[#111827]">{superAdmins}</p>
               <p className="text-[10px] uppercase font-bold tracking-wider text-[#76777d]">Super Admins</p>
             </div>
           </div>
@@ -312,7 +329,7 @@ export const TeamManagementPage: React.FC = () => {
               <Briefcase size={20} />
             </div>
             <div>
-              <p className="text-2xl font-extrabold text-[#111827]">{zoneCount}</p>
+              <p className="text-2xl font-extrabold text-[#111827]">{zoneIncharges}</p>
               <p className="text-[10px] uppercase font-bold tracking-wider text-[#76777d]">Zone Incharges</p>
             </div>
           </div>
@@ -322,7 +339,7 @@ export const TeamManagementPage: React.FC = () => {
               <UserCheck size={20} />
             </div>
             <div>
-              <p className="text-2xl font-extrabold text-[#111827]">{activeCount}</p>
+              <p className="text-2xl font-extrabold text-[#111827]">{activeAccounts}</p>
               <p className="text-[10px] uppercase font-bold tracking-wider text-[#76777d]">Active Accounts</p>
             </div>
           </div>
@@ -410,11 +427,16 @@ export const TeamManagementPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <Shield size={16} className="text-[#D4AF37]" />
-                <div>
-                  <h3 className="font-extrabold text-sm text-[#111827] tracking-tight">Active Management Directory</h3>
-                  <p className="text-[10px] text-[#76777d] font-medium mt-0.5">
-                    {filteredRoster.length} of {team.length} members shown
-                  </p>
+                <div className="flex items-center gap-2">
+                  <div>
+                    <h3 className="font-extrabold text-sm text-[#111827] tracking-tight">Active Management Directory</h3>
+                    <p className="text-[10px] text-[#76777d] font-medium mt-0.5">
+                      Showing page {pagination?.page || 1} of {pagination?.totalPages || 1}
+                    </p>
+                  </div>
+                  {isFetching && (
+                    <RefreshCw className="animate-spin text-[#D4AF37]" size={14} />
+                  )}
                 </div>
               </div>
 
@@ -423,7 +445,7 @@ export const TeamManagementPage: React.FC = () => {
                   {(['all', 'admin', 'zone'] as const).map((r) => (
                     <button
                       key={r}
-                      onClick={() => setRoleFilter(r)}
+                      onClick={() => handleRoleFilterChange(r)}
                       className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                         roleFilter === r ? 'bg-[#D4AF37] text-white' : 'bg-white text-[#76777d] hover:bg-[#FCF8FA]'
                       }`}
@@ -439,7 +461,7 @@ export const TeamManagementPage: React.FC = () => {
                     type="text"
                     placeholder="Search name, email..."
                     value={searchFilter}
-                    onChange={(e) => setSearchFilter(e.target.value)}
+                    onChange={(e) => handleSearchFilterChange(e.target.value)}
                     className="w-full sm:w-48 h-9 pl-9 pr-3 bg-[#FCF8FA] border border-[#E5E7EB] rounded-xl text-xs font-bold outline-none focus:border-[#D4AF37] transition-all"
                   />
                 </div>
@@ -459,14 +481,14 @@ export const TeamManagementPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E5E7EB] text-[#111827]">
-                  {filteredRoster.length === 0 ? (
+                  {team.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="text-center p-10 text-[#76777d] italic font-semibold">
-                        No team accounts found matching criteria.
+                        No members found. Try another search.
                       </td>
                     </tr>
                   ) : (
-                    filteredRoster.map((user: any) => {
+                    team.map((user: any) => {
                       const name = user.fullName || user.userProfile?.fullName || user.email
                       const isUserActive = user.isActive !== false
 
@@ -521,7 +543,7 @@ export const TeamManagementPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleToggleActivation(user)}
-                              disabled={toggleStatusMutation.isPending}
+                              disabled={toggleStatusMutation.isPending || isFetching}
                               title={isUserActive ? 'Deactivate account' : 'Activate account'}
                               className={`p-2 rounded-xl transition-all cursor-pointer disabled:opacity-40 ${
                                 isUserActive
@@ -539,6 +561,49 @@ export const TeamManagementPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {pagination && pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-[#E5E7EB] pt-4">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1 || isFetching}
+                  className="px-3 py-1.5 border border-[#E5E7EB] rounded-xl text-xs font-black text-[#45464c] hover:bg-[#FCF8FA] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-all"
+                >
+                  Previous
+                </button>
+                <div className="flex items-center gap-1.5">
+                  {Array.from({ length: pagination.totalPages }).map((_, i) => {
+                    const pNum = i + 1
+                    const isCurrent = pNum === page
+                    return (
+                      <button
+                        key={pNum}
+                        type="button"
+                        onClick={() => setPage(pNum)}
+                        disabled={isFetching}
+                        className={`w-8 h-8 rounded-xl text-xs font-black transition-all ${
+                          isCurrent
+                            ? 'bg-[#D4AF37] text-white'
+                            : 'border border-[#E5E7EB] text-[#45464c] hover:bg-[#FCF8FA] cursor-pointer'
+                        }`}
+                      >
+                        {pNum}
+                      </button>
+                    )
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                  disabled={page === pagination.totalPages || isFetching}
+                  className="px-3 py-1.5 border border-[#E5E7EB] rounded-xl text-xs font-black text-[#45464c] hover:bg-[#FCF8FA] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-all"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

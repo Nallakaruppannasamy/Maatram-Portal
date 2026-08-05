@@ -105,10 +105,10 @@ export const ZoneManagementPage: React.FC = () => {
   // Fetch all staff users to identify unassigned incharges
   const { data: staffRes } = useQuery({
     queryKey: ['users', 'zone'],
-    queryFn: () => userApi.list({ role: 'zone' }),
+    queryFn: () => userApi.list({ role: 'zone', limit: 1000 }),
   })
-  const zoneIncharges = staffRes?.data || []
-  const unassignedIncharges = zoneIncharges.filter((u) => !u.zoneId && u.isActive)
+  const zoneIncharges = staffRes?.data?.items || []
+  const unassignedIncharges = zoneIncharges.filter((u: any) => !u.zoneId && u.isActive)
 
   // ─── Mutations ────────────────────────────────────────────────────────────
   // 1. Assign Incharge

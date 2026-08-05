@@ -149,3 +149,20 @@ export interface Volunteer {
   createdAt?: string
   updatedAt?: string
 }
+
+export interface PaginatedUsers {
+  items: AuthUser[]
+  pagination: {
+    page: number
+    limit: number
+    totalItems: number
+    totalPages: number
+  }
+  stats: {
+    totalMembers: number
+    superAdmins: number
+    zoneIncharges: number
+    activeAccounts: number
+  }
+}
+

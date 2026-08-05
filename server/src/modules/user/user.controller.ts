@@ -47,7 +47,7 @@ export class UserController {
    */
   list = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const result = await userService.listUsers(req.query);
-    ResponseFormatter.success(res, result.data, 'Users listed successfully', 200, result.meta);
+    ResponseFormatter.success(res, result, 'Users listed successfully');
   });
 
   /**
