@@ -31,9 +31,9 @@ export const changePasswordValidator = z.object({
     .object({
       currentPassword: z.string().min(1, 'Current password is required'),
       newPassword: complexPasswordSchema,
-      confirmPassword: z.string().min(1, 'Password confirmation is required'),
+      confirmPassword: z.string().optional(),
     })
-    .refine((data) => data.newPassword === data.confirmPassword, {
+    .refine((data) => !data.confirmPassword || data.newPassword === data.confirmPassword, {
       message: 'New password and confirm password must match',
       path: ['confirmPassword'],
     })

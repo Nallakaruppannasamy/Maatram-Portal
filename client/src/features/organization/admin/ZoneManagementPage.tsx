@@ -678,7 +678,7 @@ export const ZoneManagementPage: React.FC = () => {
 
               {/* Departments grid list */}
               <div className="space-y-3">
-                {activeCollege.departments?.length === 0 ? (
+                {!activeCollege.departments || activeCollege.departments.length === 0 ? (
                   <p className="text-xs text-gray-500 italic py-4">No departments configured yet.</p>
                 ) : (
                   activeCollege.departments.map((dept: any) => (
@@ -718,7 +718,7 @@ export const ZoneManagementPage: React.FC = () => {
 
                       {/* Programs inside Department */}
                       <div className="pl-4 space-y-1.5">
-                        {dept.programs?.length === 0 ? (
+                        {!dept.programs || dept.programs.length === 0 ? (
                           <span className="text-[10px] text-gray-400 italic">No degrees or programs added yet.</span>
                         ) : (
                           dept.programs.map((prog: any) => (

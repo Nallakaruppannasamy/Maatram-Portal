@@ -24,8 +24,16 @@ export const ChangePasswordPage = () => {
       return
     }
 
-    if (newPass.length < 6) {
-      notify.error('New password must be at least 6 characters long.')
+    if (newPass.length < 8) {
+      notify.error('New password must be at least 8 characters long.')
+      return
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+    if (!passwordRegex.test(newPass)) {
+      notify.error(
+        'Password must contain at least 1 uppercase letter (A-Z), 1 lowercase letter (a-z), 1 number, and 1 special character (@$!%*?&).'
+      )
       return
     }
 
@@ -40,6 +48,7 @@ export const ChangePasswordPage = () => {
       const res = await authApi.changePassword({
         currentPassword: tempPass,
         newPassword: newPass,
+        confirmPassword: confirmPass,
       })
 
       if (res.success) {
@@ -95,7 +104,7 @@ export const ChangePasswordPage = () => {
             <Input
               label="New Password"
               type="password"
-              placeholder="Minimum 6 characters"
+              placeholder="Min 8 chars (e.g. Samy@2007)"
               value={newPass}
               onChange={(e) => setNewPass(e.target.value)}
               icon={<Lock className="w-4 h-4" />}
@@ -117,8 +126,9 @@ export const ChangePasswordPage = () => {
             <div className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] space-y-1">
               <p className="text-[11px] font-semibold text-[#111827]">Password Requirements:</p>
               <ul className="text-[11px] text-[#45464c] space-y-0.5 list-disc pl-4">
-                <li>At least 6 characters long</li>
-                <li>Contains at least one number or special character</li>
+                <li>At least 8 characters long</li>
+                <li>Contains 1 uppercase (A-Z) & 1 lowercase letter (a-z)</li>
+                <li>Contains 1 number (0-9) & 1 special character (@$!%*?&)</li>
               </ul>
             </div>
 
