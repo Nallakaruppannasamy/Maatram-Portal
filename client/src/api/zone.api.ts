@@ -89,7 +89,8 @@ export const zoneApi = {
     const res = await apiInstance.post<ApiResponse<any>>(`${API_ROUTES.ZONES.BASE}/${zoneId}/import`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      timeout: 120000 // 2 minutes timeout for bulk imports
     })
     return res.data
   },

@@ -23,22 +23,32 @@ export function parseExcelDate(val: any): Date | null {
     return new Date(Math.round((val - 25569) * 86400 * 1000));
   }
   const str = String(val).trim();
-  // Try YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-    const d = new Date(str);
-    return isNaN(d.getTime()) ? null : d;
+  if (!str) return null;
+
+  // Try YYYY-MM-DD or YYYY/MM/DD
+  if (/^\d{4}[/-]\d{1,2}[/-]\d{1,2}$/.test(str)) {
+    const parts = str.split(/[/-]/);
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    const date = new Date(y, m, d);
+    if (date.getFullYear() === y && date.getMonth() === m && date.getDate() === d) {
+      return date;
+    }
   }
-  // Try DD/MM/YYYY
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
-    const parts = str.split('/');
+
+  // Try DD-MM-YYYY or DD/MM/YYYY
+  if (/^\d{1,2}[/-]\d{1,2}[/-]\d{4}$/.test(str)) {
+    const parts = str.split(/[/-]/);
     const d = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10) - 1;
     const y = parseInt(parts[2], 10);
     const date = new Date(y, m, d);
-    if (date.getDate() === d && date.getMonth() === m && date.getFullYear() === y) {
+    if (date.getFullYear() === y && date.getMonth() === m && date.getDate() === d) {
       return date;
     }
   }
+
   const parsed = new Date(str);
   return isNaN(parsed.getTime()) ? null : parsed;
 }

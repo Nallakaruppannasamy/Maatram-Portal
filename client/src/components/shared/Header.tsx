@@ -16,6 +16,7 @@ import { UserRole } from '@/constants/roles'
 import { AuthUser } from '@/types/api'
 import { Badge } from '@/components/ui/Badge'
 import { cn } from '@/lib/utils'
+import { getMediaUrl } from '@/utils/media'
 
 interface HeaderProps {
   activeRole: UserRole
@@ -160,11 +161,21 @@ export const Header: React.FC<HeaderProps> = ({
             aria-haspopup="true"
           >
             <div className="w-9 h-9 rounded-xl bg-[#FCF8FA] border border-[#E5E7EB] flex items-center justify-center text-[#111827] font-semibold text-sm overflow-hidden shadow-2xs group-hover:border-[#D4AF37]/50 transition-colors">
-              {user?.profilePhotoUrl ? (
+              {user?.profilePhotoUrl || (user as any)?.avatarUrl || (user as any)?.profileImage || (user as any)?.profile?.profileImage || (user as any)?.userProfile?.profileImage || (user as any)?.student?.profileImage ? (
                 <img
-                  src={user.profilePhotoUrl}
+                  src={getMediaUrl(
+                    user?.profilePhotoUrl ||
+                      (user as any)?.avatarUrl ||
+                      (user as any)?.profileImage ||
+                      (user as any)?.profile?.profileImage ||
+                      (user as any)?.userProfile?.profileImage ||
+                      (user as any)?.student?.profileImage
+                  )}
                   alt={roleConfig.defaultTitle}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
                 />
               ) : (
                 <RoleIcon className="w-4.5 h-4.5 text-[#D4AF37]" />

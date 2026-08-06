@@ -38,7 +38,25 @@ export const AppLayout = () => {
   return (
     <div className="h-screen w-full bg-[#FCF8FA] flex overflow-hidden">
       {/* Sidebar Navigation */}
-      <Sidebar activeRole={activeRole} user={user ? { name: user.fullName || user.name || user.email, regNumber: user.regNumber || user.registrationNumber } : undefined} onLogout={handleLogout} />
+      <Sidebar
+        activeRole={activeRole}
+        user={
+          user
+            ? {
+                name: user.fullName || user.name || (user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.email),
+                regNumber: user.regNumber || user.registrationNumber || user.rollNumber,
+                avatarUrl:
+                  (user as any)?.avatarUrl ||
+                  user?.profilePhotoUrl ||
+                  (user as any)?.profileImage ||
+                  (user as any)?.profile?.profileImage ||
+                  (user as any)?.userProfile?.profileImage ||
+                  (user as any)?.student?.profileImage,
+              }
+            : undefined
+        }
+        onLogout={handleLogout}
+      />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">

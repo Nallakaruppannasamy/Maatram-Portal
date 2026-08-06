@@ -523,63 +523,87 @@ export class ZoneService {
     let departmentsCreated = 0;
     let programsCreated = 0;
 
-    await prisma.$transaction(async (tx) => {
-      for (let i = 0; i < rawData.length; i++) {
-        const row = rawData[i];
-        const collegeName = row['College Name']?.toString().trim();
-        const collegeCode = row['College Code']?.toString().trim().toUpperCase();
-        const collegeLocation = row['College Location']?.toString().trim();
-        const departmentName = row['Department Name']?.toString().trim();
-        const programName = row['Degree/Program Name']?.toString().trim();
-        const duration = parseInt(row['Duration (Years)']?.toString() || '4', 10);
+    await prisma.$transaction(
+      async (tx) => {
+        const collegeCache = new Map<string, any>();
+        const deptCache = new Map<string, any>();
+        const programCache = new Map<string, any>();
 
-        if (!collegeName || !collegeCode || !collegeLocation || !departmentName || !programName) {
-          throw ApiError.badRequest(`Row ${i + 2} has missing required fields`);
-        }
+        for (let i = 0; i < rawData.length; i++) {
+          const row = rawData[i];
+          const collegeName = row['College Name']?.toString().trim();
+          const collegeCode = row['College Code']?.toString().trim().toUpperCase();
+          const collegeLocation = row['College Location']?.toString().trim();
+          const departmentName = row['Department Name']?.toString().trim();
+          const programName = row['Degree/Program Name']?.toString().trim();
+          const duration = parseInt(row['Duration (Years)']?.toString() || '4', 10);
 
-        // 1. College resolve
-        let college = await tx.college.findUnique({ where: { code: collegeCode } });
-        if (college) {
-          if (college.zoneId !== zoneId) {
-            throw ApiError.badRequest(`Row ${i + 2}: College "${collegeName}" with code "${collegeCode}" belongs to a different zone.`);
+          if (!collegeName || !collegeCode || !collegeLocation || !departmentName || !programName) {
+            throw ApiError.badRequest(`Row ${i + 2} has missing required fields`);
           }
-          if (!college.isActive) {
-            college = await tx.college.update({
-              where: { id: college.id },
-              data: { isActive: true, name: collegeName, location: collegeLocation }
+
+          // 1. College resolve
+          let college = collegeCache.get(collegeCode);
+          if (!college) {
+            college = await tx.college.findUnique({ where: { code: collegeCode } });
+            if (college) {
+              if (college.zoneId !== zoneId) {
+                throw ApiError.badRequest(`Row ${i + 2}: College "${collegeName}" with code "${collegeCode}" belongs to a different zone.`);
+              }
+              if (!college.isActive) {
+                college = await tx.college.update({
+                  where: { id: college.id },
+                  data: { isActive: true, name: collegeName, location: collegeLocation }
+                });
+                collegesCreated++;
+              }
+            } else {
+              college = await tx.college.create({
+                data: { name: collegeName, code: collegeCode, location: collegeLocation, zoneId, isActive: true }
+              });
+              collegesCreated++;
+            }
+            collegeCache.set(collegeCode, college);
+          }
+
+          // 2. Department resolve
+          const deptKey = `${college.id}:${departmentName.toLowerCase()}`;
+          let department = deptCache.get(deptKey);
+          if (!department) {
+            department = await tx.department.findFirst({
+              where: { collegeId: college.id, name: { equals: departmentName, mode: 'insensitive' } }
             });
-            collegesCreated++;
+            if (!department) {
+              department = await tx.department.create({
+                data: { name: departmentName, collegeId: college.id }
+              });
+              departmentsCreated++;
+            }
+            deptCache.set(deptKey, department);
           }
-        } else {
-          college = await tx.college.create({
-            data: { name: collegeName, code: collegeCode, location: collegeLocation, zoneId, isActive: true }
-          });
-          collegesCreated++;
-        }
 
-        // 2. Department resolve
-        let department = await tx.department.findFirst({
-          where: { collegeId: college.id, name: { equals: departmentName, mode: 'insensitive' } }
-        });
-        if (!department) {
-          department = await tx.department.create({
-            data: { name: departmentName, collegeId: college.id }
-          });
-          departmentsCreated++;
+          // 3. Program resolve
+          const progKey = `${department.id}:${programName.toLowerCase()}`;
+          let program = programCache.get(progKey);
+          if (!program) {
+            program = await tx.program.findFirst({
+              where: { departmentId: department.id, name: { equals: programName, mode: 'insensitive' } }
+            });
+            if (!program) {
+              program = await tx.program.create({
+                data: { name: programName, departmentId: department.id, durationYears: duration || 4 }
+              });
+              programsCreated++;
+            }
+            programCache.set(progKey, program);
+          }
         }
-
-        // 3. Program resolve
-        const program = await tx.program.findFirst({
-          where: { departmentId: department.id, name: { equals: programName, mode: 'insensitive' } }
-        });
-        if (!program) {
-          await tx.program.create({
-            data: { name: programName, departmentId: department.id, durationYears: duration || 4 }
-          });
-          programsCreated++;
-        }
+      },
+      {
+        timeout: 60000, // 60 seconds timeout for bulk zone structure import
+        maxWait: 10000,  // 10 seconds max wait to acquire db lock
       }
-    });
+    );
 
     return {
       totalRows: rawData.length,

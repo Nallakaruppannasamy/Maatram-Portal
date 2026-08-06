@@ -114,16 +114,16 @@ export const OrganizationHierarchyPage: React.FC = () => {
       return notify.error('Please provide Zone Name and Zone Code.')
     }
 
-    const orgId = newZoneData.organizationId || (organizations.length > 0 ? organizations[0].id : '')
-    if (!orgId) {
-      return notify.error('Parent organization required.')
-    }
+    const orgId =
+      newZoneData.organizationId ||
+      currentOrg?.id ||
+      (Array.isArray(organizations) ? organizations[0]?.id : (organizations as any)?.items?.[0]?.id)
 
     createZoneMutation.mutate({
       name: newZoneData.name,
-      code: newZoneData.code.toUpperCase(),
+      code: newZoneData.code.trim().toUpperCase(),
       regionLabel: newZoneData.regionLabel || newZoneData.name,
-      organizationId: orgId,
+      ...(orgId ? { organizationId: orgId } : {}),
     })
   }
 

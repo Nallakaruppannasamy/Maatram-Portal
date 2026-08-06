@@ -34,6 +34,7 @@ interface UserProfile {
   name?: string
   regNumber?: string
   avatarUrl?: string
+  profileImage?: string
 }
 
 interface NavItem {
@@ -161,8 +162,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeRole, user, onLogout }) 
         )}
       >
         <div className="relative min-w-10 h-10 rounded-full border-2 border-[#D4AF37] bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
-          {user?.avatarUrl ? (
-            <img src={getMediaUrl(user.avatarUrl)} alt="Avatar" className="w-full h-full object-cover" />
+          {user?.avatarUrl || user?.profileImage ? (
+            <img
+              src={getMediaUrl(user.avatarUrl || user.profileImage)}
+              alt="Avatar"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+              }}
+            />
           ) : (
             <span className="font-bold text-[#111827] text-sm uppercase">
               {user?.name ? user.name.charAt(0) : activeRole.charAt(0).toUpperCase()}
