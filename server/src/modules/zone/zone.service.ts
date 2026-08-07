@@ -309,6 +309,15 @@ export class ZoneService {
         name: col.name,
         code: col.code,
         location: col.location,
+        degrees: col.departments.map(d => ({
+          id: d.id,
+          name: d.name,
+          departments: d.programs.map(p => ({
+            id: p.id,
+            name: p.name,
+            durationYears: p.durationYears
+          }))
+        })),
         departmentCount,
         programCount,
         studentCount,
@@ -435,7 +444,7 @@ export class ZoneService {
       where: { collegeId, name: { equals: name, mode: 'insensitive' } }
     });
     if (existing) {
-      throw ApiError.badRequest(`Department "${name}" already exists in this college`);
+      throw ApiError.badRequest(`Degree "${name}" already exists in this college`);
     }
     return prisma.department.create({
       data: { name, collegeId }
@@ -444,12 +453,12 @@ export class ZoneService {
 
   async updateDepartment(departmentId: string, name: string): Promise<any> {
     const dept = await prisma.department.findUnique({ where: { id: departmentId } });
-    if (!dept) throw ApiError.notFound('Department not found');
+    if (!dept) throw ApiError.notFound('Degree not found');
     const existing = await prisma.department.findFirst({
       where: { collegeId: dept.collegeId, name: { equals: name, mode: 'insensitive' }, NOT: { id: departmentId } }
     });
     if (existing) {
-      throw ApiError.badRequest(`Department "${name}" already exists in this college`);
+      throw ApiError.badRequest(`Degree "${name}" already exists in this college`);
     }
     return prisma.department.update({
       where: { id: departmentId },
@@ -459,10 +468,10 @@ export class ZoneService {
 
   async deleteDepartment(departmentId: string): Promise<any> {
     const dept = await prisma.department.findUnique({ where: { id: departmentId } });
-    if (!dept) throw ApiError.notFound('Department not found');
+    if (!dept) throw ApiError.notFound('Degree not found');
     const studentCount = await prisma.student.count({ where: { departmentId } });
     if (studentCount > 0) {
-      throw ApiError.badRequest('Cannot delete department because students are currently enrolled in it');
+      throw ApiError.badRequest('Cannot delete degree because students are currently enrolled in it');
     }
     // Delete associated programs first or check program count
     const programCount = await prisma.program.count({ where: { departmentId } });
@@ -475,12 +484,12 @@ export class ZoneService {
   // --- Program/Degree CRUD ---
   async addProgram(departmentId: string, name: string, durationYears: number): Promise<any> {
     const dept = await prisma.department.findUnique({ where: { id: departmentId } });
-    if (!dept) throw ApiError.notFound('Department not found');
+    if (!dept) throw ApiError.notFound('Degree not found');
     const existing = await prisma.program.findFirst({
       where: { departmentId, name: { equals: name, mode: 'insensitive' } }
     });
     if (existing) {
-      throw ApiError.badRequest(`Degree/Program "${name}" already exists in this department`);
+      throw ApiError.badRequest(`Department "${name}" already exists in this degree`);
     }
     return prisma.program.create({
       data: { name, departmentId, durationYears: durationYears || 4 }
@@ -489,12 +498,12 @@ export class ZoneService {
 
   async updateProgram(programId: string, name: string, durationYears: number): Promise<any> {
     const prog = await prisma.program.findUnique({ where: { id: programId } });
-    if (!prog) throw ApiError.notFound('Degree/Program not found');
+    if (!prog) throw ApiError.notFound('Department not found');
     const existing = await prisma.program.findFirst({
       where: { departmentId: prog.departmentId, name: { equals: name, mode: 'insensitive' }, NOT: { id: programId } }
     });
     if (existing) {
-      throw ApiError.badRequest(`Degree/Program "${name}" already exists in this department`);
+      throw ApiError.badRequest(`Department "${name}" already exists in this degree`);
     }
     return prisma.program.update({
       where: { id: programId },
@@ -504,10 +513,10 @@ export class ZoneService {
 
   async deleteProgram(programId: string): Promise<any> {
     const prog = await prisma.program.findUnique({ where: { id: programId } });
-    if (!prog) throw ApiError.notFound('Degree/Program not found');
+    if (!prog) throw ApiError.notFound('Department not found');
     const studentCount = await prisma.student.count({ where: { programId } });
     if (studentCount > 0) {
-      throw ApiError.badRequest('Cannot delete program because students are currently enrolled in it');
+      throw ApiError.badRequest('Cannot delete department because students are currently enrolled in it');
     }
     return prisma.program.delete({ where: { id: programId } });
   }
@@ -566,36 +575,36 @@ export class ZoneService {
             collegeCache.set(collegeCode, college);
           }
 
-          // 2. Department resolve
-          const deptKey = `${college.id}:${departmentName.toLowerCase()}`;
-          let department = deptCache.get(deptKey);
-          if (!department) {
-            department = await tx.department.findFirst({
-              where: { collegeId: college.id, name: { equals: departmentName, mode: 'insensitive' } }
+          // 2. Degree (DB Department) resolve
+          const degreeKey = `${college.id}:${programName.toLowerCase()}`;
+          let degree = deptCache.get(degreeKey);
+          if (!degree) {
+            degree = await tx.department.findFirst({
+              where: { collegeId: college.id, name: { equals: programName, mode: 'insensitive' } }
             });
-            if (!department) {
-              department = await tx.department.create({
-                data: { name: departmentName, collegeId: college.id }
+            if (!degree) {
+              degree = await tx.department.create({
+                data: { name: programName, collegeId: college.id }
               });
-              departmentsCreated++;
+              departmentsCreated++; // increment Degree count (stored in DB Department table)
             }
-            deptCache.set(deptKey, department);
+            deptCache.set(degreeKey, degree);
           }
 
-          // 3. Program resolve
-          const progKey = `${department.id}:${programName.toLowerCase()}`;
-          let program = programCache.get(progKey);
-          if (!program) {
-            program = await tx.program.findFirst({
-              where: { departmentId: department.id, name: { equals: programName, mode: 'insensitive' } }
+          // 3. Department (DB Program) resolve
+          const deptKey = `${degree.id}:${departmentName.toLowerCase()}`;
+          let department = programCache.get(deptKey);
+          if (!department) {
+            department = await tx.program.findFirst({
+              where: { departmentId: degree.id, name: { equals: departmentName, mode: 'insensitive' } }
             });
-            if (!program) {
-              program = await tx.program.create({
-                data: { name: programName, departmentId: department.id, durationYears: duration || 4 }
+            if (!department) {
+              department = await tx.program.create({
+                data: { name: departmentName, departmentId: degree.id, durationYears: duration || 4 }
               });
-              programsCreated++;
+              programsCreated++; // increment Department count (stored in DB Program table)
             }
-            programCache.set(progKey, program);
+            programCache.set(deptKey, department);
           }
         }
       },
@@ -608,8 +617,8 @@ export class ZoneService {
     return {
       totalRows: rawData.length,
       collegesCreated,
-      departmentsCreated,
-      programsCreated
+      degreesCreated: departmentsCreated,
+      departmentsCreated: programsCreated
     };
   }
 

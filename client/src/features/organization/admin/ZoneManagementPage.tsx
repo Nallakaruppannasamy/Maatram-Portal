@@ -25,10 +25,10 @@ interface College {
   name: string
   code: string
   location: string
-  departments: Array<{
+  degrees?: Array<{
     id: string
     name: string
-    programs: Array<{
+    departments: Array<{
       id: string
       name: string
       durationYears: number
@@ -66,6 +66,7 @@ export const ZoneManagementPage: React.FC = () => {
 
   const [assignInchargeId, setAssignInchargeId] = useState<string>('')
   const [importFile, setImportFile] = useState<File | null>(null)
+  const [expandedDegrees, setExpandedDegrees] = useState<Record<string, boolean>>({})
 
   // ─── Queries ──────────────────────────────────────────────────────────────
   const { data: zonesRes, isLoading: isZonesLoading } = useQuery({
@@ -156,29 +157,61 @@ export const ZoneManagementPage: React.FC = () => {
     onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to delete college'),
   })
 
-  // 3. Department Mutations
+  // 3. Degree (DB Department) Mutations
   const addDeptMutation = useMutation({
     mutationFn: (name: string) => zoneApi.addDepartment(selectedCollegeId, { name }),
     onSuccess: () => {
-      notify.success('Department created')
+      notify.success('Degree created')
       queryClient.invalidateQueries({ queryKey: ['zone-colleges', selectedZoneId] })
       setDeptForm({ isOpen: false, mode: 'add', name: '' })
     },
-    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to add department'),
+    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to add degree'),
   })
 
   const updateDeptMutation = useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) => zoneApi.updateDepartment(id, { name }),
     onSuccess: () => {
-      notify.success('Department updated')
+      notify.success('Degree renamed')
       queryClient.invalidateQueries({ queryKey: ['zone-colleges', selectedZoneId] })
       setDeptForm({ isOpen: false, mode: 'add', name: '' })
     },
-    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to update department'),
+    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to rename degree'),
   })
 
   const deleteDeptMutation = useMutation({
     mutationFn: (id: string) => zoneApi.deleteDepartment(id),
+    onSuccess: () => {
+      notify.success('Degree deleted')
+      queryClient.invalidateQueries({ queryKey: ['zone-colleges', selectedZoneId] })
+    },
+    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to delete degree'),
+  })
+
+  // 4. Department (DB Program) Mutations
+  const addProgMutation = useMutation({
+    mutationFn: ({ deptId, name, durationYears }: { deptId: string; name: string; durationYears: number }) =>
+      zoneApi.addProgram(deptId, { name, durationYears }),
+    onSuccess: () => {
+      notify.success('Department created')
+      queryClient.invalidateQueries({ queryKey: ['zone-colleges', selectedZoneId] })
+      setProgForm({ isOpen: false, mode: 'add', name: '', durationYears: 4 })
+    },
+    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to add department'),
+  })
+
+  const updateProgMutation = useMutation({
+    mutationFn: ({ id, name, durationYears }: { id: string; name: string; durationYears: number }) =>
+      zoneApi.updateProgram(id, { name, durationYears }),
+    onSuccess: () => {
+      notify.success('Department renamed')
+      queryClient.invalidateQueries({ queryKey: ['zone-colleges', selectedZoneId] })
+      setProgForm({ isOpen: false, mode: 'add', name: '', durationYears: 4 })
+    },
+    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to rename department'),
+  })
+
+  const deleteProgMutation = useMutation({
+    mutationFn: (id: string) => zoneApi.deleteProgram(id),
     onSuccess: () => {
       notify.success('Department deleted')
       queryClient.invalidateQueries({ queryKey: ['zone-colleges', selectedZoneId] })
@@ -186,43 +219,11 @@ export const ZoneManagementPage: React.FC = () => {
     onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to delete department'),
   })
 
-  // 4. Program Mutations
-  const addProgMutation = useMutation({
-    mutationFn: ({ deptId, name, durationYears }: { deptId: string; name: string; durationYears: number }) =>
-      zoneApi.addProgram(deptId, { name, durationYears }),
-    onSuccess: () => {
-      notify.success('Degree program created')
-      queryClient.invalidateQueries({ queryKey: ['zone-colleges', selectedZoneId] })
-      setProgForm({ isOpen: false, mode: 'add', name: '', durationYears: 4 })
-    },
-    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to add program'),
-  })
-
-  const updateProgMutation = useMutation({
-    mutationFn: ({ id, name, durationYears }: { id: string; name: string; durationYears: number }) =>
-      zoneApi.updateProgram(id, { name, durationYears }),
-    onSuccess: () => {
-      notify.success('Degree program updated')
-      queryClient.invalidateQueries({ queryKey: ['zone-colleges', selectedZoneId] })
-      setProgForm({ isOpen: false, mode: 'add', name: '', durationYears: 4 })
-    },
-    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to update program'),
-  })
-
-  const deleteProgMutation = useMutation({
-    mutationFn: (id: string) => zoneApi.deleteProgram(id),
-    onSuccess: () => {
-      notify.success('Degree program deleted')
-      queryClient.invalidateQueries({ queryKey: ['zone-colleges', selectedZoneId] })
-    },
-    onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to delete program'),
-  })
-
   // 5. Excel Import Mutations
   const importMutation = useMutation({
     mutationFn: (file: File) => zoneApi.importStructure(selectedZoneId, file),
     onSuccess: (res) => {
-      notify.success(`Import success! Created ${res.data.collegesCreated} colleges, ${res.data.departmentsCreated} departments, and ${res.data.programsCreated} programs.`)
+      notify.success(`Import success! Created ${res.data.collegesCreated} colleges, ${res.data.degreesCreated} degrees, and ${res.data.departmentsCreated} departments.`)
       queryClient.invalidateQueries({ queryKey: ['zone-colleges', selectedZoneId] })
       setImportFile(null)
     },
@@ -594,7 +595,7 @@ export const ZoneManagementPage: React.FC = () => {
                 onClick={() => setDeptForm({ isOpen: true, mode: 'add', name: '' })}
                 className="h-8 px-3 bg-[#FEF3C7] text-[#D97706] hover:bg-[#FDE68A] rounded-xl font-black text-xs uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1"
               >
-                <Plus size={14} /> Add Dept
+                <Plus size={14} /> Add Degree
               </button>
             )}
           </div>
@@ -605,12 +606,12 @@ export const ZoneManagementPage: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Add/Edit Dept Form inline */}
+              {/* Add/Edit Degree Form inline */}
               {deptForm.isOpen && (
                 <div className="p-3 bg-[#FCF8FA] border border-[#FEF3C7] rounded-xl flex gap-2 items-center animate-in slide-in-from-top-2 duration-200">
                   <input
                     type="text"
-                    placeholder="Department Name (e.g. Mechanical Engineering)"
+                    placeholder="Degree Name (e.g. B.E.)"
                     value={deptForm.name}
                     onChange={(e) => setDeptForm((prev) => ({ ...prev, name: e.target.value }))}
                     className="flex-1 h-9 px-2 bg-white border border-[#E5E7EB] rounded-lg text-xs font-bold"
@@ -636,12 +637,12 @@ export const ZoneManagementPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Add/Edit Program Form inline */}
+              {/* Add/Edit Department Form inline */}
               {progForm.isOpen && (
                 <div className="p-3 bg-[#FCF8FA] border border-[#FEF3C7] rounded-xl flex flex-col sm:flex-row gap-2 items-center animate-in slide-in-from-top-2 duration-200">
                   <input
                     type="text"
-                    placeholder="Degree/Program Name (e.g. B.E. Mechanical Engineering)"
+                    placeholder="Department Name (e.g. Computer Science and Engineering)"
                     value={progForm.name}
                     onChange={(e) => setProgForm((prev) => ({ ...prev, name: e.target.value }))}
                     className="flex-1 h-9 px-2 bg-white border border-[#E5E7EB] rounded-lg text-xs font-bold w-full"
@@ -676,81 +677,91 @@ export const ZoneManagementPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Departments grid list */}
+              {/* Degrees grid list */}
               <div className="space-y-3">
-                {!activeCollege.departments || activeCollege.departments.length === 0 ? (
-                  <p className="text-xs text-gray-500 italic py-4">No departments configured yet.</p>
+                {!activeCollege.degrees || activeCollege.degrees.length === 0 ? (
+                  <p className="text-xs text-gray-500 italic py-4">No degrees configured yet.</p>
                 ) : (
-                  activeCollege.departments.map((dept: any) => (
-                    <div key={dept.id} className="border border-[#E5E7EB] rounded-xl p-4 bg-[#FCF8FA] space-y-3">
-                      <div className="flex justify-between items-center border-b pb-2 border-dashed border-[#E5E7EB]">
-                        <span className="text-xs font-extrabold text-[#111827] flex items-center gap-1.5">
-                          <BookOpen size={13} className="text-[#D4AF37]" /> {dept.name}
-                        </span>
-                        <div className="flex gap-1 items-center">
-                          <button
-                            onClick={() => setProgForm({ isOpen: true, mode: 'add', id: dept.id, name: '', durationYears: 4 })}
-                            className="p-1 hover:bg-gray-200 text-[#D4AF37] rounded cursor-pointer"
-                            title="Add Program"
+                  activeCollege.degrees.map((deg: any) => {
+                    const isDegExpanded = expandedDegrees[deg.id] ?? true
+                    return (
+                      <div key={deg.id} className="border border-[#E5E7EB] rounded-xl p-4 bg-[#FCF8FA] space-y-3">
+                        <div className="flex justify-between items-center border-b pb-2 border-dashed border-[#E5E7EB]">
+                          <span
+                            onClick={() => setExpandedDegrees(prev => ({ ...prev, [deg.id]: !isDegExpanded }))}
+                            className="text-xs font-extrabold text-[#111827] flex items-center gap-1.5 cursor-pointer hover:text-[#D4AF37]"
                           >
-                            <Plus size={13} />
-                          </button>
-                          <button
-                            onClick={() => setDeptForm({ isOpen: true, mode: 'edit', id: dept.id, name: dept.name })}
-                            className="p-1 hover:bg-gray-200 text-gray-500 rounded cursor-pointer"
-                            title="Rename Department"
-                          >
-                            <Edit2 size={13} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (window.confirm(`Delete department "${dept.name}"?`)) {
-                                deleteDeptMutation.mutate(dept.id)
-                              }
-                            }}
-                            className="p-1 hover:bg-red-50 text-red-600 rounded cursor-pointer"
-                            title="Delete Department"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                            <BookOpen size={13} className="text-[#D4AF37]" /> {deg.name}
+                          </span>
+                          <div className="flex gap-1 items-center">
+                            <button
+                              onClick={() => setProgForm({ isOpen: true, mode: 'add', id: deg.id, name: '', durationYears: 4 })}
+                              className="p-1 hover:bg-gray-200 text-[#D4AF37] rounded cursor-pointer"
+                              title="Add Department"
+                            >
+                              <Plus size={13} />
+                            </button>
+                            <button
+                              onClick={() => setDeptForm({ isOpen: true, mode: 'edit', id: deg.id, name: deg.name })}
+                              className="p-1 hover:bg-gray-200 text-gray-500 rounded cursor-pointer"
+                              title="Rename Degree"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Delete Degree "${deg.name}"?\n\nThis will remove all departments under this degree.`)) {
+                                  deleteDeptMutation.mutate(deg.id)
+                                }
+                              }}
+                              className="p-1 hover:bg-red-50 text-red-600 rounded cursor-pointer"
+                              title="Delete Degree"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Programs inside Department */}
-                      <div className="pl-4 space-y-1.5">
-                        {!dept.programs || dept.programs.length === 0 ? (
-                          <span className="text-[10px] text-gray-400 italic">No degrees or programs added yet.</span>
-                        ) : (
-                          dept.programs.map((prog: any) => (
-                            <div key={prog.id} className="flex justify-between items-center bg-white border border-[#E5E7EB] px-3 py-1.5 rounded-lg text-xs">
-                              <span className="font-semibold text-gray-700 flex items-center gap-1">
-                                <GraduationCap size={13} className="text-gray-400" />
-                                {prog.name} ({prog.durationYears} Years)
-                              </span>
-                              <div className="flex gap-1">
-                                <button
-                                  onClick={() => setProgForm({ isOpen: true, mode: 'edit', id: prog.id, name: prog.name, durationYears: prog.durationYears })}
-                                  className="p-1 hover:bg-gray-100 text-gray-500 rounded cursor-pointer"
-                                >
-                                  <Edit2 size={11} />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    if (window.confirm(`Delete program "${prog.name}"?`)) {
-                                      deleteProgMutation.mutate(prog.id)
-                                    }
-                                  }}
-                                  className="p-1 hover:bg-red-50 text-red-600 rounded cursor-pointer"
-                                >
-                                  <Trash2 size={11} />
-                                </button>
-                              </div>
-                            </div>
-                          ))
+                        {/* Departments inside Degree */}
+                        {isDegExpanded && (
+                          <div className="pl-4 space-y-1.5">
+                            {!deg.departments || deg.departments.length === 0 ? (
+                              <span className="text-[10px] text-gray-400 italic">No departments added under this degree yet.</span>
+                            ) : (
+                              deg.departments.map((dept: any) => (
+                                <div key={dept.id} className="flex justify-between items-center bg-white border border-[#E5E7EB] px-3 py-1.5 rounded-lg text-xs">
+                                  <span className="font-semibold text-gray-700 flex items-center gap-1">
+                                    <GraduationCap size={13} className="text-gray-400" />
+                                    {dept.name} ({dept.durationYears} Years)
+                                  </span>
+                                  <div className="flex gap-1">
+                                    <button
+                                      onClick={() => setProgForm({ isOpen: true, mode: 'edit', id: dept.id, name: dept.name, durationYears: dept.durationYears })}
+                                      className="p-1 hover:bg-gray-100 text-gray-500 rounded cursor-pointer"
+                                      title="Rename Department"
+                                    >
+                                      <Edit2 size={11} />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        if (window.confirm(`Delete department "${dept.name}"?`)) {
+                                          deleteProgMutation.mutate(dept.id)
+                                        }
+                                      }}
+                                      className="p-1 hover:bg-red-50 text-red-600 rounded cursor-pointer"
+                                      title="Delete Department"
+                                    >
+                                      <Trash2 size={11} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
                         )}
                       </div>
-                    </div>
-                  ))
+                    )
+                  })
                 )}
               </div>
 
@@ -763,14 +774,14 @@ export const ZoneManagementPage: React.FC = () => {
                   <div className="font-extrabold text-[#111827] flex items-center gap-1">
                     <Layers size={13} className="text-[#D4AF37]" /> {activeCollege.name}
                   </div>
-                  {activeCollege.departments?.map((dept: any) => (
-                    <div key={dept.id} className="pl-4 border-l border-gray-300">
+                  {activeCollege.degrees?.map((deg: any) => (
+                    <div key={deg.id} className="pl-4 border-l border-gray-300">
                       <div className="text-gray-900 font-bold flex items-center gap-1">
-                        <ChevronRight size={12} className="text-gray-400" /> {dept.name}
+                        <ChevronRight size={12} className="text-gray-400" /> {deg.name}
                       </div>
-                      {dept.programs?.map((prog: any) => (
-                        <div key={prog.id} className="pl-6 text-gray-500 font-medium flex items-center gap-1">
-                          • {prog.name} ({prog.durationYears} Years)
+                      {deg.departments?.map((dept: any) => (
+                        <div key={dept.id} className="pl-6 text-gray-500 font-medium flex items-center gap-1">
+                          • {dept.name} ({dept.durationYears} Years)
                         </div>
                       ))}
                     </div>

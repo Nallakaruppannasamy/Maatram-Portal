@@ -293,10 +293,10 @@ export const OrganizationHierarchyPage: React.FC = () => {
                                     {col.studentCount} Scholars ({col.activeStudentCount} Active)
                                   </span>
                                   <span className="flex items-center gap-1 bg-gray-50 px-2.5 py-1 rounded border border-gray-200">
-                                    {col.departmentCount} Departments
+                                    {col.departmentCount} Degrees
                                   </span>
                                   <span className="flex items-center gap-1 bg-gray-50 px-2.5 py-1 rounded border border-gray-200">
-                                    {col.programCount} Programs
+                                    {col.programCount} Departments
                                   </span>
                                 </div>
                               </div>
@@ -308,7 +308,7 @@ export const OrganizationHierarchyPage: React.FC = () => {
                                     <div key={dept.id} className="text-xs">
                                       <div className="flex items-center gap-1.5 font-bold text-gray-800">
                                         <Layers className="w-3.5 h-3.5 text-indigo-600" />
-                                        {dept.name}
+                                        Degree: {dept.name}
                                         <span className="text-[10px] text-gray-400 font-normal">
                                           ({dept.studentCount} students)
                                         </span>
@@ -327,7 +327,7 @@ export const OrganizationHierarchyPage: React.FC = () => {
                                         </div>
                                       ) : (
                                         <div className="pl-5 text-[10px] text-gray-400 italic mt-0.5">
-                                          No programs/degrees registered.
+                                          No departments registered.
                                         </div>
                                       )}
                                     </div>

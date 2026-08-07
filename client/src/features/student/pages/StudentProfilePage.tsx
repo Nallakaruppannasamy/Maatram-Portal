@@ -875,10 +875,10 @@ export const StudentProfilePage = () => {
                 </select>
               </div>
 
-              {/* Department Dropdown */}
+              {/* Department Dropdown (labeled Degree) */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider">
-                  Department
+                  Degree
                 </label>
                 <select
                   value={departmentId}
@@ -890,17 +890,17 @@ export const StudentProfilePage = () => {
                   disabled={!collegeId}
                   required
                 >
-                  <option value="">Select Department</option>
+                  <option value="">Select Degree</option>
                   {filteredDepartments.map((d: any) => (
                     <option key={d.id} value={d.id}>{d.name}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Program Dropdown */}
+              {/* Program Dropdown (labeled Department) */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider">
-                  Degree / Program
+                  Department
                 </label>
                 <select
                   value={programId}
@@ -909,7 +909,7 @@ export const StudentProfilePage = () => {
                   disabled={!departmentId}
                   required
                 >
-                  <option value="">Select Program / Degree</option>
+                  <option value="">Select Department</option>
                   {filteredPrograms.map((p: any) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}

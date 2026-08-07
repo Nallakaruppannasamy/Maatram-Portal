@@ -162,7 +162,7 @@ export const AssignedCollegesPage: React.FC = () => {
           <span className="text-2xl font-black text-[#111827]">{totalColleges}</span>
         </Card>
         <Card className="p-4 bg-white border border-[#E5E7EB] rounded-xl">
-          <span className="text-[#76777d] block text-[10px] uppercase font-bold">Departments</span>
+          <span className="text-[#76777d] block text-[10px] uppercase font-bold">Degrees</span>
           <span className="text-2xl font-black text-[#111827]">{totalDepartments}</span>
         </Card>
         <Card className="p-4 bg-white border border-[#E5E7EB] rounded-xl">
@@ -254,11 +254,11 @@ export const AssignedCollegesPage: React.FC = () => {
                     <span className="font-bold text-emerald-700">{col.studentCount}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-gray-500 block">Departments:</span>
+                    <span className="text-[10px] text-gray-500 block">Degrees:</span>
                     <span className="font-bold text-gray-900">{col.departmentCount}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-gray-500 block">Programs/Degrees:</span>
+                    <span className="text-[10px] text-gray-500 block">Departments:</span>
                     <span className="font-bold text-gray-900">{col.programCount}</span>
                   </div>
                 </div>
@@ -276,7 +276,7 @@ export const AssignedCollegesPage: React.FC = () => {
               <div className="space-y-3.5 pt-1 text-xs">
                 {col.departmentList?.length > 0 && (
                   <div>
-                    <span className="text-[#76777d] block font-bold text-[10px] uppercase mb-1.5">Departments</span>
+                    <span className="text-[#76777d] block font-bold text-[10px] uppercase mb-1.5">Degrees</span>
                     <div className="flex flex-wrap gap-1">
                       {col.departmentList.map((deptName: string, idx: number) => (
                         <span
@@ -292,7 +292,7 @@ export const AssignedCollegesPage: React.FC = () => {
 
                 {col.programList?.length > 0 && (
                   <div>
-                    <span className="text-[#76777d] block font-bold text-[10px] uppercase mb-1.5">Degrees / Programs</span>
+                    <span className="text-[#76777d] block font-bold text-[10px] uppercase mb-1.5">Departments</span>
                     <div className="flex flex-wrap gap-1">
                       {col.programList.map((progName: string, idx: number) => (
                         <span
