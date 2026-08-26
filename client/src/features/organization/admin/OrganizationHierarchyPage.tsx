@@ -93,11 +93,24 @@ export const OrganizationHierarchyPage: React.FC = () => {
   const filteredZones = zonesList.filter((z: any) => {
     if (!searchTerm) return true
     const q = searchTerm.toLowerCase()
-    return (
-      z.name.toLowerCase().includes(q) ||
-      z.code.toLowerCase().includes(q) ||
-      z.colleges.some((col: any) => col.name.toLowerCase().includes(q))
-    )
+    const nameMatch = z.name ? String(z.name).toLowerCase().includes(q) : false
+    const codeMatch = z.code ? String(z.code).toLowerCase().includes(q) : false
+    const regionMatch = z.regionLabel ? String(z.regionLabel).toLowerCase().includes(q) : false
+    const inchargeMatch = z.inchargeName ? String(z.inchargeName).toLowerCase().includes(q) : false
+    const collegeMatch = Array.isArray(z.colleges)
+      ? z.colleges.some((col: any) =>
+          (col.name && String(col.name).toLowerCase().includes(q)) ||
+          (col.code && String(col.code).toLowerCase().includes(q)) ||
+          (col.location && String(col.location).toLowerCase().includes(q)) ||
+          (Array.isArray(col.departments) &&
+            col.departments.some((dept: any) =>
+              (dept.name && String(dept.name).toLowerCase().includes(q)) ||
+              (Array.isArray(dept.programs) &&
+                dept.programs.some((prog: any) => prog.name && String(prog.name).toLowerCase().includes(q)))
+            ))
+        )
+      : false
+    return nameMatch || codeMatch || regionMatch || inchargeMatch || collegeMatch
   })
 
   const totalActiveZones = zonesList.length
@@ -302,7 +315,7 @@ export const OrganizationHierarchyPage: React.FC = () => {
                               </div>
 
                               {/* Department & Program Subsection */}
-                              {col.departments.length > 0 && (
+                              {Array.isArray(col.departments) && col.departments.length > 0 && (
                                 <div className="pl-4 border-l border-gray-200 space-y-3.5">
                                   {col.departments.map((dept: any) => (
                                     <div key={dept.id} className="text-xs">
@@ -310,18 +323,18 @@ export const OrganizationHierarchyPage: React.FC = () => {
                                         <Layers className="w-3.5 h-3.5 text-indigo-600" />
                                         Degree: {dept.name}
                                         <span className="text-[10px] text-gray-400 font-normal">
-                                          ({dept.studentCount} students)
+                                          ({dept.studentCount || 0} students)
                                         </span>
                                       </div>
                                       
-                                      {dept.programs.length > 0 ? (
+                                      {Array.isArray(dept.programs) && dept.programs.length > 0 ? (
                                         <div className="flex flex-wrap gap-1.5 mt-1.5 pl-5">
                                           {dept.programs.map((prog: any) => (
                                             <span
                                               key={prog.id}
                                               className="px-2 py-0.5 bg-slate-50 border border-slate-200 text-gray-600 rounded text-[10px] font-medium"
                                             >
-                                              {prog.name} ({prog.studentCount})
+                                              {prog.name} ({prog.studentCount || 0})
                                             </span>
                                           ))}
                                         </div>

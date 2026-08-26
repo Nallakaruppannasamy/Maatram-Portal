@@ -11,16 +11,20 @@ import { notificationService } from '@/utils/notification';
 import { env } from '@/config/env';
 
 /**
- * Parses date of birth supporting multiple formats (YYYY-MM-DD, DD/MM/YYYY, or Excel serial numbers).
+ * Parses date of birth supporting multiple formats (YYYY-MM-DD, DD/MM/YYYY, or Excel serial numbers)
+ * in a timezone-independent UTC manner.
  */
 export function parseExcelDate(val: any): Date | null {
   if (!val) return null;
   if (val instanceof Date) {
-    return isNaN(val.getTime()) ? null : val;
+    if (isNaN(val.getTime())) return null;
+    return new Date(Date.UTC(val.getUTCFullYear(), val.getUTCMonth(), val.getUTCDate()));
   }
   if (typeof val === 'number') {
-    // Excel serial date number
-    return new Date(Math.round((val - 25569) * 86400 * 1000));
+    // Excel serial date number (base date: Dec 30, 1899)
+    const utcDays = Math.floor(val - 25569);
+    const date = new Date(Date.UTC(1970, 0, 1 + utcDays));
+    return isNaN(date.getTime()) ? null : date;
   }
   const str = String(val).trim();
   if (!str) return null;
@@ -31,8 +35,8 @@ export function parseExcelDate(val: any): Date | null {
     const y = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10) - 1;
     const d = parseInt(parts[2], 10);
-    const date = new Date(y, m, d);
-    if (date.getFullYear() === y && date.getMonth() === m && date.getDate() === d) {
+    const date = new Date(Date.UTC(y, m, d));
+    if (date.getUTCFullYear() === y && date.getUTCMonth() === m && date.getUTCDate() === d) {
       return date;
     }
   }
@@ -43,23 +47,24 @@ export function parseExcelDate(val: any): Date | null {
     const d = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10) - 1;
     const y = parseInt(parts[2], 10);
-    const date = new Date(y, m, d);
-    if (date.getFullYear() === y && date.getMonth() === m && date.getDate() === d) {
+    const date = new Date(Date.UTC(y, m, d));
+    if (date.getUTCFullYear() === y && date.getUTCMonth() === m && date.getUTCDate() === d) {
       return date;
     }
   }
 
   const parsed = new Date(str);
-  return isNaN(parsed.getTime()) ? null : parsed;
+  if (isNaN(parsed.getTime())) return null;
+  return new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
 }
 
 /**
- * Formats a Date into dd/mm/yyyy string for temporary password.
+ * Formats a Date into dd/mm/yyyy string for temporary password using UTC date components.
  */
 export function formatDobAsPassword(date: Date): string {
-  const dd = String(date.getDate()).padStart(2, '0');
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const yyyy = date.getFullYear();
+  const dd = String(date.getUTCDate()).padStart(2, '0');
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const yyyy = date.getUTCFullYear();
   return `${dd}/${mm}/${yyyy}`;
 }
 import {

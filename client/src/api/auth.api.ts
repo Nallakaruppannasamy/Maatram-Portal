@@ -19,11 +19,12 @@ export const authApi = {
     return res.data
   },
 
-  refresh: async (refreshToken: string): Promise<ApiResponse<{ accessToken: string; newRefreshToken?: string }>> => {
-    const res = await apiInstance.post<ApiResponse<{ accessToken: string; newRefreshToken?: string }>>(
-      API_ROUTES.AUTH.REFRESH,
-      { refreshToken }
-    )
+  refresh: async (
+    refreshToken: string
+  ): Promise<ApiResponse<{ accessToken: string; refreshToken?: string; newRefreshToken?: string }>> => {
+    const res = await apiInstance.post<
+      ApiResponse<{ accessToken: string; refreshToken?: string; newRefreshToken?: string }>
+    >(API_ROUTES.AUTH.REFRESH, { refreshToken })
     return res.data
   },
 

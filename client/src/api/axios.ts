@@ -86,10 +86,11 @@ apiInstance.interceptors.response.use(
         )
 
         if (response.data?.success) {
-          const { accessToken, newRefreshToken } = response.data.data
+          const { accessToken, refreshToken: rotatedRefreshToken, newRefreshToken } = response.data.data
           setAccessToken(accessToken)
-          if (newRefreshToken) {
-            setRefreshToken(newRefreshToken)
+          const nextRefreshToken = rotatedRefreshToken || newRefreshToken
+          if (nextRefreshToken) {
+            setRefreshToken(nextRefreshToken)
           }
 
           if (originalRequest.headers) {
