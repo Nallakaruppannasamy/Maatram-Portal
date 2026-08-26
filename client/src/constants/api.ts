@@ -38,4 +38,9 @@ export const API_ROUTES = {
     BY_ID: (id: string) => `/volunteers/${id}`,
     STATUS: (id: string) => `/volunteers/${id}/status`,
   },
+  AUDIT_LOGS: {
+    BASE: '/audit-logs',
+    BY_ID: (id: string) => `/audit-logs/${id}`,
+    ACTIONS: '/audit-logs/actions',
+  },
 } as const

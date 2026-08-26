@@ -72,6 +72,7 @@ import userRouter from '@/modules/user/user.routes';
 import profileRouter from '@/modules/profile/profile.routes';
 import studentRouter from '@/modules/student/student.routes';
 import volunteerRouter from '@/modules/volunteer/volunteer.routes';
+import auditRouter from '@/modules/audit/audit.routes';
 
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/organizations', organizationRouter);
@@ -80,6 +81,7 @@ app.use('/api/v1/users', userRouter);
 app.use('/api/v1/profile', profileRouter);
 app.use('/api/v1/students', studentRouter);
 app.use('/api/v1/volunteers', volunteerRouter);
+app.use('/api/v1/audit-logs', auditRouter);
 
 // Serve uploads folder statically
 app.use('/uploads', express.static(uploadsDir));

@@ -6,6 +6,7 @@ export interface ApiResponse<T = any> {
   message?: string
   data?: T
   error?: ApiError
+  meta?: PaginationMeta
 }
 
 export interface PaginationMeta {
@@ -167,4 +168,51 @@ export interface PaginatedUsers {
     activeAccounts: number
   }
 }
+
+export interface AuditActor {
+  id: string
+  email: string | null
+  registerNumber: string | null
+  employeeId: string | null
+  role: string
+  zoneId: string | null
+  fullName: string
+  zoneName?: string | null
+}
+
+export interface AuditLog {
+  id: string
+  logCode: string
+  actorId: string
+  actorRole: 'admin' | 'zone' | 'student' | 'system' | string
+  action: string
+  targetEntityType: string
+  targetEntityId: string | null
+  targetLabel: string
+  details: string
+  ipAddress: string
+  userAgent: string | null
+  createdAt: string
+  actor: AuditActor
+  zone?: {
+    id: string
+    name: string
+    code: string
+  } | null
+}
+
+export interface AuditLogQueryParams {
+  page?: number
+  limit?: number
+  search?: string
+  action?: string
+  actorRole?: string
+  zoneId?: string
+  from?: string
+  to?: string
+  targetEntityType?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+}
+
 
