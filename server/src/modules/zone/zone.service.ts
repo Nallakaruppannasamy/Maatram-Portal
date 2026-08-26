@@ -249,6 +249,55 @@ export class ZoneService {
   }
 
   /**
+   * Helper to resolve the assigned zone ID for a user.
+   */
+  async getAssignedZoneIdForUser(userId: string): Promise<string | null> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { zoneId: true },
+    });
+
+    if (user?.zoneId) {
+      return user.zoneId;
+    }
+
+    const zone = await prisma.zone.findFirst({
+      where: { inchargeId: userId },
+      select: { id: true },
+    });
+
+    return zone?.id || null;
+  }
+
+  /**
+   * Retrieves colleges assigned to the authenticated user's zone.
+   */
+  async getMyColleges(userId: string): Promise<any[]> {
+    const zoneId = await this.getAssignedZoneIdForUser(userId);
+    if (!zoneId) {
+      return [];
+    }
+    return this.getZoneColleges(zoneId);
+  }
+
+  /**
+   * Exports colleges assigned to the authenticated user's zone.
+   */
+  async exportMyColleges(userId: string, format: string): Promise<Buffer | string> {
+    const zoneId = await this.getAssignedZoneIdForUser(userId);
+    if (!zoneId) {
+      if (format === 'xlsx') {
+        const worksheet = XLSX.utils.json_to_sheet([]);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Colleges');
+        return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+      }
+      return 'College Name,Code,Location,Departments,Programs,Total Students,Active Students,Verified Volunteer Hours\n';
+    }
+    return this.exportZoneColleges(zoneId, format);
+  }
+
+  /**
    * Retrieves detailed academic and volunteering counts for colleges assigned to a zone.
    */
   async getZoneColleges(zoneId: string): Promise<any[]> {

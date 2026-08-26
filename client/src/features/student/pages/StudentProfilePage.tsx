@@ -398,6 +398,10 @@ export const StudentProfilePage = () => {
       const res = await profileApi.uploadImage(file)
       if (res.success && res.data?.fileUrl) {
         setProfileImage(res.data.fileUrl)
+        queryClient.invalidateQueries({ queryKey: ['student-profile'] })
+        queryClient.invalidateQueries({ queryKey: ['profile'] })
+        queryClient.invalidateQueries({ queryKey: ['auth-user'] })
+        queryClient.invalidateQueries({ queryKey: ['me'] })
         notify.success('Profile picture uploaded successfully')
       } else {
         notify.error(res.message || 'Image upload failed')

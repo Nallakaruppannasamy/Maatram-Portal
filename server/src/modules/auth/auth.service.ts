@@ -73,6 +73,11 @@ export class AuthService {
       }
     }
 
+    const profileImage =
+      user.role === 'student'
+        ? user.student?.profileImage
+        : user.userProfile?.profileImage;
+
     return {
       id: user.id,
       email: user.email,
@@ -83,6 +88,8 @@ export class AuthService {
       mobile,
       zone,
       college,
+      profileImage: profileImage || null,
+      profilePhotoUrl: profileImage || null,
     };
   }
 

@@ -250,17 +250,11 @@ export const StudentProvisioningPage: React.FC = () => {
     setShowPasswords((prev) => ({ ...prev, [id]: !prev[id] }))
   }
 
-  const formatStatus = (status: string) => {
-    switch (status) {
-      case 'password_changed':
-      case 'Password Changed':
-        return { label: 'Password Changed', variant: 'approved' as const }
-      case 'activated':
-      case 'Activated':
-        return { label: 'Activated', variant: 'info' as const }
-      default:
-        return { label: 'Pending First Login', variant: 'pending' as const }
+  const formatLifecycleStatus = (isFirstLogin?: boolean, accountStatus?: string) => {
+    if (isFirstLogin === false || accountStatus === 'password_changed' || accountStatus === 'activated') {
+      return { label: 'Activated', variant: 'approved' as const }
     }
+    return { label: 'Pending First Login', variant: 'pending' as const }
   }
 
   const formatDate = (dateStr?: string) => {
@@ -497,8 +491,8 @@ export const StudentProvisioningPage: React.FC = () => {
                     const isVisible = !!showPasswords[student.id]
                     const userEmail = student.user?.email || 'N/A'
                     const tempPassword = student.user?.tempPassword || 'Set by user'
-                    const rawStatus = student.user?.accountStatus || student.accountStatus || 'pending_first_login'
-                    const statusInfo = formatStatus(rawStatus)
+                    const isFirstLogin = student.user?.isFirstLogin ?? student.isFirstLogin ?? (student.accountStatus === 'pending_first_login')
+                    const statusInfo = formatLifecycleStatus(isFirstLogin, student.accountStatus || student.user?.accountStatus)
                     const isUserActive = student.user?.isActive !== false
                     const targetUserId = student.userId || student.user?.id
 

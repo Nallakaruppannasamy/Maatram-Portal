@@ -61,7 +61,7 @@ export class ProfileController {
   });
 
   /**
-   * Upload profile image and return URL path
+   * Upload profile image, persist to database, and return updated profile data.
    */
   uploadImage = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     if (!req.file) {
@@ -71,10 +71,17 @@ export class ProfileController {
     const uploadResult = await uploadToCloudinary(req.file.buffer, 'profiles');
     const fileUrl = uploadResult.secure_url;
 
+    // Automatically persist to database for active user
+    const updatedProfile = await profileService.uploadProfileImage(
+      req.user!.userId,
+      req.user!.role,
+      fileUrl
+    );
+
     ResponseFormatter.success(
       res,
-      { fileUrl },
-      'Profile image uploaded successfully'
+      { fileUrl, profile: updatedProfile },
+      'Profile image uploaded and updated successfully'
     );
   });
 

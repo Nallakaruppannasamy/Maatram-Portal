@@ -4,6 +4,7 @@
  */
 
 import { ApiError } from '@/common/exceptions/apiError';
+import { prisma } from '@/config/database';
 import { logger } from '@/config/logger';
 import { profileRepository } from './profile.repository';
 import { UpdateProfileDTO } from './profile.types';
@@ -210,6 +211,29 @@ export class ProfileService {
   async deleteCertification(userId: string, role: string, id: string) {
     const studentId = await this.getStudentIdForUser(userId, role);
     return profileRepository.deleteCertification(studentId, id);
+  }
+
+  /**
+   * Automatically persists an uploaded profile image URL and returns the updated profile.
+   */
+  async uploadProfileImage(userId: string, role: string, fileUrl: string) {
+    if (role === 'student') {
+      await prisma.student.updateMany({
+        where: { userId },
+        data: { profileImage: fileUrl },
+      });
+    } else {
+      await prisma.userProfile.upsert({
+        where: { userId },
+        update: { profileImage: fileUrl },
+        create: {
+          userId,
+          fullName: 'System User',
+          profileImage: fileUrl,
+        },
+      });
+    }
+    return this.getProfile(userId, role);
   }
 }
 

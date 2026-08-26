@@ -34,6 +34,10 @@ export const Avatar: React.FC<AvatarProps> = ({
   const [hasError, setHasError] = useState(false)
   const resolvedUrl = src ? getThumbnailUrl(src, 96, 96) : ''
 
+  React.useEffect(() => {
+    setHasError(false)
+  }, [src])
+
   const getInitials = (n?: string): string => {
     if (!n) return ''
     const parts = n.trim().split(/\s+/)

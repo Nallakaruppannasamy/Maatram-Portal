@@ -419,10 +419,31 @@ export class StudentService {
       studentRepository.countStudents(options),
     ]);
 
-    const items = students.map((student) => ({
-      ...student,
-      fullName: this.computeFullName(student.firstName, student.middleName, student.lastName),
-    }));
+    const items = students.map((student) => {
+      const safeUser = student.user
+        ? {
+            id: student.user.id,
+            email: student.user.email,
+            registerNumber: student.user.registerNumber,
+            employeeId: student.user.employeeId,
+            role: student.user.role,
+            isFirstLogin: student.user.isFirstLogin,
+            isActive: student.user.isActive,
+            tempPassword: student.user.tempPassword,
+            organizationId: student.user.organizationId,
+            zoneId: student.user.zoneId,
+            createdAt: student.user.createdAt,
+            updatedAt: student.user.updatedAt,
+          }
+        : undefined;
+
+      return {
+        ...student,
+        user: safeUser,
+        isFirstLogin: student.user?.isFirstLogin ?? (student.accountStatus === 'pending_first_login'),
+        fullName: this.computeFullName(student.firstName, student.middleName, student.lastName),
+      };
+    });
 
     return {
       items,

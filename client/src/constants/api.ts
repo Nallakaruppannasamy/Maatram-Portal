@@ -14,6 +14,8 @@ export const API_ROUTES = {
   },
   ZONES: {
     BASE: '/zones',
+    MY_COLLEGES: '/zones/my/colleges',
+    MY_COLLEGES_EXPORT: '/zones/my/colleges/export',
     BY_ID: (id: string) => `/zones/${id}`,
   },
   USERS: {

@@ -130,6 +130,7 @@ export interface Student {
   status?: string
   profileImage?: string | null
   isSpoc?: boolean
+  isFirstLogin?: boolean
   createdAt?: string
   updatedAt?: string
 }

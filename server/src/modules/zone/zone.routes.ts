@@ -28,6 +28,8 @@ router.use(requireAuth);
 router.get('/import/template', requireRole('admin'), zoneController.downloadTemplate);
 
 // Read-only endpoints accessible to both admins and zone incharges
+router.get('/my/colleges', requireRole('admin', 'zone'), zoneController.getMyColleges);
+router.get('/my/colleges/export', requireRole('admin', 'zone'), zoneController.exportMyColleges);
 router.get('/', requireRole('admin', 'zone'), zoneController.list);
 router.get('/:zoneId/colleges', requireRole('admin', 'zone'), zoneController.getZoneColleges);
 router.get('/:zoneId/colleges/export', requireRole('admin', 'zone'), zoneController.exportZoneColleges);

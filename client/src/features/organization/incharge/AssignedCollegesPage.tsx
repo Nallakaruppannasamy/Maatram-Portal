@@ -33,11 +33,12 @@ export const AssignedCollegesPage: React.FC = () => {
     }
   }, [user, zones, selectedZoneId])
 
-  // Fetch colleges assigned to the selected zone
+  // Fetch colleges assigned to the selected zone or authenticated zone incharge
+  const isZoneRole = user?.role === 'zone'
   const { data: collegesRes, isLoading } = useQuery({
-    queryKey: ['zone-colleges', selectedZoneId],
-    queryFn: () => zoneApi.getColleges(selectedZoneId),
-    enabled: !!selectedZoneId,
+    queryKey: ['zone-colleges', isZoneRole ? 'my' : selectedZoneId],
+    queryFn: () => (isZoneRole ? zoneApi.getMyColleges() : zoneApi.getColleges(selectedZoneId)),
+    enabled: isZoneRole || !!selectedZoneId,
   })
 
   const colleges = collegesRes?.data || []
@@ -88,16 +89,18 @@ export const AssignedCollegesPage: React.FC = () => {
 
   // Export
   const handleExport = async (format: 'csv' | 'xlsx') => {
-    if (!selectedZoneId) return notify.error('No zone selected.')
+    if (!isZoneRole && !selectedZoneId) return notify.error('No zone selected.')
     if (sortedColleges.length === 0) return notify.info('No colleges found to export.')
 
     try {
-      const blob = await zoneApi.exportColleges(selectedZoneId, { format })
+      const blob = isZoneRole
+        ? await zoneApi.exportMyColleges({ format })
+        : await zoneApi.exportColleges(selectedZoneId, { format })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       const activeZone = zones.find((z) => z.id === selectedZoneId) || { name: 'Zone' }
-      const zoneNameSanitized = activeZone.name.replace(/\s+/g, '_')
+      const zoneNameSanitized = (user?.zoneName || activeZone.name || 'Zone').replace(/\s+/g, '_')
       a.download = `${zoneNameSanitized}_Assigned_Colleges_${new Date().toISOString().split('T')[0]}.${format}`
       document.body.appendChild(a)
       a.click()
@@ -221,7 +224,9 @@ export const AssignedCollegesPage: React.FC = () => {
       {/* Cards List */}
       {sortedColleges.length === 0 ? (
         <Card className="text-center py-12 text-xs text-gray-500">
-          No colleges currently configured or matched under this zone.
+          {colleges.length === 0
+            ? 'No colleges assigned to your zone.'
+            : 'No matching colleges found for your search criteria.'}
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

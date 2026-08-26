@@ -7,6 +7,7 @@ import { Request, Response } from 'express';
 import { zoneService } from './zone.service';
 import { ResponseFormatter } from '@/common/responses/formatter';
 import { asyncHandler } from '@/common/responses/asyncHandler';
+import { ApiError } from '@/common/exceptions/apiError';
 import { AuditActorRole } from '@prisma/client';
 
 export class ZoneController {
@@ -63,10 +64,84 @@ export class ZoneController {
   });
 
   /**
+   * Retrieves colleges assigned to the authenticated user's zone.
+   */
+  getMyColleges = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const userId = req.user!.userId;
+    const role = req.user!.role;
+
+    if (role === 'admin') {
+      const zoneId = req.query.zoneId as string;
+      if (zoneId) {
+        const colleges = await zoneService.getZoneColleges(zoneId);
+        ResponseFormatter.success(res, colleges, 'Zone colleges retrieved successfully');
+        return;
+      }
+      // If admin and no zoneId passed, return first zone's colleges or all colleges
+      const zones = await zoneService.listZones({});
+      if (zones.data && zones.data.length > 0) {
+        const colleges = await zoneService.getZoneColleges(zones.data[0].id);
+        ResponseFormatter.success(res, colleges, 'Zone colleges retrieved successfully');
+        return;
+      }
+      ResponseFormatter.success(res, [], 'No colleges found');
+      return;
+    }
+
+    const colleges = await zoneService.getMyColleges(userId);
+    ResponseFormatter.success(res, colleges, 'Assigned colleges retrieved successfully');
+  });
+
+  /**
+   * Exports colleges assigned to the authenticated user's zone.
+   */
+  exportMyColleges = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const userId = req.user!.userId;
+    const role = req.user!.role;
+    const format = ((req.query.format as string) || 'csv').toLowerCase();
+
+    let bufferOrCsv: Buffer | string;
+    if (role === 'admin' && req.query.zoneId) {
+      bufferOrCsv = await zoneService.exportZoneColleges(req.query.zoneId as string, format);
+    } else {
+      bufferOrCsv = await zoneService.exportMyColleges(userId, format);
+    }
+
+    if (format === 'xlsx') {
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=assigned-colleges-${Date.now()}.xlsx`
+      );
+      res.status(200).send(bufferOrCsv);
+    } else {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=assigned-colleges-${Date.now()}.csv`
+      );
+      res.status(200).send(bufferOrCsv);
+    }
+  });
+
+  /**
    * Retrieves colleges and stats assigned to a specific zone.
    */
   getZoneColleges = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { zoneId } = req.params;
+    const role = req.user!.role;
+    const userId = req.user!.userId;
+
+    if (role === 'zone') {
+      const assignedZoneId = await zoneService.getAssignedZoneIdForUser(userId);
+      if (assignedZoneId !== zoneId) {
+        throw ApiError.forbidden('Access denied: You can only view colleges in your assigned zone');
+      }
+    }
+
     const colleges = await zoneService.getZoneColleges(zoneId);
     ResponseFormatter.success(res, colleges, 'Zone colleges retrieved successfully');
   });
@@ -76,6 +151,16 @@ export class ZoneController {
    */
   exportZoneColleges = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { zoneId } = req.params;
+    const role = req.user!.role;
+    const userId = req.user!.userId;
+
+    if (role === 'zone') {
+      const assignedZoneId = await zoneService.getAssignedZoneIdForUser(userId);
+      if (assignedZoneId !== zoneId) {
+        throw ApiError.forbidden('Access denied: You can only export colleges in your assigned zone');
+      }
+    }
+
     const format = ((req.query.format as string) || 'csv').toLowerCase();
 
     if (format === 'xlsx') {

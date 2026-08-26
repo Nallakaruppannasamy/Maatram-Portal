@@ -23,6 +23,8 @@ export interface UserAuthProfile {
     name: string;
     code: string;
   } | null;
+  profileImage?: string | null;
+  profilePhotoUrl?: string | null;
 }
 
 export interface LoginResponseData {

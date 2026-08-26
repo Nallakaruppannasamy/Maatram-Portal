@@ -109,7 +109,10 @@ export const ZoneProfilePage = () => {
       const res = await profileApi.uploadImage(file)
       if (res.success && res.data?.fileUrl) {
         setProfileImage(res.data.fileUrl)
-        notify.success('Profile image uploaded! Click "Save Profile Updates" to apply.')
+        queryClient.invalidateQueries({ queryKey: ['profile'] })
+        queryClient.invalidateQueries({ queryKey: ['auth-user'] })
+        queryClient.invalidateQueries({ queryKey: ['me'] })
+        notify.success('Profile picture updated successfully!')
       } else {
         notify.error('Failed to upload image.')
       }
