@@ -12,6 +12,7 @@ export interface AuditLogQueryParams {
   action?: string;
   actorRole?: AuditActorRole | string;
   zoneId?: string;
+  collegeId?: string;
   from?: string;
   to?: string;
   targetEntityType?: string;
@@ -52,6 +53,14 @@ export interface SanitizedAuditLog {
   } | null;
 }
 
+export interface AuditLogStats {
+  totalLogs: number;
+  adminEvents: number;
+  zoneEvents: number;
+  studentEvents: number;
+  systemEvents?: number;
+}
+
 export interface PaginatedAuditLogs {
   items: SanitizedAuditLog[];
   meta: {
@@ -61,5 +70,6 @@ export interface PaginatedAuditLogs {
     totalPages: number;
     hasNextPage: boolean;
     hasPreviousPage: boolean;
+    stats?: AuditLogStats;
   };
 }

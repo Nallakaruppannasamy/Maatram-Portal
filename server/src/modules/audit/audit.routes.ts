@@ -10,9 +10,9 @@ import { requireRole } from '@/common/middleware/rbac';
 
 const router = Router();
 
-// Strict RBAC: Accessible ONLY to Super Admin ('admin')
+// Strict RBAC: Accessible to Super Admin ('admin') and Zone Incharge ('zone')
 router.use(requireAuth);
-router.use(requireRole('admin'));
+router.use(requireRole('admin', 'zone'));
 
 router.get('/', auditController.list);
 router.get('/actions', auditController.getActions);

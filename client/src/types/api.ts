@@ -16,6 +16,7 @@ export interface PaginationMeta {
   totalPages: number
   hasNextPage?: boolean
   hasPrevPage?: boolean
+  stats?: AuditLogStats
 }
 
 export interface PaginatedResponse<T> {
@@ -202,6 +203,14 @@ export interface AuditLog {
   } | null
 }
 
+export interface AuditLogStats {
+  totalLogs: number
+  adminEvents: number
+  zoneEvents: number
+  studentEvents: number
+  systemEvents?: number
+}
+
 export interface AuditLogQueryParams {
   page?: number
   limit?: number
@@ -209,6 +218,7 @@ export interface AuditLogQueryParams {
   action?: string
   actorRole?: string
   zoneId?: string
+  collegeId?: string
   from?: string
   to?: string
   targetEntityType?: string

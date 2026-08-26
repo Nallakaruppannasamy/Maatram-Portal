@@ -13,7 +13,7 @@ export class AuditController {
    */
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await auditService.listAuditLogs(req.query);
+      const result = await auditService.listAuditLogs(req.query, req.user);
       ResponseFormatter.success(
         res,
         result.items,
@@ -47,7 +47,7 @@ export class AuditController {
    */
   async getOne(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const log = await auditService.getAuditLogById(req.params.id);
+      const log = await auditService.getAuditLogById(req.params.id, req.user);
       ResponseFormatter.success(
         res,
         log,

@@ -5,6 +5,8 @@
 
 import { Request, Response } from 'express';
 import { studentService } from './student.service';
+import { zoneService } from '../zone/zone.service';
+import { prisma } from '@/config/database';
 import { ApiError } from '@/common/exceptions/apiError';
 import { ResponseFormatter } from '@/common/responses/formatter';
 import { asyncHandler } from '@/common/responses/asyncHandler';
@@ -106,9 +108,23 @@ export class StudentController {
    */
   listStudents = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const queryParams = { ...req.query };
-    if (req.user?.role === 'zone' && req.user.zoneId) {
-      queryParams.zoneId = req.user.zoneId;
+
+    if (req.user?.role === 'zone') {
+      const assignedZoneId = await zoneService.getAssignedZoneIdForUser(req.user.userId);
+      queryParams.zoneId = assignedZoneId || req.user.zoneId;
+
+      // If a collegeId was specified, verify that the college belongs to this zone!
+      if (queryParams.collegeId && typeof queryParams.collegeId === 'string' && queryParams.collegeId !== 'All') {
+        const college = await prisma.college.findUnique({
+          where: { id: queryParams.collegeId },
+          select: { zoneId: true },
+        });
+        if (!college || college.zoneId !== queryParams.zoneId) {
+          throw ApiError.forbidden('Access denied: You can only view students in colleges assigned to your zone');
+        }
+      }
     }
+
     const result = await studentService.listStudents(queryParams, req.user?.role);
 
     ResponseFormatter.success(res, result.items, 'Students listed successfully', 200, result.meta);
@@ -180,8 +196,20 @@ export class StudentController {
   exportStudents = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const format = ((req.query.format as string) || 'csv').toLowerCase();
     const queryParams = { ...req.query };
-    if (req.user?.role === 'zone' && req.user.zoneId) {
-      queryParams.zoneId = req.user.zoneId;
+
+    if (req.user?.role === 'zone') {
+      const assignedZoneId = await zoneService.getAssignedZoneIdForUser(req.user.userId);
+      queryParams.zoneId = assignedZoneId || req.user.zoneId;
+
+      if (queryParams.collegeId && typeof queryParams.collegeId === 'string' && queryParams.collegeId !== 'All') {
+        const college = await prisma.college.findUnique({
+          where: { id: queryParams.collegeId },
+          select: { zoneId: true },
+        });
+        if (!college || college.zoneId !== queryParams.zoneId) {
+          throw ApiError.forbidden('Access denied: You can only export students in colleges assigned to your zone');
+        }
+      }
     }
 
     if (format === 'xlsx') {

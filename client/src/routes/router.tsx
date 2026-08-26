@@ -28,6 +28,7 @@ import { ZoneStudentManagementPage } from '@/features/organization/incharge/Zone
 import { AssignedCollegesPage } from '@/features/organization/incharge/AssignedCollegesPage'
 import { ZoneAnalyticsPage } from '@/features/analytics/pages/ZoneAnalyticsPage'
 import { ZoneProfilePage } from '@/features/organization/incharge/ZoneProfilePage'
+import { ZoneAuditLogsPage } from '@/features/organization/incharge/ZoneAuditLogsPage'
 
 // Super Admin Portal Pages
 import { SuperAdminDashboardPage } from '@/features/dashboard/pages/SuperAdminDashboardPage'
@@ -167,6 +168,14 @@ export const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={[ROLES.ZONE, ROLES.ADMIN]}>
             <ZoneProfilePage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/zone/audit-logs',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ZONE]}>
+            <ZoneAuditLogsPage />
           </RoleGuard>
         ),
       },

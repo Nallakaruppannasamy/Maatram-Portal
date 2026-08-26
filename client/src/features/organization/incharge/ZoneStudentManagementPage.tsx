@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/Input'
 import { TableLoader } from '@/components/ui/TableLoader'
 import { Avatar } from '@/components/ui/Avatar'
 import { studentApi } from '@/api/student.api'
+import { zoneApi } from '@/api/zone.api'
 import { useAuth } from '@/hooks/useAuth'
 import { useDebounce } from '@/hooks/useDebounce'
 import { notify } from '@/utils/toast'
@@ -47,12 +48,20 @@ export const ZoneStudentManagementPage = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [academicYearFilter, setAcademicYearFilter] = useState('All')
   const [spocFilter, setSpocFilter] = useState<'All' | 'SPOC Only' | 'Non-SPOC'>('All')
+  const [collegeFilter, setCollegeFilter] = useState('All')
   const [page, setPage] = useState(1)
   const [sortBy, setSortBy] = useState('')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [pendingSpocId, setPendingSpocId] = useState<string | null>(null)
 
   const debouncedSearch = useDebounce(searchTerm, 400)
+
+  // Fetch Assigned Colleges strictly for authenticated Zone Incharge
+  const { data: collegesRes } = useQuery({
+    queryKey: ['my-assigned-colleges'],
+    queryFn: () => zoneApi.getMyColleges(),
+  })
+  const colleges = collegesRes?.data || []
 
   const { data: studentsRes, isLoading } = useQuery({
     queryKey: [
@@ -61,6 +70,7 @@ export const ZoneStudentManagementPage = () => {
       page,
       academicYearFilter,
       spocFilter,
+      collegeFilter,
       sortBy,
       sortOrder,
     ],
@@ -71,6 +81,7 @@ export const ZoneStudentManagementPage = () => {
         limit: 10,
         academicYear: academicYearFilter !== 'All' ? academicYearFilter : undefined,
         isSpoc: spocFilter === 'All' ? undefined : spocFilter === 'SPOC Only',
+        collegeId: collegeFilter !== 'All' ? collegeFilter : undefined,
         sortBy: sortBy || undefined,
         sortOrder: sortBy ? sortOrder : undefined,
       }),
@@ -129,6 +140,7 @@ export const ZoneStudentManagementPage = () => {
         search: debouncedSearch,
         academicYear: academicYearFilter !== 'All' ? academicYearFilter : undefined,
         isSpoc: spocFilter === 'All' ? undefined : spocFilter === 'SPOC Only',
+        collegeId: collegeFilter !== 'All' ? collegeFilter : undefined,
         sortBy: sortBy || undefined,
         sortOrder: sortBy ? sortOrder : undefined,
         page,
@@ -229,6 +241,23 @@ export const ZoneStudentManagementPage = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* College Filter */}
+            <select
+              value={collegeFilter}
+              onChange={(e) => {
+                setCollegeFilter(e.target.value)
+                setPage(1)
+              }}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-blue-900 outline-none h-9 font-medium text-gray-700 max-w-[200px] truncate"
+            >
+              <option value="All">All Colleges</option>
+              {colleges.map((c: any) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
             {/* SPOC Filter */}
             <select
               value={spocFilter}
@@ -259,11 +288,12 @@ export const ZoneStudentManagementPage = () => {
               <option value="4th Year">4th Year</option>
             </select>
 
-            {(academicYearFilter !== 'All' || spocFilter !== 'All' || searchTerm || sortBy) && (
+            {(academicYearFilter !== 'All' || spocFilter !== 'All' || collegeFilter !== 'All' || searchTerm || sortBy) && (
               <button
                 onClick={() => {
                   setAcademicYearFilter('All')
                   setSpocFilter('All')
+                  setCollegeFilter('All')
                   setSearchTerm('')
                   setSortBy('')
                   setPage(1)
