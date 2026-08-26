@@ -1,0 +1,21 @@
+{
+  "name": "Maatram Portal",
+  "short_name": "Maatram",
+  "description": "Maatram Foundation - Student & Volunteer Management System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FCF8FA",
+  "theme_color": "#1E3A8A",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

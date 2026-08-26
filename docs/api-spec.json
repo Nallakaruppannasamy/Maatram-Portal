@@ -1,1 +1,402 @@
-{}
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Maatram Foundation Student & Volunteer Management System API",
+    "version": "1.0.0",
+    "description": "Comprehensive REST API specification for the Maatram Foundation Enterprise Portal, serving Student Information Management, Volunteering Workflows, SPOC governance, Organization Hierarchy, Resume Generation, and Role-Based Access Control."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api/v1",
+      "description": "Local Development API Server"
+    },
+    {
+      "url": "https://api.maatramportal.org/api/v1",
+      "description": "Production API Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter your 15-minute Access JWT token."
+      },
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "refreshToken",
+        "description": "HttpOnly refresh token cookie used for automatic session renewal."
+      }
+    },
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "message": { "type": "string", "example": "Operation completed successfully." },
+          "data": { "type": "object" },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "total": { "type": "integer", "example": 100 },
+              "page": { "type": "integer", "example": 1 },
+              "limit": { "type": "integer", "example": 10 },
+              "totalPages": { "type": "integer", "example": 10 }
+            }
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string", "example": "Invalid credentials or unauthorized access." },
+          "errors": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "email": { "type": "string", "format": "email" },
+          "registerNumber": { "type": "string", "nullable": true },
+          "employeeId": { "type": "string", "nullable": true },
+          "role": { "type": "string", "enum": ["admin", "zone", "student"] },
+          "isFirstLogin": { "type": "boolean" },
+          "isActive": { "type": "boolean" },
+          "zoneId": { "type": "string", "format": "uuid", "nullable": true },
+          "organizationId": { "type": "string", "format": "uuid", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Student": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "userId": { "type": "string", "format": "uuid" },
+          "registrationNumber": { "type": "string", "example": "REG-2024-001" },
+          "firstName": { "type": "string", "example": "Ananya" },
+          "lastName": { "type": "string", "example": "Sundaram" },
+          "dateOfBirth": { "type": "string", "format": "date", "example": "2004-05-15" },
+          "gender": { "type": "string", "enum": ["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"] },
+          "bloodGroup": { "type": "string", "enum": ["A_POSITIVE", "A_NEGATIVE", "B_POSITIVE", "B_NEGATIVE", "AB_POSITIVE", "AB_NEGATIVE", "O_POSITIVE", "O_NEGATIVE"] },
+          "mobile": { "type": "string", "example": "9876543210" },
+          "course": { "type": "string", "example": "B.E. Computer Science" },
+          "batch": { "type": "string", "example": "2024-2028" },
+          "academicYear": { "type": "string", "example": "2nd Year" },
+          "semester": { "type": "string", "example": "Semester 4" },
+          "cgpa": { "type": "number", "format": "float", "example": 8.95 },
+          "careerObjective": { "type": "string" },
+          "profileImage": { "type": "string", "format": "uri" },
+          "isSpoc": { "type": "boolean", "example": false },
+          "accountStatus": { "type": "string", "enum": ["pending_first_login", "activated", "password_changed"] },
+          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "SUSPENDED", "DROPPED", "GRADUATED", "ALUMNI"] },
+          "zoneId": { "type": "string", "format": "uuid" },
+          "collegeId": { "type": "string", "format": "uuid" },
+          "departmentId": { "type": "string", "format": "uuid" },
+          "programId": { "type": "string", "format": "uuid" }
+        }
+      },
+      "VolunteerSubmission": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "submissionCode": { "type": "string", "example": "VLOG-2024-001" },
+          "studentId": { "type": "string", "format": "uuid" },
+          "zoneId": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "category": {
+            "type": "string",
+            "enum": [
+              "TELE_VERIFICATION",
+              "PHYSICAL_VERIFICATION",
+              "SCHOOL_VISIT",
+              "KARPOM_KARPIPOM_TUTORING",
+              "OFFLINE_PANEL_VOLUNTEERING",
+              "SANGAMAM_VOLUNTEERING",
+              "OTHER_OFFLINE_EVENT_VOLUNTEERING"
+            ]
+          },
+          "organization": { "type": "string" },
+          "hours": { "type": "number" },
+          "count": { "type": "integer" },
+          "imageUrl": { "type": "string", "format": "uri" },
+          "proofFileUrl": { "type": "string", "format": "uri" },
+          "eventDate": { "type": "string", "format": "date" },
+          "description": { "type": "string" },
+          "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+          "reviewerComment": { "type": "string" },
+          "reviewedById": { "type": "string", "format": "uuid" },
+          "reviewedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "summary": "Authenticate User",
+        "description": "Log in with email, employee ID, or student registration number and password.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["identifier", "password"],
+                "properties": {
+                  "identifier": { "type": "string", "example": "admin@maatram.org" },
+                  "password": { "type": "string", "example": "Password@123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Login successful. Returns access token and sets HttpOnly refresh cookie." },
+          "401": { "description": "Invalid credentials or inactive account." }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "summary": "Rotate & Refresh Access Token",
+        "description": "Issues a new access token and rotates the refresh token using the HttpOnly cookie.",
+        "responses": {
+          "200": { "description": "New access token returned." },
+          "401": { "description": "Invalid or revoked refresh token." }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "summary": "Revoke Session",
+        "description": "Revokes the active refresh token and clears the HttpOnly cookie.",
+        "responses": {
+          "200": { "description": "Successfully logged out." }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "summary": "Get Authenticated User Profile",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Current user record and role details." }
+        }
+      }
+    },
+    "/auth/change-password": {
+      "post": {
+        "summary": "Change Default Password (First Login / Profile)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["currentPassword", "newPassword"],
+                "properties": {
+                  "currentPassword": { "type": "string" },
+                  "newPassword": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password updated successfully." }
+        }
+      }
+    },
+    "/students": {
+      "get": {
+        "summary": "List Student Directory / Archived Students",
+        "description": "Fetch paginated students. Pass scope=archived (Admin only) to query historical deactivated accounts.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "scope", "in": "query", "schema": { "type": "string", "enum": ["active", "archived", "all"] } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } },
+          { "name": "zoneId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "collegeId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "academicYear", "in": "query", "schema": { "type": "string" } },
+          { "name": "isSpoc", "in": "query", "schema": { "type": "boolean" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated list of student records." },
+          "403": { "description": "Unauthorized role for requested scope." }
+        }
+      }
+    },
+    "/students/{id}/spoc": {
+      "patch": {
+        "summary": "Toggle Student SPOC Status",
+        "description": "Mark or unmark a student as Student Point of Contact. Admin has global scope; Zone Incharge can manage within assigned zone.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["isSpoc"],
+                "properties": {
+                  "isSpoc": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "SPOC status updated." },
+          "403": { "description": "Forbidden: Cannot modify student outside assigned zone." }
+        }
+      }
+    },
+    "/students/export": {
+      "get": {
+        "summary": "Export Student Directory to CSV / Excel",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "format", "in": "query", "required": true, "schema": { "type": "string", "enum": ["csv", "xlsx"] } },
+          { "name": "scope", "in": "query", "schema": { "type": "string", "enum": ["active", "archived"] } },
+          { "name": "zoneId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "collegeId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "isSpoc", "in": "query", "schema": { "type": "boolean" } }
+        ],
+        "responses": {
+          "200": { "description": "Binary file stream download." }
+        }
+      }
+    },
+    "/students/{id}/resume": {
+      "get": {
+        "summary": "Retrieve Student Resume Data",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Complete student resume portfolio." }
+        }
+      }
+    },
+    "/volunteers/submissions": {
+      "get": {
+        "summary": "List Volunteering Submissions",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["pending", "approved", "rejected"] } },
+          { "name": "category", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": {
+          "200": { "description": "List of volunteering submissions." }
+        }
+      },
+      "post": {
+        "summary": "Submit Volunteering Log (Student)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "category", "eventDate", "description"],
+                "properties": {
+                  "title": { "type": "string" },
+                  "category": { "type": "string" },
+                  "organization": { "type": "string" },
+                  "hours": { "type": "number" },
+                  "count": { "type": "integer" },
+                  "eventDate": { "type": "string", "format": "date" },
+                  "description": { "type": "string" },
+                  "imageUrl": { "type": "string" },
+                  "proofFileUrl": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Volunteering log submitted." }
+        }
+      }
+    },
+    "/volunteers/submissions/{id}/review": {
+      "patch": {
+        "summary": "Review Volunteering Submission (Zone Incharge)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["approved", "rejected"] },
+                  "reviewerComment": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Submission status updated." },
+          "403": { "description": "Only Zone Incharge of the student zone can review." }
+        }
+      }
+    },
+    "/organizations/hierarchy": {
+      "get": {
+        "summary": "Get Organization Tree Hierarchy",
+        "description": "Returns full organization structure: Organization -> Zones -> Incharges -> Colleges -> Departments -> Programs.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Nested hierarchical tree structure." }
+        }
+      }
+    },
+    "/users/{id}/status": {
+      "patch": {
+        "summary": "Toggle User Activation Status",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["isActive"],
+                "properties": {
+                  "isActive": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Account activation status updated." }
+        }
+      }
+    }
+  }
+}
