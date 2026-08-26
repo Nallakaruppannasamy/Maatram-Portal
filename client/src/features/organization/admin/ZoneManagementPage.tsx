@@ -68,18 +68,25 @@ export const ZoneManagementPage: React.FC = () => {
   const [importFile, setImportFile] = useState<File | null>(null)
   const [expandedDegrees, setExpandedDegrees] = useState<Record<string, boolean>>({})
 
+  const [zonePage, setZonePage] = useState<number>(1)
+  const zoneLimit = 10
+
   // ─── Queries ──────────────────────────────────────────────────────────────
   const { data: zonesRes, isLoading: isZonesLoading } = useQuery({
-    queryKey: ['zones'],
-    queryFn: () => zoneApi.list(),
+    queryKey: ['zones', zonePage],
+    queryFn: () => zoneApi.list({ page: zonePage, limit: zoneLimit }),
   })
 
   const zones = zonesRes?.data || []
+  const zonesMeta = zonesRes?.meta
   const activeZone = zones.find((z) => z.id === selectedZoneId)
 
   React.useEffect(() => {
-    if (zones.length > 0 && !selectedZoneId) {
-      setSelectedZoneId(zones[0].id)
+    if (zones.length > 0) {
+      const exists = zones.some((z: any) => z.id === selectedZoneId)
+      if (!exists) {
+        setSelectedZoneId(zones[0].id)
+      }
     }
   }, [zones, selectedZoneId])
 
@@ -151,7 +158,7 @@ export const ZoneManagementPage: React.FC = () => {
   })
 
   const deleteCollegeMutation = useMutation({
-    mutationFn: (id: string) => zoneApi.delete(id),
+    mutationFn: (id: string) => zoneApi.deleteCollege(id),
     onSuccess: () => {
       notify.success('College deleted successfully')
       queryClient.invalidateQueries({ queryKey: ['zone-colleges', selectedZoneId] })
@@ -295,47 +302,90 @@ export const ZoneManagementPage: React.FC = () => {
       </div>
 
       {/* ─── 1. ZONE SELECTOR CARDS ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {zones.map((zone: any) => {
-          const isSelected = zone.id === selectedZoneId
-          return (
-            <div
-              key={zone.id}
-              onClick={() => {
-                setSelectedZoneId(zone.id)
-                setCollegeSearch('')
-              }}
-              className={`p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between h-36 ${
-                isSelected
-                  ? 'bg-white border-[#D4AF37] shadow-lg shadow-[#D4AF37]/5 ring-2 ring-[#D4AF37]/20'
-                  : 'bg-white border-[#E5E7EB] hover:border-gray-300 shadow-luxury'
-              }`}
-            >
-              <div>
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] uppercase font-black tracking-wider text-[#76777d]">
-                    {zone.code}
-                  </span>
-                  {isSelected && (
-                    <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
-                  )}
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {zones.map((zone: any) => {
+            const isSelected = zone.id === selectedZoneId
+            return (
+              <div
+                key={zone.id}
+                onClick={() => {
+                  setSelectedZoneId(zone.id)
+                  setCollegeSearch('')
+                }}
+                className={`p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between h-36 ${
+                  isSelected
+                    ? 'bg-white border-[#D4AF37] shadow-lg shadow-[#D4AF37]/5 ring-2 ring-[#D4AF37]/20'
+                    : 'bg-white border-[#E5E7EB] hover:border-gray-300 shadow-luxury'
+                }`}
+              >
+                <div>
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] uppercase font-black tracking-wider text-[#76777d]">
+                      {zone.code}
+                    </span>
+                    {isSelected && (
+                      <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
+                    )}
+                  </div>
+                  <h3 className="text-sm font-extrabold text-[#111827] mt-1 line-clamp-1">{zone.name}</h3>
+                  <p className="text-[11px] font-semibold text-[#45464c] mt-0.5 line-clamp-1 flex items-center gap-1">
+                    <Users size={12} className="text-gray-400" />
+                    {zone.incharge?.userProfile?.fullName || 'No Incharge Assigned'}
+                  </p>
                 </div>
-                <h3 className="text-sm font-extrabold text-[#111827] mt-1 line-clamp-1">{zone.name}</h3>
-                <p className="text-[11px] font-semibold text-[#45464c] mt-0.5 line-clamp-1 flex items-center gap-1">
-                  <Users size={12} className="text-gray-400" />
-                  {zone.incharge?.userProfile?.fullName || 'No Incharge Assigned'}
-                </p>
-              </div>
 
-              <div className="flex items-center justify-between border-t border-[#F0EDEE] pt-3 text-[10px] font-black uppercase text-[#76777d]">
-                <span>Colleges</span>
-                <span className="text-xs font-black text-[#111827]">
-                  {(zone as any).collegeCount ?? (zone as any)._count?.colleges ?? zone.colleges?.length ?? 0}
-                </span>
+                <div className="flex items-center justify-between border-t border-[#F0EDEE] pt-3 text-[10px] font-black uppercase text-[#76777d]">
+                  <span>Colleges</span>
+                  <span className="text-xs font-black text-[#111827]">
+                    {(zone as any).collegeCount ?? (zone as any)._count?.colleges ?? zone.colleges?.length ?? 0}
+                  </span>
+                </div>
               </div>
+            )
+          })}
+        </div>
+
+        {/* Zone Pagination Controls */}
+        {zonesMeta && zonesMeta.totalPages > 1 && (
+          <div className="flex items-center justify-between bg-white px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs font-medium text-[#76777d]">
+            <span>
+              Showing Page <strong className="text-[#111827]">{zonesMeta.page}</strong> of <strong className="text-[#111827]">{zonesMeta.totalPages}</strong> ({zonesMeta.total} Total Zones)
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={zonePage <= 1}
+                onClick={() => setZonePage((prev) => Math.max(1, prev - 1))}
+                className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold cursor-pointer"
+              >
+                &larr; Previous
+              </button>
+              {Array.from({ length: zonesMeta.totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setZonePage(p)}
+                  className={`w-7 h-7 rounded-lg text-xs font-bold transition ${
+                    p === zonePage
+                      ? 'bg-slate-900 text-[#D4AF37]'
+                      : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={zonePage >= zonesMeta.totalPages}
+                onClick={() => setZonePage((prev) => Math.min(zonesMeta.totalPages, prev + 1))}
+                className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold cursor-pointer"
+              >
+                Next &rarr;
+              </button>
             </div>
-          )
-        })}
+          </div>
+        )}
       </div>
 
       {/* Currently Managing Header */}

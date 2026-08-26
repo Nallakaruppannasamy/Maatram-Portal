@@ -283,6 +283,9 @@ export class ZoneService {
   /**
    * Exports colleges assigned to the authenticated user's zone.
    */
+  /**
+   * Exports colleges assigned to the authenticated user's zone.
+   */
   async exportMyColleges(userId: string, format: string): Promise<Buffer | string> {
     const zoneId = await this.getAssignedZoneIdForUser(userId);
     if (!zoneId) {
@@ -292,13 +295,13 @@ export class ZoneService {
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Colleges');
         return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
       }
-      return 'College Name,Code,Location,Departments,Programs,Total Students,Active Students,Verified Volunteer Hours\n';
+      return 'College Name,Code,Location,Departments,Programs,Total Students,Active Students\n';
     }
     return this.exportZoneColleges(zoneId, format);
   }
 
   /**
-   * Retrieves detailed academic and volunteering counts for colleges assigned to a zone.
+   * Retrieves detailed academic counts for colleges assigned to a zone.
    */
   async getZoneColleges(zoneId: string): Promise<any[]> {
     const colleges = await prisma.college.findMany({
@@ -314,12 +317,6 @@ export class ZoneService {
             id: true,
             status: true,
             batch: true,
-            volunteerSubmissions: {
-              where: { status: 'approved' },
-              select: {
-                hours: true,
-              },
-            },
           },
         },
       },
@@ -333,13 +330,6 @@ export class ZoneService {
 
       const departmentCount = col.departments.length;
       const programCount = col.departments.reduce((sum: number, d: any) => sum + d.programs.length, 0);
-
-      let verifiedVolunteerHours = 0;
-      colStudents.forEach((st) => {
-        (st.volunteerSubmissions || []).forEach((sub) => {
-          verifiedVolunteerHours += Number(sub.hours || 0);
-        });
-      });
 
       const departmentList = col.departments.map((d) => d.name);
 
@@ -364,20 +354,19 @@ export class ZoneService {
         name: col.name,
         code: col.code,
         location: col.location,
-        degrees: col.departments.map(d => ({
+        degrees: col.departments.map((d) => ({
           id: d.id,
           name: d.name,
-          departments: d.programs.map(p => ({
+          departments: d.programs.map((p) => ({
             id: p.id,
             name: p.name,
-            durationYears: p.durationYears
-          }))
+            durationYears: p.durationYears,
+          })),
         })),
         departmentCount,
         programCount,
         studentCount,
         activeStudents,
-        verifiedVolunteerHours,
         departmentList,
         programList,
         batchDistribution,
@@ -398,7 +387,6 @@ export class ZoneService {
       Programs: item.programCount,
       'Total Students': item.studentCount,
       'Active Students': item.activeStudents,
-      'Verified Volunteer Hours': item.verifiedVolunteerHours,
     }));
 
     if (format === 'xlsx') {
@@ -415,7 +403,6 @@ export class ZoneService {
         'Programs',
         'Total Students',
         'Active Students',
-        'Verified Volunteer Hours',
       ];
       const csvContent = [
         headers.join(','),
@@ -428,7 +415,6 @@ export class ZoneService {
             row.Programs,
             row['Total Students'],
             row['Active Students'],
-            row['Verified Volunteer Hours'],
           ].join(',')
         ),
       ].join('\n');
@@ -447,7 +433,7 @@ export class ZoneService {
         // Reactivate soft-deleted college
         return prisma.college.update({
           where: { id: existing.id },
-          data: { name: data.name, location: data.location, zoneId, isActive: true }
+          data: { name: data.name, location: data.location, zoneId, isActive: true },
         });
       }
     }
@@ -457,8 +443,8 @@ export class ZoneService {
         code: uppercaseCode,
         location: data.location,
         zoneId,
-        isActive: true
-      }
+        isActive: true,
+      },
     });
   }
 
@@ -469,25 +455,40 @@ export class ZoneService {
       where: { id: collegeId },
       data: {
         name: data.name,
-        location: data.location
-      }
+        location: data.location,
+      },
     });
   }
 
   async deleteCollege(collegeId: string): Promise<any> {
     const college = await prisma.college.findUnique({ where: { id: collegeId } });
     if (!college) throw ApiError.notFound('College not found');
-    // Check if students are registered
+
+    // Check if students are registered under this college
     const studentCount = await prisma.student.count({ where: { collegeId } });
     if (studentCount > 0) {
-      // Soft delete
-      return prisma.college.update({
-        where: { id: collegeId },
-        data: { isActive: false }
-      });
+      throw ApiError.badRequest(
+        `College cannot be deleted because ${studentCount} student${studentCount > 1 ? 's are' : ' is'} associated with this college.`
+      );
     }
-    // Hard delete if no students exist
-    return prisma.college.delete({ where: { id: collegeId } });
+
+    // Safely delete dependent academic programs & departments before deleting college in a transaction
+    return prisma.$transaction(async (tx) => {
+      const departments = await tx.department.findMany({
+        where: { collegeId },
+        select: { id: true },
+      });
+      const deptIds = departments.map((d) => d.id);
+      if (deptIds.length > 0) {
+        await tx.program.deleteMany({
+          where: { departmentId: { in: deptIds } },
+        });
+        await tx.department.deleteMany({
+          where: { id: { in: deptIds } },
+        });
+      }
+      return tx.college.delete({ where: { id: collegeId } });
+    });
   }
 
   // --- Department CRUD ---

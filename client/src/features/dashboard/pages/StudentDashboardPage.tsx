@@ -84,22 +84,7 @@ export const StudentDashboardPage = () => {
       </div>
 
       {/* Overview Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#76777d] uppercase tracking-wider">Total Volunteer Hours</span>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-[#D4AF37] flex items-center justify-center">
-              <HeartHandshake className="w-5 h-5" />
-            </div>
-          </div>
-          <p className="text-3xl font-extrabold text-[#111827] mt-3">
-            {totalApprovedHours} <span className="text-xs font-normal text-[#76777d]">hrs</span>
-          </p>
-          <p className="text-xs text-emerald-600 font-semibold mt-2 flex items-center gap-1">
-            <TrendingUp className="w-3.5 h-3.5" /> {approvedLogs.length} verified activities
-          </p>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#76777d] uppercase tracking-wider">Academic CGPA</span>

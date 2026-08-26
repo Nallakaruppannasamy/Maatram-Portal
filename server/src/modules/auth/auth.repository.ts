@@ -8,15 +8,19 @@ import { RefreshToken, PasswordResetToken } from '@prisma/client';
 
 export class AuthRepository {
   /**
-   * Finds a user by email or register number, joining necessary profiles.
+   * Finds a user by email, register number, employee ID, or student registration number.
    */
   async findUserByIdentifier(identifier: string) {
+    const trimmed = identifier ? identifier.trim() : '';
+    if (!trimmed) return null;
+
     return prisma.user.findFirst({
       where: {
         OR: [
-          { email: { equals: identifier, mode: 'insensitive' } },
-          { registerNumber: { equals: identifier, mode: 'insensitive' } },
-          { employeeId: { equals: identifier, mode: 'insensitive' } },
+          { email: { equals: trimmed, mode: 'insensitive' } },
+          { registerNumber: { equals: trimmed, mode: 'insensitive' } },
+          { employeeId: { equals: trimmed, mode: 'insensitive' } },
+          { student: { registrationNumber: { equals: trimmed, mode: 'insensitive' } } },
         ],
       },
       include: {

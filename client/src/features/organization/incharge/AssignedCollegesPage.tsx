@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search, Download, Building2, Layers, GraduationCap, Users, HeartHandshake, ArrowUpDown, ArrowUp, ArrowDown, X, MapPin } from 'lucide-react'
+import { Search, Download, Building2, Layers, GraduationCap, Users, ArrowUpDown, ArrowUp, ArrowDown, X, MapPin } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -85,7 +85,6 @@ export const AssignedCollegesPage: React.FC = () => {
   const totalColleges = colleges.length
   const totalDepartments = colleges.reduce((sum: number, c: any) => sum + (c.departmentCount || 0), 0)
   const totalScholars = colleges.reduce((sum: number, c: any) => sum + (c.studentCount || 0), 0)
-  const totalHours = colleges.reduce((sum: number, c: any) => sum + (c.verifiedVolunteerHours || 0), 0)
 
   // Export
   const handleExport = async (format: 'csv' | 'xlsx') => {
@@ -159,7 +158,7 @@ export const AssignedCollegesPage: React.FC = () => {
       </div>
 
       {/* Zone Colleges Summary Banner */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="p-4 bg-white border border-[#E5E7EB] rounded-xl">
           <span className="text-[#76777d] block text-[10px] uppercase font-bold">Colleges</span>
           <span className="text-2xl font-black text-[#111827]">{totalColleges}</span>
@@ -171,10 +170,6 @@ export const AssignedCollegesPage: React.FC = () => {
         <Card className="p-4 bg-white border border-[#E5E7EB] rounded-xl">
           <span className="text-[#76777d] block text-[10px] uppercase font-bold">Assigned Scholars</span>
           <span className="text-2xl font-black text-blue-900">{totalScholars}</span>
-        </Card>
-        <Card className="p-4 bg-white border border-[#E5E7EB] rounded-xl">
-          <span className="text-[#76777d] block text-[10px] uppercase font-bold">Verified Hours</span>
-          <span className="text-2xl font-black text-emerald-600">{totalHours} hrs</span>
         </Card>
       </div>
 
@@ -267,14 +262,6 @@ export const AssignedCollegesPage: React.FC = () => {
                     <span className="font-bold text-gray-900">{col.programCount}</span>
                   </div>
                 </div>
-              </div>
-
-              {/* Volunteering Hours Banner */}
-              <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs">
-                <span className="font-semibold text-emerald-800 flex items-center gap-1">
-                  <HeartHandshake className="w-4 h-4 text-emerald-600" /> Verified volunteering:
-                </span>
-                <span className="font-extrabold text-emerald-900">{col.verifiedVolunteerHours} Hours</span>
               </div>
 
               {/* Department & Program lists */}

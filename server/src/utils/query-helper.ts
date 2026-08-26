@@ -21,6 +21,7 @@ export interface PaginationResult {
 
 export interface PaginationMeta {
   totalCount: number;
+  total: number;
   page: number;
   limit: number;
   totalPages: number;
@@ -73,6 +74,7 @@ export const buildPaginationMeta = (totalCount: number, params: QueryParams): Pa
 
   return {
     totalCount,
+    total: totalCount,
     page,
     limit,
     totalPages,

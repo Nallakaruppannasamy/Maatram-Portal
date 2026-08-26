@@ -114,7 +114,7 @@ async function runTests() {
     console.log(`✅ Zone colleges fetched successfully. Found ${zoneCollegesData.data.length} colleges.`);
     if (zoneCollegesData.data.length > 0) {
       const col = zoneCollegesData.data[0];
-      console.log(`  - First College: ${col.name} (Vol Hours: ${col.verifiedVolunteerHours}, Active Students: ${col.activeStudents})`);
+      console.log(`  - First College: ${col.name} (Student Count: ${col.studentCount}, Active Students: ${col.activeStudents})`);
       console.log(`    Departments: ${col.departmentList.join(', ')}`);
       console.log(`    Programs: ${col.programList.join(', ')}`);
       console.log(`    Batch Dist: ${JSON.stringify(col.batchDistribution)}`);

@@ -41,22 +41,16 @@ export const SuperAdminDashboardPage = () => {
   const orgs = orgsRes?.data || []
   const zones = zonesRes?.data || []
   const students = studentsRes?.data || []
-  const volunteers = volunteersRes?.data || []
   const users = usersRes?.data?.items || []
 
-  const approvedLogs = volunteers.filter(
-    (v) => v.status === 'approved' || v.status === 'APPROVED'
-  )
-  const totalApprovedHours = approvedLogs.reduce((acc, curr) => acc + (Number(curr.hours) || 0), 0)
-
-  if (isOrgsLoading || isZonesLoading || isStudentsLoading || isVolunteersLoading || isUsersLoading) {
+  if (isOrgsLoading || isZonesLoading || isStudentsLoading || isUsersLoading) {
     return (
       <div className="space-y-8 animate-in fade-in duration-300">
         <div>
           <h2 className="text-3xl font-extrabold text-[#111827] tracking-tight">Super Admin Executive Dashboard</h2>
           <p className="text-xs text-[#45464c]">Organization-wide analytics and governance.</p>
         </div>
-        <CardSkeleton count={4} />
+        <CardSkeleton count={3} />
       </div>
     )
   }
@@ -89,7 +83,7 @@ export const SuperAdminDashboardPage = () => {
       </div>
 
       {/* Global Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <Card>
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#76777d] uppercase tracking-wider">Total Enrolled Students</span>
@@ -101,19 +95,6 @@ export const SuperAdminDashboardPage = () => {
             {students.length} <span className="text-xs font-normal text-[#76777d]">students</span>
           </p>
           <p className="text-xs text-emerald-600 font-semibold mt-2">Active Scholar Roster</p>
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#76777d] uppercase tracking-wider">Total Verified Hours</span>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-[#D4AF37] flex items-center justify-center">
-              <HeartHandshake className="w-5 h-5" />
-            </div>
-          </div>
-          <p className="text-3xl font-extrabold text-[#111827] mt-3">
-            {totalApprovedHours} <span className="text-xs font-normal text-[#76777d]">hrs</span>
-          </p>
-          <p className="text-xs text-emerald-600 font-semibold mt-2">Across {zones.length} foundation zones</p>
         </Card>
 
         <Card>
