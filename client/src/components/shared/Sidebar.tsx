@@ -91,6 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeRole, user, onLogout }) 
       icon: FileCheck2,
       badge: pendingCount > 0 ? `${pendingCount} Pending` : undefined,
     },
+    { title: 'Volunteering Logs', path: '/zone/volunteering-logs', icon: ClipboardCheck },
     { title: 'Zone Students', path: '/zone/students', icon: Users },
     { title: 'Assigned Colleges', path: '/zone/colleges', icon: Building2 },
     { title: 'Zone Analytics', path: '/zone/analytics', icon: BarChart3 },

@@ -16,6 +16,7 @@ export class AuthRepository {
         OR: [
           { email: { equals: identifier, mode: 'insensitive' } },
           { registerNumber: { equals: identifier, mode: 'insensitive' } },
+          { employeeId: { equals: identifier, mode: 'insensitive' } },
         ],
       },
       include: {

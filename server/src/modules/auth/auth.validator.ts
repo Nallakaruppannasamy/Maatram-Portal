@@ -45,21 +45,44 @@ export const changePasswordValidator = z.object({
 
 // ─── Forgot Password Schema ──────────────────────────────────────────────────
 export const forgotPasswordValidator = z.object({
-  body: z.object({
-    identifier: z.string().min(1, 'Identifier is required').trim(),
-  }),
+  body: z
+    .object({
+      identifier: z.string().trim().optional(),
+      email: z.string().trim().optional(),
+    })
+    .refine(
+      (data) => Boolean((data.identifier && data.identifier.length > 0) || (data.email && data.email.length > 0)),
+      {
+        message: 'Identifier or Email is required',
+        path: ['identifier'],
+      }
+    ),
 });
 
 // ─── Reset Password Schema ───────────────────────────────────────────────────
 export const resetPasswordValidator = z.object({
   body: z
     .object({
-      token: z.string().min(1, 'Token is required'),
-      password: complexPasswordSchema,
-      confirmPassword: z.string().min(1, 'Password confirmation is required'),
+      token: z.string().min(1, 'Token is required').trim(),
+      password: z.string().min(6, 'Password must be at least 6 characters long').optional(),
+      newPassword: z.string().min(6, 'Password must be at least 6 characters long').optional(),
+      confirmPassword: z.string().optional(),
     })
-    .refine((data) => data.password === data.confirmPassword, {
-      message: 'Password and confirm password must match',
-      path: ['confirmPassword'],
-    }),
+    .refine((data) => Boolean(data.password || data.newPassword), {
+      message: 'New password is required',
+      path: ['newPassword'],
+    })
+    .refine(
+      (data) => {
+        const pwd = data.password || data.newPassword;
+        if (data.confirmPassword && pwd) {
+          return pwd === data.confirmPassword;
+        }
+        return true;
+      },
+      {
+        message: 'Password and confirm password must match',
+        path: ['confirmPassword'],
+      }
+    ),
 });

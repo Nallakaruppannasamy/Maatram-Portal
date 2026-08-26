@@ -119,6 +119,11 @@ export class OrganizationRepository {
                   },
                 },
                 students: {
+                  where: {
+                    user: {
+                      isActive: true,
+                    },
+                  },
                   select: {
                     id: true,
                     status: true,

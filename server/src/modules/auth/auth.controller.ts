@@ -80,7 +80,7 @@ export class AuthController {
    * Forgot password recovery request (simulated email delivery)
    */
   forgotPassword = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { identifier } = req.body;
+    const identifier = req.body.identifier || req.body.email;
     await authService.forgotPassword(identifier);
     // Always return 200 OK for security
     ResponseFormatter.success(res, null, 'If the account exists, reset instructions were sent.');
@@ -90,7 +90,8 @@ export class AuthController {
    * Reset password using generated token
    */
   resetPassword = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { token, password } = req.body;
+    const token = req.body.token;
+    const password = req.body.password || req.body.newPassword;
     await authService.resetPassword(token, password);
     ResponseFormatter.success(res, null, 'Password reset successfully');
   });

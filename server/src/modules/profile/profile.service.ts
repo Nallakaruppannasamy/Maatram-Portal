@@ -112,7 +112,7 @@ export class ProfileService {
       // Students cannot update restricted fields
       const restrictedFields = ['email', 'registrationNumber', 'dateOfBirth', 'zoneId', 'organizationId'];
       for (const key of restrictedFields) {
-        if ((data as any)[key] !== undefined) {
+        if ((data as any)[key] !== undefined && (data as any)[key] !== null) {
           throw ApiError.badRequest(`Field "${key}" is restricted and cannot be updated by students.`);
         }
       }

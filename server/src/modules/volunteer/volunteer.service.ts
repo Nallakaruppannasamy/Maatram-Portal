@@ -17,6 +17,7 @@ import {
   VolunteerWithRelations,
 } from './volunteer.types';
 import { prisma } from '@/config/database';
+import { zoneService } from '../zone/zone.service';
 
 // ─── Status Transition State Machine ─────────────────────────────────────────
 
@@ -296,9 +297,17 @@ class VolunteerService {
         if (!student) throw ApiError.notFound('Student profile not found');
         studentId = student.id;
       } else if (actorRole === 'zone' && actorId) {
-        const zone = await prisma.zone.findFirst({ where: { inchargeId: actorId } });
-        if (zone) {
-          zoneId = zone.id;
+        const assignedZoneId = await zoneService.getAssignedZoneIdForUser(actorId);
+        if (assignedZoneId) {
+          zoneId = assignedZoneId;
+        } else {
+          return {
+            items: [],
+            meta: buildPaginationMeta(0, {
+              page: queryParams.page ? Number(queryParams.page) : 1,
+              limit: queryParams.limit ? Number(queryParams.limit) : 10,
+            }),
+          };
         }
       } else if (actorRole === 'admin' && queryParams.zoneId) {
         zoneId = String(queryParams.zoneId);
@@ -439,8 +448,8 @@ class VolunteerService {
         throw ApiError.forbidden('You are not authorized to view this volunteer submission');
       }
     } else if (actorRole === 'zone') {
-      const zone = await prisma.zone.findFirst({ where: { inchargeId: actorId } });
-      if (!zone || submission.zoneId !== zone.id) {
+      const assignedZoneId = await zoneService.getAssignedZoneIdForUser(actorId);
+      if (!assignedZoneId || submission.zoneId !== assignedZoneId) {
         throw ApiError.forbidden('You are not authorized to view submissions outside your zone');
       }
     }
@@ -482,8 +491,8 @@ class VolunteerService {
       throw ApiError.forbidden('Only Zone Incharges are authorized to review volunteer submissions');
     }
 
-    const zone = await prisma.zone.findFirst({ where: { inchargeId: actorId } });
-    if (!zone || submission.zoneId !== zone.id) {
+    const assignedZoneId = await zoneService.getAssignedZoneIdForUser(actorId);
+    if (!assignedZoneId || submission.zoneId !== assignedZoneId) {
       throw ApiError.forbidden('You are not authorized to review submissions outside your zone');
     }
 
@@ -544,8 +553,8 @@ class VolunteerService {
       throw ApiError.forbidden('Only Zone Incharges are authorized to comment on volunteer submissions');
     }
 
-    const zone = await prisma.zone.findFirst({ where: { inchargeId: actorId } });
-    if (!zone || submission.zoneId !== zone.id) {
+    const assignedZoneId = await zoneService.getAssignedZoneIdForUser(actorId);
+    if (!assignedZoneId || submission.zoneId !== assignedZoneId) {
       throw ApiError.forbidden('You are not authorized to comment on submissions outside your zone');
     }
 

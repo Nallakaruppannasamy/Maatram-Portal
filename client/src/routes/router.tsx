@@ -29,6 +29,7 @@ import { AssignedCollegesPage } from '@/features/organization/incharge/AssignedC
 import { ZoneAnalyticsPage } from '@/features/analytics/pages/ZoneAnalyticsPage'
 import { ZoneProfilePage } from '@/features/organization/incharge/ZoneProfilePage'
 import { ZoneAuditLogsPage } from '@/features/organization/incharge/ZoneAuditLogsPage'
+import { ZoneVolunteeringLogsPage } from '@/features/organization/incharge/ZoneVolunteeringLogsPage'
 
 // Super Admin Portal Pages
 import { SuperAdminDashboardPage } from '@/features/dashboard/pages/SuperAdminDashboardPage'
@@ -176,6 +177,14 @@ export const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={[ROLES.ZONE]}>
             <ZoneAuditLogsPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/zone/volunteering-logs',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ZONE]}>
+            <ZoneVolunteeringLogsPage />
           </RoleGuard>
         ),
       },
