@@ -147,16 +147,26 @@ export class AuthRepository {
   }
 
   /**
-   * Updates a user's password, first login state, and temporary password.
+   * Updates a user's password, first login state, temporary password,
+   * and synchronizes student accountStatus to 'password_changed' atomically.
    */
   async updatePassword(userId: string, passwordHash: string, isFirstLogin = false): Promise<void> {
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        passwordHash,
-        isFirstLogin,
-        tempPassword: null,
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          passwordHash,
+          isFirstLogin,
+          tempPassword: null,
+        },
+      });
+
+      await tx.student.updateMany({
+        where: { userId },
+        data: {
+          accountStatus: 'password_changed',
+        },
+      });
     });
   }
 

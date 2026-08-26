@@ -33,9 +33,11 @@ import { ZoneProfilePage } from '@/features/organization/incharge/ZoneProfilePag
 import { SuperAdminDashboardPage } from '@/features/dashboard/pages/SuperAdminDashboardPage'
 import { StudentProvisioningPage } from '@/features/organization/admin/StudentProvisioningPage'
 import { SuperAdminStudentDirectoryPage } from '@/features/organization/admin/SuperAdminStudentDirectoryPage'
+import { ArchivedStudentsPage } from '@/features/organization/admin/ArchivedStudentsPage'
 import { ZoneManagementPage } from '@/features/organization/admin/ZoneManagementPage'
 import { OrganizationHierarchyPage } from '@/features/organization/admin/OrganizationHierarchyPage'
 import { TeamManagementPage } from '@/features/organization/admin/TeamManagementPage'
+import { SuperAdminVolunteeringLogsPage } from '@/features/organization/admin/SuperAdminVolunteeringLogsPage'
 import { SuperAdminAnalyticsPage } from '@/features/analytics/pages/SuperAdminAnalyticsPage'
 import { AuditLogsPage } from '@/features/organization/pages/AuditLogsPage'
 
@@ -195,6 +197,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: '/admin/archived-students',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+            <ArchivedStudentsPage />
+          </RoleGuard>
+        ),
+      },
+      {
         path: '/admin/hierarchy',
         element: (
           <RoleGuard allowedRoles={[ROLES.ADMIN]}>
@@ -215,6 +225,14 @@ export const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={[ROLES.ADMIN]}>
             <TeamManagementPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/admin/volunteering-logs',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+            <SuperAdminVolunteeringLogsPage />
           </RoleGuard>
         ),
       },

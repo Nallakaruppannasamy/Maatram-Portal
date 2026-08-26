@@ -11,6 +11,8 @@ import {
   Loader2,
   Plus,
   Download,
+  ToggleLeft,
+  ToggleRight,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -18,6 +20,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { studentApi } from '@/api/student.api'
+import { userApi } from '@/api/user.api'
 import { notify } from '@/utils/toast'
 import { useDebounce } from '@/hooks/useDebounce'
 
@@ -60,8 +63,8 @@ export const StudentProvisioningPage: React.FC = () => {
   }, [debouncedSearch])
 
   const { data: studentsRes, isLoading: loadingList } = useQuery({
-    queryKey: ['students', debouncedSearch, page],
-    queryFn: () => studentApi.list({ search: debouncedSearch, page, limit }),
+    queryKey: ['students', 'provisioning', debouncedSearch, page],
+    queryFn: () => studentApi.list({ search: debouncedSearch, page, limit, view: 'provisioning' }),
   })
 
   const students = studentsRes?.data || []
@@ -120,6 +123,18 @@ export const StudentProvisioningPage: React.FC = () => {
     },
     onError: (err: any) => {
       notify.error(err?.response?.data?.message || err?.message || 'Error provisioning student.')
+    },
+  })
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: ({ userId, active }: { userId: string; active: boolean }) =>
+      active ? userApi.activate(userId) : userApi.deactivate(userId),
+    onSuccess: (_, variables) => {
+      notify.success(`Student account ${variables.active ? 'activated' : 'deactivated'} successfully!`)
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+    },
+    onError: (err: any) => {
+      notify.error(err?.response?.data?.message || err?.message || 'Failed to update account status.')
     },
   })
 
@@ -465,13 +480,14 @@ export const StudentProvisioningPage: React.FC = () => {
                   <th className="py-3.5 px-4 font-bold">Email Address</th>
                   <th className="py-3.5 px-4 font-bold">Temp Password</th>
                   <th className="py-3.5 px-4 font-bold">Import Date</th>
+                  <th className="py-3.5 px-4 font-bold">Account Status</th>
                   <th className="py-3.5 px-4 font-bold">Lifecycle Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E7EB]">
                 {loadingList ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-10 text-[#76777d]">
+                    <td colSpan={7} className="text-center py-10 text-[#76777d]">
                       <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#D4AF37] mb-2" />
                       <span className="text-xs">Loading live student database records...</span>
                     </td>
@@ -483,6 +499,8 @@ export const StudentProvisioningPage: React.FC = () => {
                     const tempPassword = student.user?.tempPassword || 'Set by user'
                     const rawStatus = student.user?.accountStatus || student.accountStatus || 'pending_first_login'
                     const statusInfo = formatStatus(rawStatus)
+                    const isUserActive = student.user?.isActive !== false
+                    const targetUserId = student.userId || student.user?.id
 
                     return (
                       <tr key={student.id} className="hover:bg-[#FCF8FA]/80 transition-colors">
@@ -500,7 +518,7 @@ export const StudentProvisioningPage: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => togglePasswordVisibility(student.id)}
-                                className="text-[#76777d] hover:text-[#111827] transition-colors focus:outline-none"
+                                className="text-[#76777d] hover:text-[#111827] transition-colors focus:outline-none cursor-pointer"
                                 title={isVisible ? 'Hide Password' : 'Show Password'}
                               >
                                 {isVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -510,6 +528,40 @@ export const StudentProvisioningPage: React.FC = () => {
                         </td>
                         <td className="py-3.5 px-4 text-[#76777d]">{formatDate(student.createdAt)}</td>
                         <td className="py-3.5 px-4">
+                          <button
+                            type="button"
+                            disabled={toggleActiveMutation.isPending || !targetUserId}
+                            onClick={() => {
+                              if (!targetUserId) {
+                                notify.error('User record ID not found for student')
+                                return
+                              }
+                              toggleActiveMutation.mutate({
+                                userId: targetUserId,
+                                active: !isUserActive,
+                              })
+                            }}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
+                              isUserActive
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                            }`}
+                            title={isUserActive ? 'Click to deactivate account' : 'Click to activate account'}
+                          >
+                            {isUserActive ? (
+                              <>
+                                <ToggleRight className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Active</span>
+                              </>
+                            ) : (
+                              <>
+                                <ToggleLeft className="w-3.5 h-3.5 text-rose-600" />
+                                <span>Deactivated</span>
+                              </>
+                            )}
+                          </button>
+                        </td>
+                        <td className="py-3.5 px-4">
                           <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
                         </td>
                       </tr>
@@ -517,7 +569,7 @@ export const StudentProvisioningPage: React.FC = () => {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={6} className="text-center py-10 text-[#76777d] text-xs">
+                    <td colSpan={7} className="text-center py-10 text-[#76777d] text-xs">
                       No matching student accounts found in database.
                     </td>
                   </tr>

@@ -312,6 +312,26 @@ export class StudentRepository {
   }
 
   /**
+   * Updates SPOC status of a student.
+   */
+  async updateSpoc(id: string, isSpoc: boolean): Promise<StudentWithRelations> {
+    const updated = await prisma.student.update({
+      where: { id },
+      data: { isSpoc },
+      include: {
+        user: true,
+        organization: true,
+        zone: true,
+        college: true,
+        department: true,
+        program: true,
+      },
+    });
+
+    return updated as unknown as StudentWithRelations;
+  }
+
+  /**
    * Executes a bulk insert of student records inside a single transaction.
    */
   async importStudents(
@@ -380,6 +400,30 @@ export class StudentRepository {
     }
     if (options.academicYear) {
       where.academicYear = { equals: options.academicYear.trim(), mode: 'insensitive' };
+    }
+    if (options.isSpoc !== undefined) {
+      where.isSpoc = options.isSpoc;
+    }
+
+    // Active vs Archived lifecycle filtering (defaults to User.isActive = true)
+    if (options.isActive !== undefined) {
+      where.user = {
+        ...((where.user as Record<string, unknown>) || {}),
+        isActive: options.isActive,
+      };
+    } else if (options.scope === 'archived') {
+      where.user = {
+        ...((where.user as Record<string, unknown>) || {}),
+        isActive: false,
+      };
+    } else if (options.scope === 'all' || options.view === 'provisioning') {
+      // Do not restrict by User.isActive (Student Provisioning / global admin views)
+    } else {
+      // Default: Active Student Directory
+      where.user = {
+        ...((where.user as Record<string, unknown>) || {}),
+        isActive: true,
+      };
     }
 
     // Search query

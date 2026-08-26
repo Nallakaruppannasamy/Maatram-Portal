@@ -89,6 +89,7 @@ router.post('/upload', requireRole('admin', 'zone', 'student'), (req, res, next)
 
 // ─── Read Endpoints (admin, zone managers, and students) ─────────────────────
 router.get('/', requireRole('admin', 'zone', 'student'), volunteerController.listVolunteers);
+router.get('/logs', requireRole('admin', 'zone'), volunteerController.listVolunteers);
 router.get('/:id', requireRole('admin', 'zone', 'student'), volunteerController.getVolunteerOrSubmissionById);
 
 // ─── Write Endpoints ────────────────────────────────────────────────────────

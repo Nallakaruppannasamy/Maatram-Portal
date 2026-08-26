@@ -46,6 +46,12 @@ export class ZoneRepository {
             userProfile: true,
           },
         },
+        _count: {
+          select: {
+            students: true,
+            colleges: true,
+          },
+        },
       },
     });
   }
@@ -87,6 +93,7 @@ export class ZoneRepository {
         _count: {
           select: {
             students: true,
+            colleges: true,
           },
         },
       },

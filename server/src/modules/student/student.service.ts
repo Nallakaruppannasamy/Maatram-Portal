@@ -361,7 +361,7 @@ export class StudentService {
   /**
    * Lists paginated students.
    */
-  async listStudents(queryParams: QueryParams) {
+  async listStudents(queryParams: QueryParams, actorRole?: string) {
     const options: StudentQueryOptions = {
       page: queryParams.page ? Number(queryParams.page) : 1,
       limit: queryParams.limit ? Number(queryParams.limit) : 10,
@@ -374,7 +374,44 @@ export class StudentService {
       departmentId: queryParams.departmentId as string,
       status: queryParams.status as StudentStatus,
       batch: queryParams.batch as string,
+      academicYear: queryParams.academicYear as string,
     };
+
+    if (queryParams.isSpoc !== undefined) {
+      if (typeof queryParams.isSpoc === 'boolean') {
+        options.isSpoc = queryParams.isSpoc;
+      } else if (queryParams.isSpoc === 'true' || queryParams.isSpoc === '1') {
+        options.isSpoc = true;
+      } else if (queryParams.isSpoc === 'false' || queryParams.isSpoc === '0') {
+        options.isSpoc = false;
+      }
+    }
+
+    // Handle active vs archived scope and enforce Super Admin RBAC on archived queries
+    if (queryParams.scope === 'archived') {
+      if (actorRole && actorRole !== 'admin') {
+        throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+      }
+      options.scope = 'archived';
+      options.isActive = false;
+    } else if (queryParams.scope === 'all' || queryParams.view === 'provisioning') {
+      options.scope = 'all';
+      options.isActive = undefined;
+    } else if (queryParams.scope === 'active') {
+      options.scope = 'active';
+      options.isActive = true;
+    } else if (queryParams.isActive !== undefined) {
+      if (typeof queryParams.isActive === 'boolean') {
+        options.isActive = queryParams.isActive;
+      } else if (queryParams.isActive === 'true' || queryParams.isActive === '1') {
+        options.isActive = true;
+      } else if (queryParams.isActive === 'false' || queryParams.isActive === '0') {
+        options.isActive = false;
+        if (actorRole && actorRole !== 'admin') {
+          throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+        }
+      }
+    }
 
     const { skip, take, orderBy } = parseQueryParams(options, 'registrationNumber');
     const [students, total] = await Promise.all([
@@ -390,6 +427,69 @@ export class StudentService {
     return {
       items,
       meta: buildPaginationMeta(total, options),
+    };
+  }
+
+  /**
+   * Updates SPOC status of a student.
+   * Super Admins can update any student.
+   * Zone Incharges can only update students belonging to their assigned zone.
+   */
+  async updateSpocStatus(
+    id: string,
+    isSpoc: boolean,
+    actorId: string,
+    actorRole: AuditActorRole
+  ): Promise<StudentWithRelations> {
+    const student = await studentRepository.findById(id);
+    if (!student) {
+      throw ApiError.notFound('Student not found');
+    }
+
+    if (actorRole === AuditActorRole.zone) {
+      const inchargeUser = await prisma.user.findUnique({
+        where: { id: actorId },
+        select: { zoneId: true },
+      });
+      const inchargeZone = await prisma.zone.findFirst({
+        where: {
+          OR: [
+            { inchargeId: actorId },
+            ...(inchargeUser?.zoneId ? [{ id: inchargeUser.zoneId }] : []),
+          ],
+        },
+      });
+
+      if (!inchargeZone || student.zoneId !== inchargeZone.id) {
+        throw ApiError.forbidden(
+          'You are not authorized to update SPOC status for students outside your assigned zone'
+        );
+      }
+    } else if (actorRole !== AuditActorRole.admin) {
+      throw ApiError.forbidden('Forbidden: Insufficient privileges to update SPOC status');
+    }
+
+    const updated = await studentRepository.updateSpoc(id, isSpoc);
+    const fullName = this.computeFullName(updated.firstName, updated.middleName, updated.lastName);
+
+    // Audit log
+    await createAuditLog({
+      actorId,
+      actorRole,
+      action: isSpoc ? 'STUDENT_MARKED_AS_SPOC' : 'STUDENT_UNMARKED_AS_SPOC',
+      targetEntityType: 'student',
+      targetEntityId: updated.id,
+      targetLabel: fullName,
+      details: `Student ${fullName} (${updated.registrationNumber}) was ${isSpoc ? 'marked as' : 'unmarked from'} SPOC by actor ${actorId}`,
+    });
+
+    logger.info(
+      `[STUDENT_SPOC_UPDATED] SPOC status for ${fullName} set to ${isSpoc} by actor ${actorId}`
+    );
+
+    return {
+      ...updated,
+      fullName,
     };
   }
 
@@ -746,7 +846,7 @@ result.push(current.trim());
   /**
    * Generates CSV string for exporting filtered students list.
    */
-  async exportToCsv(queryParams: QueryParams): Promise<string> {
+  async exportToCsv(queryParams: QueryParams, actorRole?: string): Promise<string> {
     const options: StudentQueryOptions = {
       search: queryParams.search as string,
       sortBy: this.mapSortBy(queryParams.sortBy as string),
@@ -759,6 +859,42 @@ result.push(current.trim());
       batch: queryParams.batch as string,
       academicYear: queryParams.academicYear as string,
     };
+
+    if (queryParams.isSpoc !== undefined) {
+      if (typeof queryParams.isSpoc === 'boolean') {
+        options.isSpoc = queryParams.isSpoc;
+      } else if (queryParams.isSpoc === 'true' || queryParams.isSpoc === '1') {
+        options.isSpoc = true;
+      } else if (queryParams.isSpoc === 'false' || queryParams.isSpoc === '0') {
+        options.isSpoc = false;
+      }
+    }
+
+    // Handle active vs archived scope and enforce Super Admin RBAC on archived queries
+    if (queryParams.scope === 'archived') {
+      if (actorRole && actorRole !== 'admin') {
+        throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+      }
+      options.scope = 'archived';
+      options.isActive = false;
+    } else if (queryParams.scope === 'all' || queryParams.view === 'provisioning') {
+      options.scope = 'all';
+      options.isActive = undefined;
+    } else if (queryParams.scope === 'active') {
+      options.scope = 'active';
+      options.isActive = true;
+    } else if (queryParams.isActive !== undefined) {
+      if (typeof queryParams.isActive === 'boolean') {
+        options.isActive = queryParams.isActive;
+      } else if (queryParams.isActive === 'true' || queryParams.isActive === '1') {
+        options.isActive = true;
+      } else if (queryParams.isActive === 'false' || queryParams.isActive === '0') {
+        options.isActive = false;
+        if (actorRole && actorRole !== 'admin') {
+          throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+        }
+      }
+    }
 
     const { orderBy } = parseQueryParams(options, 'registrationNumber');
     
@@ -811,6 +947,7 @@ result.push(current.trim());
       'Zone',
       'Batch',
       'CGPA',
+      'SPOC',
       'Status',
     ];
 
@@ -823,6 +960,8 @@ result.push(current.trim());
         student.lastName
       );
 
+      const statusLabel = student.user?.isActive === false ? 'DEACTIVATED' : (student.status || 'ACTIVE');
+
       const row = [
         this.formatCsvValue(student.registrationNumber || 'UNASSIGNED'),
         this.formatCsvValue(fullName || 'Scholar Student'),
@@ -830,7 +969,8 @@ result.push(current.trim());
         this.formatCsvValue(student.zone?.name || 'N/A'),
         this.formatCsvValue(student.batch || '2024-2028'),
         this.formatCsvValue(student.cgpa ? Number(student.cgpa).toFixed(2) : 'N/A'),
-        this.formatCsvValue(student.status || 'ACTIVE'),
+        this.formatCsvValue(student.isSpoc ? 'Yes' : 'No'),
+        this.formatCsvValue(statusLabel),
       ];
 
       lines.push(row.join(','));
@@ -842,7 +982,7 @@ result.push(current.trim());
   /**
    * Generates Excel file buffer for exporting filtered students list.
    */
-  async exportToExcel(queryParams: QueryParams): Promise<Buffer> {
+  async exportToExcel(queryParams: QueryParams, actorRole?: string): Promise<Buffer> {
     const options: StudentQueryOptions = {
       search: queryParams.search as string,
       sortBy: this.mapSortBy(queryParams.sortBy as string),
@@ -855,6 +995,42 @@ result.push(current.trim());
       batch: queryParams.batch as string,
       academicYear: queryParams.academicYear as string,
     };
+
+    if (queryParams.isSpoc !== undefined) {
+      if (typeof queryParams.isSpoc === 'boolean') {
+        options.isSpoc = queryParams.isSpoc;
+      } else if (queryParams.isSpoc === 'true' || queryParams.isSpoc === '1') {
+        options.isSpoc = true;
+      } else if (queryParams.isSpoc === 'false' || queryParams.isSpoc === '0') {
+        options.isSpoc = false;
+      }
+    }
+
+    // Handle active vs archived scope and enforce Super Admin RBAC on archived queries
+    if (queryParams.scope === 'archived') {
+      if (actorRole && actorRole !== 'admin') {
+        throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+      }
+      options.scope = 'archived';
+      options.isActive = false;
+    } else if (queryParams.scope === 'all' || queryParams.view === 'provisioning') {
+      options.scope = 'all';
+      options.isActive = undefined;
+    } else if (queryParams.scope === 'active') {
+      options.scope = 'active';
+      options.isActive = true;
+    } else if (queryParams.isActive !== undefined) {
+      if (typeof queryParams.isActive === 'boolean') {
+        options.isActive = queryParams.isActive;
+      } else if (queryParams.isActive === 'true' || queryParams.isActive === '1') {
+        options.isActive = true;
+      } else if (queryParams.isActive === 'false' || queryParams.isActive === '0') {
+        options.isActive = false;
+        if (actorRole && actorRole !== 'admin') {
+          throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+        }
+      }
+    }
 
     const { orderBy } = parseQueryParams(options, 'registrationNumber');
     
@@ -887,6 +1063,7 @@ result.push(current.trim());
     } else {
       rows = students.map((s) => {
         const fullName = this.computeFullName(s.firstName, s.middleName, s.lastName);
+        const statusLabel = s.user?.isActive === false ? 'DEACTIVATED' : (s.status || 'ACTIVE');
         return {
           'Register Number': s.registrationNumber || 'UNASSIGNED',
           Name: fullName || 'Scholar Student',
@@ -894,7 +1071,8 @@ result.push(current.trim());
           Zone: s.zone?.name || 'N/A',
           Batch: s.batch || '2024-2028',
           CGPA: s.cgpa ? Number(s.cgpa).toFixed(2) : 'N/A',
-          Status: s.status || 'ACTIVE',
+          SPOC: s.isSpoc ? 'Yes' : 'No',
+          Status: statusLabel,
         };
       });
     }

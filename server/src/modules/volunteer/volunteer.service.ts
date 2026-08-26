@@ -196,17 +196,12 @@ class VolunteerService {
     const isSubmissionStatus = ['pending', 'approved', 'rejected'].includes(statusStr);
 
     if (isSubmissionStatus) {
-      const statusValue = statusStr as any;
-      const updatedSubmission = await prisma.volunteerSubmission.update({
-        where: { id },
-        data: {
-          status: statusValue,
-          reviewedById: actorId,
-          reviewedAt: new Date(),
-        },
-        include: { student: true, zone: true },
-      });
-      return updatedSubmission;
+      if (actorRole === AuditActorRole.admin) {
+        throw ApiError.forbidden(
+          'Super Admin has read-only access to volunteer submissions. Approval and rejection are restricted to Zone Incharges.'
+        );
+      }
+      return this.updateSubmissionStatus(id, newStatus, undefined, actorId, actorRole);
     }
 
     const upperStatus = newStatus.toUpperCase() as VolunteerProfileStatus;
@@ -285,7 +280,12 @@ class VolunteerService {
     }
 
     const isStudent = actorRole === 'student';
-    const isSubmissionQuery = isStudent || (lowerStatus ? SUBMISSION_STATUSES.includes(lowerStatus) : false);
+    const isSubmissionQuery =
+      isStudent ||
+      queryParams.view === 'logs' ||
+      queryParams.type === 'submissions' ||
+      queryParams.type === 'submission' ||
+      (lowerStatus ? SUBMISSION_STATUSES.includes(lowerStatus) : false);
 
     if (isSubmissionQuery) {
       let studentId: string | undefined = undefined;
@@ -300,13 +300,16 @@ class VolunteerService {
         if (zone) {
           zoneId = zone.id;
         }
+      } else if (actorRole === 'admin' && queryParams.zoneId) {
+        zoneId = String(queryParams.zoneId);
       }
 
       const { items, total } = await volunteerRepository.listSubmissions({
         page: queryParams.page ? Number(queryParams.page) : 1,
         limit: queryParams.limit ? Number(queryParams.limit) : 10,
         search: queryParams.search as string,
-        status: lowerStatus || undefined,
+        status: lowerStatus && lowerStatus !== 'all' ? lowerStatus : undefined,
+        category: queryParams.category as string,
         studentId,
         zoneId,
       });
@@ -469,11 +472,19 @@ class VolunteerService {
       throw ApiError.badRequest('Rejection comments are mandatory');
     }
 
-    if (actorRole === AuditActorRole.zone) {
-      const zone = await prisma.zone.findFirst({ where: { inchargeId: actorId } });
-      if (!zone || submission.zoneId !== zone.id) {
-        throw ApiError.forbidden('You are not authorized to review submissions outside your zone');
-      }
+    if (actorRole === AuditActorRole.admin) {
+      throw ApiError.forbidden(
+        'Super Admin has read-only access to volunteer submissions. Approval and rejection are restricted to Zone Incharges.'
+      );
+    }
+
+    if (actorRole !== AuditActorRole.zone) {
+      throw ApiError.forbidden('Only Zone Incharges are authorized to review volunteer submissions');
+    }
+
+    const zone = await prisma.zone.findFirst({ where: { inchargeId: actorId } });
+    if (!zone || submission.zoneId !== zone.id) {
+      throw ApiError.forbidden('You are not authorized to review submissions outside your zone');
     }
 
     const statusValue = statusUpper.toLowerCase() as any;
@@ -523,11 +534,19 @@ class VolunteerService {
       throw ApiError.notFound(`Volunteer submission with ID "${id}" not found`);
     }
 
-    if (actorRole === AuditActorRole.zone) {
-      const zone = await prisma.zone.findFirst({ where: { inchargeId: actorId } });
-      if (!zone || submission.zoneId !== zone.id) {
-        throw ApiError.forbidden('You are not authorized to comment on submissions outside your zone');
-      }
+    if (actorRole === AuditActorRole.admin) {
+      throw ApiError.forbidden(
+        'Super Admin has read-only access to volunteer submissions. Comments are restricted to Zone Incharges.'
+      );
+    }
+
+    if (actorRole !== AuditActorRole.zone) {
+      throw ApiError.forbidden('Only Zone Incharges are authorized to comment on volunteer submissions');
+    }
+
+    const zone = await prisma.zone.findFirst({ where: { inchargeId: actorId } });
+    if (!zone || submission.zoneId !== zone.id) {
+      throw ApiError.forbidden('You are not authorized to comment on submissions outside your zone');
     }
 
     const updated = await volunteerRepository.addSubmissionComment(id, comment, actorId);

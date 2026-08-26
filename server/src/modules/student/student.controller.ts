@@ -84,6 +84,24 @@ export class StudentController {
   });
 
   /**
+   * Updates SPOC status of a student.
+   */
+  updateSpocStatus = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { isSpoc } = req.body;
+    const actorId = req.user!.userId;
+    const actorRole = this.getAuditActorRole(req.user!.role);
+
+    const student = await studentService.updateSpocStatus(id, isSpoc, actorId, actorRole);
+
+    ResponseFormatter.success(
+      res,
+      student,
+      `Student SPOC status successfully updated to ${isSpoc ? 'active' : 'inactive'}`
+    );
+  });
+
+  /**
    * Lists students with pagination, search, sorting, and filters.
    */
   listStudents = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -91,7 +109,7 @@ export class StudentController {
     if (req.user?.role === 'zone' && req.user.zoneId) {
       queryParams.zoneId = req.user.zoneId;
     }
-    const result = await studentService.listStudents(queryParams);
+    const result = await studentService.listStudents(queryParams, req.user?.role);
 
     ResponseFormatter.success(res, result.items, 'Students listed successfully', 200, result.meta);
   });
@@ -156,7 +174,6 @@ export class StudentController {
     ResponseFormatter.success(res, student, 'Student provisioned and welcome email sent successfully', 201);
   });
 
-
   /**
    * Exports students list in CSV or Excel format.
    */
@@ -168,7 +185,7 @@ export class StudentController {
     }
 
     if (format === 'xlsx') {
-      const buffer = await studentService.exportToExcel(queryParams);
+      const buffer = await studentService.exportToExcel(queryParams, req.user?.role);
       res.setHeader(
         'Content-Type',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -179,7 +196,7 @@ export class StudentController {
       );
       res.status(200).send(buffer);
     } else if (format === 'csv') {
-      const csvContent = await studentService.exportToCsv(queryParams);
+      const csvContent = await studentService.exportToCsv(queryParams, req.user?.role);
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader(
         'Content-Disposition',

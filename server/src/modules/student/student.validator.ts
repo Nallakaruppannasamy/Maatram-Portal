@@ -216,3 +216,12 @@ export const manualStudentSchema = z.object({
   }),
 });
 
+export const updateStudentSpocSchema = z.object({
+  body: z.object({
+    isSpoc: z.boolean({
+      required_error: 'isSpoc is required and must be a boolean',
+      invalid_type_error: 'isSpoc must be a boolean',
+    }),
+  }),
+});
+

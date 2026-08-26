@@ -9,7 +9,6 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/@prisma/client"
 }
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
@@ -172,6 +171,7 @@ model Student {
   cgpa                  Decimal?      @db.Decimal(4, 2)
   careerObjective       String?       @db.Text
   profileImage          String?       @db.VarChar(255)
+  isSpoc                Boolean       @default(false)
 
   // Relations
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -205,6 +205,8 @@ model Student {
   @@index([registrationNumber])
   @@index([zoneId, collegeId])
   @@index([accountStatus, zoneId])
+  @@index([isSpoc])
+  @@index([isSpoc, zoneId])
 }
 
 model Zone {

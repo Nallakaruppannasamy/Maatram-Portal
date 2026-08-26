@@ -9,7 +9,7 @@ export interface QueryParams {
   search?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
-  isActive?: string;
+  isActive?: string | boolean;
   [key: string]: unknown;
 }
 

@@ -13,6 +13,7 @@ import {
   updateStudentSchema,
   changeStudentStatusSchema,
   manualStudentSchema,
+  updateStudentSpocSchema,
 } from './student.validator';
 import multer from 'multer';
 
@@ -32,6 +33,14 @@ router.get('/export', requireRole('admin', 'zone'), studentController.exportStud
 router.get('/template', requireRole('admin'), studentController.getTemplate);
 router.get('/:id/resume', studentController.getResume);
 router.get('/:id', requireRole('admin', 'zone'), studentController.getStudentById);
+
+// SPOC status update (Super Admin globally, Zone Incharge within own zone)
+router.patch(
+  '/:id/spoc',
+  requireRole('admin', 'zone'),
+  validate(updateStudentSpocSchema),
+  studentController.updateSpocStatus
+);
 
 // Write endpoints (Admin only)
 router.post(

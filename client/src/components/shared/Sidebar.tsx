@@ -19,6 +19,8 @@ import {
   FolderGit2,
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
+  Archive,
   LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -99,9 +101,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeRole, user, onLogout }) 
     { title: 'Global Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
     { title: 'Excel Provisioning', path: '/admin/provisioning', icon: FileSpreadsheet },
     { title: 'Student Directory', path: '/admin/students', icon: Users },
+    { title: 'Archived Students', path: '/admin/archived-students', icon: Archive },
     { title: 'Organization Hierarchy', path: '/admin/hierarchy', icon: FolderGit2 },
     { title: 'Zone Management', path: '/admin/zones', icon: Building2 },
     { title: 'Team Management', path: '/admin/team', icon: ShieldCheck },
+    { title: 'Volunteering Logs', path: '/admin/volunteering-logs', icon: ClipboardCheck },
     { title: 'Global Analytics', path: '/admin/analytics', icon: BarChart3 },
     { title: 'Audit Logs', path: '/admin/audit-logs', icon: CheckSquare },
   ]

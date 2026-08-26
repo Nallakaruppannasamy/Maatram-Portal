@@ -132,6 +132,7 @@ export const ZoneManagementPage: React.FC = () => {
     onSuccess: () => {
       notify.success('College added successfully')
       queryClient.invalidateQueries({ queryKey: ['zone-colleges', selectedZoneId] })
+      queryClient.invalidateQueries({ queryKey: ['zones'] })
       setCollegeForm({ isOpen: false, mode: 'add', name: '', code: '', location: '' })
     },
     onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to add college'),
@@ -143,6 +144,7 @@ export const ZoneManagementPage: React.FC = () => {
     onSuccess: () => {
       notify.success('College updated successfully')
       queryClient.invalidateQueries({ queryKey: ['zone-colleges', selectedZoneId] })
+      queryClient.invalidateQueries({ queryKey: ['zones'] })
       setCollegeForm({ isOpen: false, mode: 'add', name: '', code: '', location: '' })
     },
     onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to update college'),
@@ -153,6 +155,7 @@ export const ZoneManagementPage: React.FC = () => {
     onSuccess: () => {
       notify.success('College deleted successfully')
       queryClient.invalidateQueries({ queryKey: ['zone-colleges', selectedZoneId] })
+      queryClient.invalidateQueries({ queryKey: ['zones'] })
     },
     onError: (err: any) => notify.error(err?.response?.data?.message || 'Failed to delete college'),
   })
@@ -326,7 +329,9 @@ export const ZoneManagementPage: React.FC = () => {
 
               <div className="flex items-center justify-between border-t border-[#F0EDEE] pt-3 text-[10px] font-black uppercase text-[#76777d]">
                 <span>Colleges</span>
-                <span className="text-xs font-black text-[#111827]">{zone.colleges?.length || 0}</span>
+                <span className="text-xs font-black text-[#111827]">
+                  {(zone as any).collegeCount ?? (zone as any)._count?.colleges ?? zone.colleges?.length ?? 0}
+                </span>
               </div>
             </div>
           )

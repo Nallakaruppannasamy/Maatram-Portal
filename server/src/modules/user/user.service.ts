@@ -201,8 +201,10 @@ export class UserService {
       where.isActive = params.isActive === 'true' || (params.isActive as unknown) === true;
     }
 
-    if (params.role) {
+    if (params.role && (params.role === 'admin' || params.role === 'zone')) {
       where.role = params.role as UserRole;
+    } else {
+      where.role = { in: [UserRole.admin, UserRole.zone] };
     }
 
     if (params.organizationId) {
@@ -229,10 +231,10 @@ export class UserService {
         orderBy as Prisma.UserOrderByWithRelationInput | undefined
       ),
       userRepository.count(where),
-      prisma.user.count(),
-      prisma.user.count({ where: { role: 'admin' } }),
-      prisma.user.count({ where: { role: 'zone' } }),
-      prisma.user.count({ where: { isActive: true } }),
+      prisma.user.count({ where: { role: { in: [UserRole.admin, UserRole.zone] } } }),
+      prisma.user.count({ where: { role: UserRole.admin } }),
+      prisma.user.count({ where: { role: UserRole.zone } }),
+      prisma.user.count({ where: { role: { in: [UserRole.admin, UserRole.zone] }, isActive: true } }),
     ]);
 
     const meta = buildPaginationMeta(totalCount, params);

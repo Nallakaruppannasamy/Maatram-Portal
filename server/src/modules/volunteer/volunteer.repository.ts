@@ -203,6 +203,7 @@ export class VolunteerRepository {
     limit?: number;
     search?: string;
     status?: string;
+    category?: string;
     studentId?: string;
     zoneId?: string;
   }): Promise<{ items: any[]; total: number }> {
@@ -214,6 +215,9 @@ export class VolunteerRepository {
     if (options.status) {
       where.status = options.status.toLowerCase() as any;
     }
+    if (options.category) {
+      where.category = options.category as any;
+    }
     if (options.studentId) {
       where.studentId = options.studentId;
     }
@@ -222,7 +226,15 @@ export class VolunteerRepository {
     }
 
     if (options.search && options.search.trim()) {
-      where.title = { contains: options.search.trim(), mode: 'insensitive' };
+      const q = options.search.trim();
+      where.OR = [
+        { title: { contains: q, mode: 'insensitive' } },
+        { submissionCode: { contains: q, mode: 'insensitive' } },
+        { student: { firstName: { contains: q, mode: 'insensitive' } } },
+        { student: { lastName: { contains: q, mode: 'insensitive' } } },
+        { student: { registrationNumber: { contains: q, mode: 'insensitive' } } },
+        { student: { college: { name: { contains: q, mode: 'insensitive' } } } },
+      ];
     }
 
     const [items, total] = await Promise.all([
@@ -231,7 +243,23 @@ export class VolunteerRepository {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: { student: { include: { user: true, college: true, department: true, program: true } }, zone: true, reviewer: true },
+        include: {
+          student: {
+            include: {
+              user: true,
+              college: true,
+              department: true,
+              program: true,
+              zone: true,
+            },
+          },
+          zone: true,
+          reviewer: {
+            include: {
+              userProfile: true,
+            },
+          },
+        },
       }),
       prisma.volunteerSubmission.count({ where }),
     ]);

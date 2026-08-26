@@ -1,11 +1,29 @@
 import React, { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Search, Download, ExternalLink, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, X, Users, MapPin, GraduationCap, HeartHandshake } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  Search,
+  Download,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  X,
+  Users,
+  MapPin,
+  GraduationCap,
+  HeartHandshake,
+  Star,
+  ToggleLeft,
+  ToggleRight,
+} from 'lucide-react'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Input } from '@/components/ui/Input'
 import { TableLoader } from '@/components/ui/TableLoader'
+import { Avatar } from '@/components/ui/Avatar'
 import { studentApi } from '@/api/student.api'
 import { useAuth } from '@/hooks/useAuth'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -24,23 +42,35 @@ const safeString = (val: any, fallback: string = 'N/A'): string => {
 }
 
 export const ZoneStudentManagementPage = () => {
+  const queryClient = useQueryClient()
   const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [academicYearFilter, setAcademicYearFilter] = useState('All')
+  const [spocFilter, setSpocFilter] = useState<'All' | 'SPOC Only' | 'Non-SPOC'>('All')
   const [page, setPage] = useState(1)
   const [sortBy, setSortBy] = useState('')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [pendingSpocId, setPendingSpocId] = useState<string | null>(null)
 
   const debouncedSearch = useDebounce(searchTerm, 400)
 
   const { data: studentsRes, isLoading } = useQuery({
-    queryKey: ['zone-students', debouncedSearch, page, academicYearFilter, sortBy, sortOrder],
+    queryKey: [
+      'zone-students',
+      debouncedSearch,
+      page,
+      academicYearFilter,
+      spocFilter,
+      sortBy,
+      sortOrder,
+    ],
     queryFn: () =>
       studentApi.list({
         search: debouncedSearch,
         page,
         limit: 10,
         academicYear: academicYearFilter !== 'All' ? academicYearFilter : undefined,
+        isSpoc: spocFilter === 'All' ? undefined : spocFilter === 'SPOC Only',
         sortBy: sortBy || undefined,
         sortOrder: sortBy ? sortOrder : undefined,
       }),
@@ -48,6 +78,26 @@ export const ZoneStudentManagementPage = () => {
 
   const students = studentsRes?.data || []
   const meta = studentsRes?.meta || { total: students.length, page: 1, totalPages: 1 }
+
+  // SPOC Mutation
+  const toggleSpocMutation = useMutation({
+    mutationFn: ({ id, isSpoc }: { id: string; isSpoc: boolean }) => {
+      setPendingSpocId(id)
+      return studentApi.updateSpoc(id, isSpoc)
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['zone-students'] })
+      notify.success(
+        variables.isSpoc ? 'Student marked as SPOC successfully' : 'Student unmarked from SPOC'
+      )
+    },
+    onError: (err: any) => {
+      notify.error(err.response?.data?.message || 'Failed to update SPOC status')
+    },
+    onSettled: () => {
+      setPendingSpocId(null)
+    },
+  })
 
   // Sorting
   const handleSort = (field: string) => {
@@ -78,6 +128,7 @@ export const ZoneStudentManagementPage = () => {
         format: 'xlsx',
         search: debouncedSearch,
         academicYear: academicYearFilter !== 'All' ? academicYearFilter : undefined,
+        isSpoc: spocFilter === 'All' ? undefined : spocFilter === 'SPOC Only',
         sortBy: sortBy || undefined,
         sortOrder: sortBy ? sortOrder : undefined,
         page,
@@ -119,54 +170,79 @@ export const ZoneStudentManagementPage = () => {
             <Users size={20} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Zone Scholars</p>
-            <p className="text-xl font-extrabold text-gray-900">{meta.total || students.length}</p>
+            <p className="text-[10px] font-bold text-[#76777d] uppercase tracking-wider">Zone Students</p>
+            <p className="text-xl font-extrabold text-[#111827]">{meta.total}</p>
           </div>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center text-[#D4AF37] font-bold">
-            <MapPin size={20} />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Assigned Zone</p>
-            <p className="text-sm font-extrabold text-gray-900 truncate max-w-[120px]">{user?.zoneId ? 'Active Zone' : 'Zone In-charge'}</p>
-          </div>
-        </div>
+
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center gap-4">
           <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold">
             <GraduationCap size={20} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Active Status</p>
-            <p className="text-xl font-extrabold text-emerald-600">100%</p>
+            <p className="text-[10px] font-bold text-[#76777d] uppercase tracking-wider">Active Scholars</p>
+            <p className="text-xl font-extrabold text-[#111827]">
+              {students.filter((s) => s.status === 'ACTIVE' || s.accountStatus === 'activated').length}
+            </p>
           </div>
         </div>
+
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 font-bold">
+          <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center text-[#D4AF37] font-bold">
             <HeartHandshake size={20} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Volunteering</p>
-            <p className="text-sm font-extrabold text-purple-900">Verified Logs</p>
+            <p className="text-[10px] font-bold text-[#76777d] uppercase tracking-wider">Current Page</p>
+            <p className="text-xl font-extrabold text-[#111827]">
+              {meta.page} / {Math.max(meta.totalPages, 1)}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 font-bold">
+            <MapPin size={20} />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-[#76777d] uppercase tracking-wider">Zone Status</p>
+            <p className="text-sm font-bold text-[#111827] truncate max-w-[120px]">
+              {(user as any)?.zone?.name || user?.zoneName || 'Assigned Zone'}
+            </p>
           </div>
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="relative w-full lg:w-80">
+      {/* Directory Table Card */}
+      <Card className="border border-[#E5E7EB] shadow-xs">
+        <CardHeader className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 border-b border-[#E5E7EB] bg-[#FCF8FA] px-6 py-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#76777d]" />
             <Input
-              icon={<Search className="w-4 h-4" />}
-              placeholder="Search student name or register no..."
+              placeholder="Search by student name, register number, or college..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value)
                 setPage(1)
               }}
+              className="pl-9 bg-white border-[#E5E7EB] text-xs h-9"
             />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* SPOC Filter */}
+            <select
+              value={spocFilter}
+              onChange={(e) => {
+                setSpocFilter(e.target.value as any)
+                setPage(1)
+              }}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-blue-900 outline-none h-9 font-medium text-gray-700"
+            >
+              <option value="All">All SPOC Status</option>
+              <option value="SPOC Only">SPOC Only</option>
+              <option value="Non-SPOC">Non-SPOC</option>
+            </select>
+
             {/* Academic Year Filter */}
             <select
               value={academicYearFilter}
@@ -174,7 +250,7 @@ export const ZoneStudentManagementPage = () => {
                 setAcademicYearFilter(e.target.value)
                 setPage(1)
               }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-blue-900 outline-none"
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-blue-900 outline-none h-9 font-medium text-gray-700"
             >
               <option value="All">All Academic Years</option>
               <option value="1st Year">1st Year</option>
@@ -183,15 +259,16 @@ export const ZoneStudentManagementPage = () => {
               <option value="4th Year">4th Year</option>
             </select>
 
-            {(academicYearFilter !== 'All' || searchTerm || sortBy) && (
+            {(academicYearFilter !== 'All' || spocFilter !== 'All' || searchTerm || sortBy) && (
               <button
                 onClick={() => {
                   setAcademicYearFilter('All')
+                  setSpocFilter('All')
                   setSearchTerm('')
                   setSortBy('')
                   setPage(1)
                 }}
-                className="flex items-center gap-1 p-2 bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 rounded-lg transition cursor-pointer text-xs"
+                className="flex items-center gap-1 p-2 bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 rounded-lg transition cursor-pointer text-xs h-9"
                 title="Reset Filters"
               >
                 <X size={14} /> Clear Filters
@@ -202,10 +279,12 @@ export const ZoneStudentManagementPage = () => {
 
         <CardContent>
           {isLoading ? (
-            <TableLoader rows={5} columns={9} />
+            <TableLoader rows={5} columns={11} />
           ) : students.length === 0 ? (
             <div className="py-12 text-center text-xs text-gray-500">
-              No students found matching your search criteria in your assigned zone.
+              {spocFilter === 'SPOC Only'
+                ? 'No SPOC students found matching your search criteria in your assigned zone.'
+                : 'No students found matching your search criteria in your assigned zone.'}
             </div>
           ) : (
             <div className="space-y-4">
@@ -214,6 +293,7 @@ export const ZoneStudentManagementPage = () => {
                   <thead>
                     <tr className="border-b border-[#E5E7EB] text-[#76777d] uppercase tracking-wider text-[10px] bg-gray-50">
                       <th className="py-3 px-3 font-bold w-12 text-center">S. No.</th>
+                      <th className="py-3 px-3 font-bold w-14 text-center">Photo</th>
                       <th
                         className="py-3 px-3 font-bold cursor-pointer hover:bg-gray-100 select-none"
                         onClick={() => handleSort('registerNumber')}
@@ -245,6 +325,7 @@ export const ZoneStudentManagementPage = () => {
                       >
                         Current Year {renderSortIndicator('academicYear')}
                       </th>
+                      <th className="py-3 px-3 font-bold text-center">SPOC</th>
                       <th className="py-3 px-3 font-bold">Status</th>
                       <th className="py-3 px-3 font-bold">Action</th>
                     </tr>
@@ -269,10 +350,26 @@ export const ZoneStudentManagementPage = () => {
                       }
                       const academicYearLabel = getYearLabel(st.academicYear)
                       const status = safeString((st as any).status || st.accountStatus, 'ACTIVE')
+                      const isSpocActive = !!st.isSpoc
+                      const isRowPending = toggleSpocMutation.isPending && pendingSpocId === st.id
 
                       return (
-                        <tr key={st.id} className="hover:bg-[#FCF8FA] transition-colors">
+                        <tr
+                          key={st.id}
+                          className={`transition-colors ${
+                            isSpocActive
+                              ? 'bg-amber-50/40 hover:bg-amber-50/70 border-l-4 border-l-[#D4AF37]'
+                              : 'hover:bg-[#FCF8FA]'
+                          }`}
+                        >
                           <td className="py-3.5 px-3 font-bold text-center text-gray-400">{serialNum}</td>
+                          <td className="py-3.5 px-3 text-center">
+                            <Avatar
+                              src={st.profileImage || (st as any).user?.profilePhotoUrl}
+                              name={name}
+                              size="sm"
+                            />
+                          </td>
                           <td className="py-3.5 px-3 text-blue-900 font-mono font-bold">
                             <a
                               href={`/resume/${st.id}`}
@@ -284,7 +381,16 @@ export const ZoneStudentManagementPage = () => {
                               {regNo}
                             </a>
                           </td>
-                          <td className="py-3.5 px-3 font-bold text-[#111827]">{name}</td>
+                          <td className="py-3.5 px-3 font-bold text-[#111827]">
+                            <div className="flex items-center gap-2">
+                              <span>{name}</span>
+                              {isSpocActive && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-[#D4AF37]/15 text-[#996515] border border-[#D4AF37]/30">
+                                  <Star size={10} className="fill-[#D4AF37] text-[#D4AF37]" /> SPOC
+                                </span>
+                              )}
+                            </div>
+                          </td>
                           <td className="py-3.5 px-3">
                             <p className="font-semibold text-[#111827]">{college}</p>
                             <p className="text-[10px] text-[#76777d]">{dept}</p>
@@ -292,6 +398,36 @@ export const ZoneStudentManagementPage = () => {
                           <td className="py-3.5 px-3 font-medium text-gray-700">{zoneLabel}</td>
                           <td className="py-3.5 px-3 text-[#76777d] font-mono">{batch}</td>
                           <td className="py-3.5 px-3 font-semibold text-gray-700">{academicYearLabel}</td>
+                          <td className="py-3.5 px-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleSpocMutation.mutate({
+                                  id: st.id,
+                                  isSpoc: !isSpocActive,
+                                })
+                              }
+                              disabled={isRowPending}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer select-none ${
+                                isSpocActive
+                                  ? 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200'
+                                  : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                              } ${isRowPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              title={isSpocActive ? 'Click to unmark SPOC' : 'Click to mark as SPOC'}
+                            >
+                              {isSpocActive ? (
+                                <>
+                                  <ToggleRight size={16} className="text-amber-700" />
+                                  <span>SPOC</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ToggleLeft size={16} className="text-gray-400" />
+                                  <span>OFF</span>
+                                </>
+                              )}
+                            </button>
+                          </td>
                           <td className="py-3.5 px-3">
                             <Badge variant={status === 'ACTIVE' ? 'approved' : 'pending'}>
                               {status.toUpperCase()}

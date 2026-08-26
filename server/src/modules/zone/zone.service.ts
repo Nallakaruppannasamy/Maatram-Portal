@@ -212,9 +212,15 @@ export class ZoneService {
       zoneRepository.count(where),
     ]);
 
+    const items = zones.map((z: any) => ({
+      ...z,
+      collegeCount: z._count?.colleges ?? z.colleges?.length ?? 0,
+      studentCount: z._count?.students ?? z.students?.length ?? 0,
+    }));
+
     const meta = buildPaginationMeta(totalCount, params);
 
-    return { data: zones, meta };
+    return { data: items, meta };
   }
 
   /**

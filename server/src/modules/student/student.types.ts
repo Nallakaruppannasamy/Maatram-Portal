@@ -114,6 +114,9 @@ export interface StudentQueryOptions {
   status?: StudentStatus;
   batch?: string;
   academicYear?: string;
+  isSpoc?: boolean;
+  scope?: 'active' | 'archived' | 'all';
+  isActive?: boolean;
   [key: string]: unknown;
 }
 

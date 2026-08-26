@@ -127,6 +127,8 @@ export interface Student {
   totalVolunteerHours?: number
   accountStatus?: AccountStatus | string
   status?: string
+  profileImage?: string | null
+  isSpoc?: boolean
   createdAt?: string
   updatedAt?: string
 }

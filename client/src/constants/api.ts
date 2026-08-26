@@ -29,6 +29,7 @@ export const API_ROUTES = {
     BASE: '/students',
     BY_ID: (id: string) => `/students/${id}`,
     STATUS: (id: string) => `/students/${id}/status`,
+    SPOC: (id: string) => `/students/${id}/spoc`,
     IMPORT: '/students/import',
     EXPORT: '/students/export',
   },

@@ -28,6 +28,11 @@ export const studentApi = {
     return res.data
   },
 
+  updateSpoc: async (id: string, isSpoc: boolean): Promise<ApiResponse<Student>> => {
+    const res = await apiInstance.patch<ApiResponse<Student>>(API_ROUTES.STUDENTS.SPOC(id), { isSpoc })
+    return res.data
+  },
+
   importCSV: async (file: File): Promise<ApiResponse<any>> => {
     const formData = new FormData()
     formData.append('file', file)

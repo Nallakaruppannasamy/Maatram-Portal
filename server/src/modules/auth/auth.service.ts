@@ -162,6 +162,11 @@ export class AuthService {
       throw ApiError.unauthorized('Invalid or expired refresh token');
     }
 
+    const user = await authRepository.findById(storedToken.userId);
+    if (!user || !user.isActive) {
+      throw ApiError.unauthorized('Account is deactivated. Please contact your administrator.');
+    }
+
     // Revoke old refresh token
     await authRepository.revokeRefreshToken(tokenHash);
 

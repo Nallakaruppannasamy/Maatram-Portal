@@ -1,5 +1,5 @@
-import React, { useState, Fragment, useRef, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import React, { useState, useRef, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   Search,
   ChevronDown,
@@ -10,14 +10,12 @@ import {
   X,
   Download,
   Users,
-  MapPin,
   LucideIcon,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
   Star,
-  ToggleLeft,
-  ToggleRight,
+  Archive,
 } from 'lucide-react'
 import { TableLoader } from '@/components/ui/TableLoader'
 import { Avatar } from '@/components/ui/Avatar'
@@ -59,8 +57,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, colorClas
   </div>
 )
 
-export const SuperAdminStudentDirectoryPage: React.FC = () => {
-  const queryClient = useQueryClient()
+export const ArchivedStudentsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [collegeFilter, setCollegeFilter] = useState<string>('All')
   const [zoneFilter, setZoneFilter] = useState<string>('All')
@@ -70,7 +67,6 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
   const [showExportMenu, setShowExportMenu] = useState<boolean>(false)
   const [sortBy, setSortBy] = useState<string>('')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
-  const [pendingSpocId, setPendingSpocId] = useState<string | null>(null)
   const exportMenuRef = useRef<HTMLDivElement>(null)
 
   const debouncedSearch = useDebounce(searchTerm, 400)
@@ -88,10 +84,10 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
   })
   const colleges = collegesRes?.data || []
 
-  // Fetch Students
+  // Fetch Archived Students (scope = archived)
   const { data: studentsRes, isLoading } = useQuery({
     queryKey: [
-      'students',
+      'archived-students',
       debouncedSearch,
       currentPage,
       zoneFilter,
@@ -103,6 +99,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
     ],
     queryFn: () =>
       studentApi.list({
+        scope: 'archived',
         search: debouncedSearch,
         page: currentPage,
         limit: 10,
@@ -117,26 +114,6 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
 
   const students = studentsRes?.data || []
   const meta = studentsRes?.meta || { total: 0, page: currentPage, totalPages: 1 }
-
-  // SPOC Mutation
-  const toggleSpocMutation = useMutation({
-    mutationFn: ({ id, isSpoc }: { id: string; isSpoc: boolean }) => {
-      setPendingSpocId(id)
-      return studentApi.updateSpoc(id, isSpoc)
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['students'] })
-      notify.success(
-        variables.isSpoc ? 'Student marked as SPOC successfully' : 'Student unmarked from SPOC'
-      )
-    },
-    onError: (err: any) => {
-      notify.error(err.response?.data?.message || 'Failed to update SPOC status')
-    },
-    onSettled: () => {
-      setPendingSpocId(null)
-    },
-  })
 
   // Sorting Handler
   const handleSort = (field: string) => {
@@ -158,13 +135,14 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
     )
   }
 
-  // Export File (Backend Powered, respects pagination/sorting/filtering)
+  // Export File (Backend Powered, respects pagination/sorting/filtering for archived records)
   const handleExport = async (format: 'csv' | 'xlsx') => {
-    if (students.length === 0) return notify.info('No student records found to export.')
+    if (students.length === 0) return notify.info('No archived student records found to export.')
 
     try {
       const blob = await studentApi.exportCSV({
         format,
+        scope: 'archived',
         search: debouncedSearch,
         sortBy: sortBy || undefined,
         sortOrder: sortBy ? sortOrder : undefined,
@@ -179,14 +157,14 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `Student_Directory_${Date.now()}.${format}`
+      a.download = `Archived_Students_${Date.now()}.${format}`
       document.body.appendChild(a)
       a.click()
       a.remove()
       window.URL.revokeObjectURL(url)
-      notify.success(`Exported table data as ${format.toUpperCase()}`)
+      notify.success(`Exported archived table data as ${format.toUpperCase()}`)
     } catch {
-      notify.error('Failed to export student directory data.')
+      notify.error('Failed to export archived student directory data.')
     }
   }
 
@@ -207,9 +185,14 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
         {/* Header section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Student Directory</h1>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl font-bold text-gray-900">Archived Students</h1>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                Historical Archive
+              </span>
+            </div>
             <p className="text-sm text-gray-500 mt-1">
-              Comprehensive scholar database with live academic records, SPOC designation, and zone assignments.
+              Historical database of deactivated scholar profiles with full academic, SPOC, and resume records.
             </p>
           </div>
 
@@ -217,10 +200,10 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
           <div className="relative" ref={exportMenuRef}>
             <button
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className="flex items-center gap-2 bg-blue-900 hover:bg-blue-950 text-white px-4 py-2 rounded-lg font-medium text-sm transition shadow-sm cursor-pointer"
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg font-medium text-sm transition shadow-sm cursor-pointer"
             >
               <Download size={16} />
-              <span>Export</span>
+              <span>Export Archive</span>
               <ChevronDown size={14} />
             </button>
 
@@ -234,13 +217,13 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                     onClick={() => handleExport('xlsx')}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
                   >
-                    Export Current Table (Excel)
+                    Export Archive (Excel)
                   </button>
                   <button
                     onClick={() => handleExport('csv')}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
                   >
-                    Export Current Table (CSV)
+                    Export Archive (CSV)
                   </button>
                 </div>
               </div>
@@ -248,25 +231,36 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Live Dynamic Zone Student Statistics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        {/* Summary Metric Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
           <StatCard
-            title="Total Students"
+            title="Total Archived"
             value={meta.total}
+            icon={Archive}
+            colorClass="bg-slate-100"
+            iconColor="text-slate-700"
+          />
+          <StatCard
+            title="Archived SPOCs"
+            value={students.filter((s) => s.isSpoc).length}
+            icon={Star}
+            colorClass="bg-amber-50"
+            iconColor="text-[#D4AF37]"
+          />
+          <StatCard
+            title="Current Page"
+            value={meta.page}
             icon={Users}
             colorClass="bg-blue-50"
             iconColor="text-blue-600"
           />
-          {zones.map((zone) => (
-            <StatCard
-              key={zone.id}
-              title={`Students in ${zone.name}`}
-              value={(zone as any)._count?.students ?? 0}
-              icon={Users}
-              colorClass="bg-amber-50"
-              iconColor="text-[#D4AF37]"
-            />
-          ))}
+          <StatCard
+            title="Total Pages"
+            value={Math.max(meta.totalPages, 1)}
+            icon={Users}
+            colorClass="bg-purple-50"
+            iconColor="text-purple-600"
+          />
         </div>
 
         {/* Search & Filter Toolbar */}
@@ -274,13 +268,13 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
           <div className="relative grow">
             <input
               type="text"
-              placeholder="Search by student name or registration code..."
+              placeholder="Search archived students by name or registration number..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value)
                 setCurrentPage(1)
               }}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-slate-800 outline-none"
             />
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
@@ -293,7 +287,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                 setSpocFilter(e.target.value as any)
                 setCurrentPage(1)
               }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-slate-800 outline-none"
             >
               <option value="All">All SPOC Status</option>
               <option value="SPOC Only">SPOC Only</option>
@@ -307,7 +301,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                 setZoneFilter(e.target.value)
                 setCurrentPage(1)
               }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-slate-800 outline-none"
             >
               <option value="All">All Zones</option>
               {zones.map((z) => (
@@ -324,7 +318,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                 setCollegeFilter(e.target.value)
                 setCurrentPage(1)
               }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none max-w-xs"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-slate-800 outline-none max-w-xs"
             >
               <option value="All">All Colleges</option>
               {colleges.map((c) => (
@@ -341,7 +335,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                 setAcademicYearFilter(e.target.value)
                 setCurrentPage(1)
               }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-slate-800 outline-none"
             >
               <option value="All">All Academic Years</option>
               <option value="1st Year">1st Year</option>
@@ -380,11 +374,17 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
           {isLoading ? (
             <TableLoader rows={6} columns={10} />
           ) : students.length === 0 ? (
-            <p className="text-center py-12 text-gray-400 font-medium">
-              {spocFilter === 'SPOC Only'
-                ? 'No SPOC students found matching your criteria.'
-                : 'No student records match your current criteria.'}
-            </p>
+            <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
+              <Archive size={40} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500 font-semibold text-sm">
+                {spocFilter === 'SPOC Only'
+                  ? 'No archived SPOC students found matching your criteria.'
+                  : 'No archived student records match your current criteria.'}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Deactivated students from Student Provisioning will appear here.
+              </p>
+            </div>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
               <table className="min-w-full divide-y divide-gray-200">
@@ -436,7 +436,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                       SPOC
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                      Status
+                      Account Status
                     </th>
                   </tr>
                 </thead>
@@ -463,9 +463,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                       return `${y}th Year`
                     }
                     const academicYearLabel = getYearLabel(student.academicYear)
-                    const status = student.status || 'ACTIVE'
                     const isSpocActive = !!student.isSpoc
-                    const isRowPending = toggleSpocMutation.isPending && pendingSpocId === student.id
 
                     return (
                       <tr
@@ -492,6 +490,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:underline hover:text-blue-950 cursor-pointer"
+                            title="View archived student resume"
                           >
                             {regNo}
                           </a>
@@ -513,44 +512,19 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                           {academicYearLabel}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-center">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              toggleSpocMutation.mutate({
-                                id: student.id,
-                                isSpoc: !isSpocActive,
-                              })
-                            }
-                            disabled={isRowPending}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer select-none ${
-                              isSpocActive
-                                ? 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200'
-                                : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                            } ${isRowPending ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            title={isSpocActive ? 'Click to unmark SPOC' : 'Click to mark as SPOC'}
-                          >
-                            {isSpocActive ? (
-                              <>
-                                <ToggleRight size={16} className="text-amber-700" />
-                                <span>SPOC</span>
-                              </>
-                            ) : (
-                              <>
-                                <ToggleLeft size={16} className="text-gray-400" />
-                                <span>OFF</span>
-                              </>
-                            )}
-                          </button>
+                          {isSpocActive ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+                              <Star size={12} className="fill-[#D4AF37] text-[#D4AF37]" /> SPOC
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-medium text-gray-400 bg-gray-100">
+                              No
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              status === 'ACTIVE'
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-amber-50 text-amber-700'
-                            }`}
-                          >
-                            {status}
+                          <span className="px-2.5 py-1 rounded text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
+                            DEACTIVATED
                           </span>
                         </td>
                       </tr>
@@ -566,7 +540,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
           <p className="text-xs text-gray-500">
             Showing {(meta.page - 1) * 10 + 1} to{' '}
-            {Math.min(meta.page * 10, meta.total)} of {meta.total} students
+            {Math.min(meta.page * 10, meta.total)} of {meta.total} archived students
           </p>
 
           <div className="flex items-center gap-1">
@@ -613,3 +587,5 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
     </div>
   )
 }
+
+export default ArchivedStudentsPage
