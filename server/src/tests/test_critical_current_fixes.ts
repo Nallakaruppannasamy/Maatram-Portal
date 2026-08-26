@@ -35,31 +35,14 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         identifier: 'admin@maatram.com',
-        password: 'Password@123',
+        password: 'admin@123',
       }),
     });
     const adminLoginData = (await adminLoginRes.json()) as any;
     if (!adminLoginRes.ok) {
-      // Fallback: update admin password if needed for test
-      const hashed = await hashPassword('Admin@123');
-      await prisma.user.update({
-        where: { email: 'admin@maatram.com' },
-        data: { passwordHash: hashed },
-      });
-      const retryRes = await fetch(`${BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          identifier: 'admin@maatram.com',
-          password: 'Admin@123',
-        }),
-      });
-      const retryData = (await retryRes.json()) as any;
-      if (!retryRes.ok) throw new Error(`Super Admin login failed: ${JSON.stringify(retryData)}`);
-      adminToken = retryData.data.accessToken;
-    } else {
-      adminToken = adminLoginData.data.accessToken;
+      throw new Error(`Super Admin login failed: ${JSON.stringify(adminLoginData)}`);
     }
+    adminToken = adminLoginData.data.accessToken;
     console.log('✅ Super Admin logged in successfully.');
 
     // ─── TEST 1: ZONE LIST & PAGINATION CONSISTENCY ───────────────────────────
