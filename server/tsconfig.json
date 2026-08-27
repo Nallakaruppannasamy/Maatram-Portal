@@ -3,23 +3,19 @@
     "target": "ES2022",
     "module": "commonjs",
     "lib": ["ES2022"],
-    "types": ["node"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "moduleResolution": "node",
-    "ignoreDeprecations": "5.0",
     "sourceMap": true,
     "resolveJsonModule": true,
     "declaration": false,
     "removeComments": true,
-    "baseUrl": "./",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*", "prisma/**/*"],
   "exclude": ["node_modules", "dist", "src/tests"]
-}
+}
