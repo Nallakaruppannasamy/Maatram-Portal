@@ -16,4 +16,9 @@ export default defineConfig({
     port: 5173,
     open: true,
   },
+  preview: {
+    host: '0.0.0.0',
+    port: parseInt(process.env.PORT || '4173', 10),
+    allowedHosts: ['maatram-portal.onrender.com'],
+  },
 })
