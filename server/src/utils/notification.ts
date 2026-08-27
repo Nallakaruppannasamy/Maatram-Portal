@@ -57,12 +57,11 @@ export class NotificationService {
         logger.info(`📧 [RESEND] Email sent successfully via Resend: id=${data.id || 'ok'} | Recipient: ${payload.to}`);
         return;
       } catch (error) {
-        logger.error(`❌ [RESEND FAILURE] Failed to send email to ${payload.to}: ${(error as Error).message}`);
-        logger.info(`✉️ [EMAIL FALLBACK LOG]
-        To: ${payload.to}
-        Subject: ${payload.subject}
-        Body: ${payload.body}
-      `);
+        const maskedRecipient = payload.to.includes('@')
+          ? `${payload.to.split('@')[0].slice(0, 3)}***@${payload.to.split('@')[1]}`
+          : '***';
+        logger.error(`❌ [RESEND FAILURE] Failed to deliver email to ${maskedRecipient}: ${(error as Error).message}`);
+        logger.info(`✉️ [EMAIL DELIVERY STATUS] Provider: Resend | Recipient: ${maskedRecipient} | Subject: ${payload.subject} | Status: Failed`);
         return;
       }
     }
@@ -78,14 +77,16 @@ export class NotificationService {
       };
 
       const info = await transporter.sendMail(mailOptions);
-      logger.info(`📧 [SMTP SENT] MessageId: ${info.messageId} | Recipient: ${payload.to}`);
+      const maskedRecipient = payload.to.includes('@')
+        ? `${payload.to.split('@')[0].slice(0, 3)}***@${payload.to.split('@')[1]}`
+        : '***';
+      logger.info(`📧 [SMTP SENT] MessageId: ${info.messageId} | Recipient: ${maskedRecipient}`);
     } catch (error) {
-      logger.error(`❌ [SMTP FAILURE] Failed to send email to ${payload.to}: ${(error as Error).message}`);
-      logger.info(`✉️ [EMAIL FALLBACK LOG]
-        To: ${payload.to}
-        Subject: ${payload.subject}
-        Body: ${payload.body}
-      `);
+      const maskedRecipient = payload.to.includes('@')
+        ? `${payload.to.split('@')[0].slice(0, 3)}***@${payload.to.split('@')[1]}`
+        : '***';
+      logger.error(`❌ [SMTP FAILURE] Failed to deliver email to ${maskedRecipient}: ${(error as Error).message}`);
+      logger.info(`✉️ [EMAIL DELIVERY STATUS] Provider: SMTP | Recipient: ${maskedRecipient} | Subject: ${payload.subject} | Status: Failed`);
     }
   }
 }
