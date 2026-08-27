@@ -4,7 +4,7 @@ import { logger } from '@/config/logger';
 import { checkDatabaseConnection } from '@/config/database';
 import { verifyMailConnection } from '@/config/mail';
 
-const PORT = env.PORT;
+const PORT = Number(process.env.PORT) || env.PORT || 5000;
 
 const bootstrap = async () => {
   logger.info('🚀 Bootstrapping Maatram Backend Service...');
@@ -15,9 +15,9 @@ const bootstrap = async () => {
   // 2. Establish & verify SMTP mail connection
   await verifyMailConnection();
 
-  const server = app.listen(PORT, () => {
-    logger.info(`✨ Server listening on port ${PORT} in ${env.NODE_ENV} mode.`);
-    logger.info(`📄 Swagger Documentation available at http://localhost:${PORT}/api-docs`);
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    logger.info(`✨ Server listening on 0.0.0.0:${PORT} in ${env.NODE_ENV} mode.`);
+    logger.info(`📄 Swagger Documentation available at /api-docs`);
   });
 
   // Graceful shutdown handler
