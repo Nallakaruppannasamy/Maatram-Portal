@@ -19,6 +19,9 @@ import fs from 'fs';
 
 const app: Express = express();
 
+// Trust the immediate 1st-hop reverse proxy (Render load balancer) for safe req.ip resolution
+app.set('trust proxy', 1);
+
 // Ensure uploads directory exists on startup
 const uploadsDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadsDir)) {
