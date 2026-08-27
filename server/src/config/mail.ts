@@ -31,6 +31,9 @@ export const transporter = nodemailer.createTransport({
  * Verifies connection status with the SMTP server.
  */
 export const verifyMailConnection = async (): Promise<boolean> => {
+  logger.info(
+    `🔍 Testing SMTP connection: host=${env.SMTP_HOST}, port=${env.SMTP_PORT}, secure=${env.SMTP_PORT === 465}, family=IPv4, user=${env.SMTP_USER ? env.SMTP_USER.split('@')[0] + '@***' : 'none'}`
+  );
   try {
     await transporter.verify();
     logger.info('📧 SMTP Mail Server connected successfully.');

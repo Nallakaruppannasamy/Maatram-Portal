@@ -28,7 +28,7 @@ const envSchema = z.object({
   SMTP_PORT: z
     .string()
     .transform((val) => parseInt(val, 10))
-    .default('587'),
+    .default('465'),
   SMTP_USER: z.string().min(1, 'SMTP_USER is required'),
   SMTP_PASS: z.string().min(1, 'SMTP_PASS is required'),
   SMTP_FROM_EMAIL: z.string().email().default('no-reply@maatram.org'),
