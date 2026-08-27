@@ -45,6 +45,7 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
 const allowedOrigins = [
   ...env.FRONTEND_URL.split(',').map((u) => u.trim().replace(/\/+$/, '')),
+  'https://maatram-portal.onrender.com',
   'http://localhost:3000',
   'http://localhost:5173',
 ];
@@ -56,6 +57,7 @@ app.use(
       const normalizedOrigin = origin.replace(/\/+$/, '');
       const isAllowed =
         allowedOrigins.includes(normalizedOrigin) ||
+        /^https:\/\/.*\.onrender\.com$/.test(normalizedOrigin) ||
         /^https:\/\/.*\.vercel\.app$/.test(normalizedOrigin);
       if (isAllowed) {
         callback(null, true);

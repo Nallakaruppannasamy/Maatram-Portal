@@ -16,6 +16,9 @@ const getBaseURL = () => {
     const rawUrl = import.meta.env.VITE_API_URL.replace(/\/+$/, '')
     return rawUrl.endsWith('/api/v1') ? rawUrl : `${rawUrl}/api/v1`
   }
+  if (import.meta.env.PROD) {
+    return 'https://maatram-staging-api.onrender.com/api/v1'
+  }
   return 'http://localhost:5000/api/v1'
 }
 
