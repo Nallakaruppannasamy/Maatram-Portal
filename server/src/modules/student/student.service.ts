@@ -123,6 +123,30 @@ export class StudentService {
   }
 
   /**
+   * Retrieves or automatically provisions the default MTM-ORG organization.
+   */
+  private async getOrCreateDefaultOrganization() {
+    let org = await prisma.organization.findUnique({ where: { code: 'MTM-ORG' } });
+    if (!org) {
+      org = await prisma.organization.findFirst({ where: { isActive: true } });
+    }
+    if (!org) {
+      org = await prisma.organization.upsert({
+        where: { code: 'MTM-ORG' },
+        update: {},
+        create: {
+          name: 'Maatram Educational and Charitable Trust',
+          code: 'MTM-ORG',
+          description: 'Headquarters organization for Maatram Educational and Charitable Trust',
+          isActive: true,
+        },
+      });
+      logger.info('🏢 Default Organization (MTM-ORG) initialized in database.');
+    }
+    return org;
+  }
+
+  /**
    * Validates target entities existence (organization, zone, college, department, program).
    */
   private async validateEntities(
@@ -613,11 +637,8 @@ result.push(current.trim());
       );
     }
 
-    // Get default organization (MTM-ORG)
-    const org = await prisma.organization.findUnique({ where: { code: 'MTM-ORG' } });
-    if (!org) {
-      throw ApiError.internal('Default organization (MTM-ORG) not found in database');
-    }
+    // Get or auto-provision default organization (MTM-ORG)
+    const org = await this.getOrCreateDefaultOrganization();
 
     // Load existing emails and registration numbers for fast lookup
     const allEmails = new Set(
@@ -811,18 +832,31 @@ result.push(current.trim());
           `,
         };
 
-        await notificationService.sendEmail(emailPayload);
+        const emailResult = await notificationService.sendEmail(emailPayload);
 
-        // Audit Log for email sent
-        await createAuditLog({
-          actorId,
-          actorRole,
-          action: 'WELCOME_EMAIL_SENT',
-          targetEntityType: 'student',
-          targetEntityId: studentId,
-          targetLabel: studentName,
-          details: `Credentials welcome email sent to ${record.email}`,
-        });
+        if (emailResult.success) {
+          // Audit Log for email sent
+          await createAuditLog({
+            actorId,
+            actorRole,
+            action: 'WELCOME_EMAIL_SENT',
+            targetEntityType: 'student',
+            targetEntityId: studentId,
+            targetLabel: studentName,
+            details: `Credentials welcome email sent to ${record.email}`,
+          });
+        } else {
+          // Audit Log for email failure (non-blocking)
+          await createAuditLog({
+            actorId,
+            actorRole,
+            action: 'WELCOME_EMAIL_FAILED',
+            targetEntityType: 'student',
+            targetEntityId: studentId,
+            targetLabel: studentName,
+            details: `Credentials email delivery failed: ${emailResult.error || 'Unknown error'}`,
+          });
+        }
       }
 
       logger.info(
@@ -1157,10 +1191,8 @@ result.push(current.trim());
       throw ApiError.badRequest(`Register Number "${registrationNumber}" is already registered`);
     }
 
-    const org = await prisma.organization.findUnique({ where: { code: 'MTM-ORG' } });
-    if (!org) {
-      throw ApiError.internal('Default organization (MTM-ORG) not found in database');
-    }
+    // Get or auto-provision default organization (MTM-ORG)
+    const org = await this.getOrCreateDefaultOrganization();
 
     // DOB Temporary password
     const tempPassword = formatDobAsPassword(dob);
@@ -1195,8 +1227,8 @@ result.push(current.trim());
     });
 
     // Send credentials email
-    const portalUrl = env.FRONTEND_URL || 'http://localhost:5173';
-    await notificationService.sendEmail({
+    const portalUrl = env.FRONTEND_URL || 'https://maatram-portal.onrender.com';
+    const emailResult = await notificationService.sendEmail({
       to: emailLower,
       subject: 'Welcome to Maatram Foundation - Your Student Account Credentials',
       body: `Dear ${fullStudentName},\n\nWelcome to Maatram Foundation! Your student account has been successfully provisioned.\n\nPortal URL: ${portalUrl}\nRegistration Number: ${regUpper}\nTemporary Password: ${tempPassword}\n\nInstructions:\n1. Log in to the portal using your credentials.\n2. You will be prompted to change your temporary password on your first login.\n3. Complete your profile fields to activate your account.\n\nBest regards,\nMaatram Foundation Team`,
@@ -1222,15 +1254,27 @@ result.push(current.trim());
       `,
     });
 
-    await createAuditLog({
-      actorId,
-      actorRole,
-      action: 'WELCOME_EMAIL_SENT',
-      targetEntityType: 'student',
-      targetEntityId: student.id,
-      targetLabel: fullStudentName,
-      details: `Credentials welcome email sent to ${emailLower}`,
-    });
+    if (emailResult.success) {
+      await createAuditLog({
+        actorId,
+        actorRole,
+        action: 'WELCOME_EMAIL_SENT',
+        targetEntityType: 'student',
+        targetEntityId: student.id,
+        targetLabel: fullStudentName,
+        details: `Credentials welcome email sent to ${emailLower}`,
+      });
+    } else {
+      await createAuditLog({
+        actorId,
+        actorRole,
+        action: 'WELCOME_EMAIL_FAILED',
+        targetEntityType: 'student',
+        targetEntityId: student.id,
+        targetLabel: fullStudentName,
+        details: `Credentials email delivery failed: ${emailResult.error || 'Unknown error'}`,
+      });
+    }
 
     return student;
   }

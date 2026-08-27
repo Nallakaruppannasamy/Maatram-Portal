@@ -14,11 +14,22 @@ export interface NotificationPayload {
   html?: string;
 }
 
+export interface EmailSendResult {
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}
+
 export class NotificationService {
   /**
    * Sends an email via Resend HTTPS API (production/staging) or Nodemailer SMTP (local fallback).
+   * Safely captures errors and returns an EmailSendResult without throwing unhandled exceptions.
    */
-  async sendEmail(payload: NotificationPayload): Promise<void> {
+  async sendEmail(payload: NotificationPayload): Promise<EmailSendResult> {
+    const maskedRecipient = payload.to.includes('@')
+      ? `${payload.to.split('@')[0].slice(0, 3)}***@${payload.to.split('@')[1]}`
+      : '***';
+
     let fromAddress = `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`;
 
     // 1. Resend HTTPS API Mode (Production / Staging / When RESEND_API_KEY is available)
@@ -48,21 +59,22 @@ export class NotificationService {
           }),
         });
 
-        const data = (await response.json()) as { id?: string; message?: string };
+        const data = (await response.json()) as { id?: string; message?: string; name?: string };
 
         if (!response.ok) {
-          throw new Error(data.message || `Resend HTTP error ${response.status}`);
+          const errMsg = data.message || `Resend HTTP error ${response.status}`;
+          logger.error(`❌ [RESEND FAILURE] Failed to deliver email to ${maskedRecipient}: ${errMsg}`);
+          logger.info(`✉️ [EMAIL DELIVERY STATUS] Provider: Resend | Recipient: ${maskedRecipient} | Subject: ${payload.subject} | Status: Failed | Reason: ${errMsg}`);
+          return { success: false, error: errMsg };
         }
 
-        logger.info(`📧 [RESEND] Email sent successfully via Resend: id=${data.id || 'ok'} | Recipient: ${payload.to}`);
-        return;
+        logger.info(`📧 [RESEND] Email sent successfully via Resend: id=${data.id || 'ok'} | Recipient: ${maskedRecipient}`);
+        return { success: true, messageId: data.id };
       } catch (error) {
-        const maskedRecipient = payload.to.includes('@')
-          ? `${payload.to.split('@')[0].slice(0, 3)}***@${payload.to.split('@')[1]}`
-          : '***';
-        logger.error(`❌ [RESEND FAILURE] Failed to deliver email to ${maskedRecipient}: ${(error as Error).message}`);
-        logger.info(`✉️ [EMAIL DELIVERY STATUS] Provider: Resend | Recipient: ${maskedRecipient} | Subject: ${payload.subject} | Status: Failed`);
-        return;
+        const errMsg = (error as Error).message;
+        logger.error(`❌ [RESEND FAILURE] Failed to deliver email to ${maskedRecipient}: ${errMsg}`);
+        logger.info(`✉️ [EMAIL DELIVERY STATUS] Provider: Resend | Recipient: ${maskedRecipient} | Subject: ${payload.subject} | Status: Failed | Reason: ${errMsg}`);
+        return { success: false, error: errMsg };
       }
     }
 
@@ -77,16 +89,13 @@ export class NotificationService {
       };
 
       const info = await transporter.sendMail(mailOptions);
-      const maskedRecipient = payload.to.includes('@')
-        ? `${payload.to.split('@')[0].slice(0, 3)}***@${payload.to.split('@')[1]}`
-        : '***';
       logger.info(`📧 [SMTP SENT] MessageId: ${info.messageId} | Recipient: ${maskedRecipient}`);
+      return { success: true, messageId: info.messageId };
     } catch (error) {
-      const maskedRecipient = payload.to.includes('@')
-        ? `${payload.to.split('@')[0].slice(0, 3)}***@${payload.to.split('@')[1]}`
-        : '***';
-      logger.error(`❌ [SMTP FAILURE] Failed to deliver email to ${maskedRecipient}: ${(error as Error).message}`);
-      logger.info(`✉️ [EMAIL DELIVERY STATUS] Provider: SMTP | Recipient: ${maskedRecipient} | Subject: ${payload.subject} | Status: Failed`);
+      const errMsg = (error as Error).message;
+      logger.error(`❌ [SMTP FAILURE] Failed to deliver email to ${maskedRecipient}: ${errMsg}`);
+      logger.info(`✉️ [EMAIL DELIVERY STATUS] Provider: SMTP | Recipient: ${maskedRecipient} | Subject: ${payload.subject} | Status: Failed | Reason: ${errMsg}`);
+      return { success: false, error: errMsg };
     }
   }
 }

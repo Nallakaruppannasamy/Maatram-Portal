@@ -534,6 +534,15 @@ export class StudentRepository {
         },
       });
 
+      // 1.1 Create User Profile
+      const studentFullName = `${data.firstName} ${data.lastName === '.' ? '' : data.lastName}`.trim();
+      await tx.userProfile.create({
+        data: {
+          userId: user.id,
+          fullName: studentFullName,
+        },
+      });
+
       // 2. Create Student profile
       const student = await tx.student.create({
         data: {
@@ -601,6 +610,15 @@ export class StudentRepository {
               isFirstLogin: true,
               isActive: true,
               organizationId: record.organizationId,
+            },
+          });
+
+          // 1.1 Create User Profile
+          const recordFullName = `${record.firstName} ${record.lastName === '.' ? '' : record.lastName}`.trim();
+          await tx.userProfile.create({
+            data: {
+              userId: user.id,
+              fullName: recordFullName,
             },
           });
 
