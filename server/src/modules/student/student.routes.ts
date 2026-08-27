@@ -73,5 +73,15 @@ router.post(
   upload.single('file'),
   studentController.importStudents
 );
+router.get(
+  '/imports/:id',
+  requireRole('admin'),
+  studentController.getImportStatus
+);
+router.get(
+  '/imports/:id/errors/export',
+  requireRole('admin'),
+  studentController.exportImportErrors
+);
 
 export default router;

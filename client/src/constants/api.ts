@@ -33,6 +33,8 @@ export const API_ROUTES = {
     STATUS: (id: string) => `/students/${id}/status`,
     SPOC: (id: string) => `/students/${id}/spoc`,
     IMPORT: '/students/import',
+    IMPORT_STATUS: (id: string) => `/students/imports/${id}`,
+    IMPORT_ERRORS_EXPORT: (id: string) => `/students/imports/${id}/errors/export`,
     EXPORT: '/students/export',
   },
   VOLUNTEERS: {

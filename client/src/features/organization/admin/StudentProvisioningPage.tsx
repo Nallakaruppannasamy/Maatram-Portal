@@ -5,6 +5,7 @@ import {
   UploadCloud,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Eye,
   EyeOff,
   Search,
@@ -34,9 +35,8 @@ interface ImportSummary {
 
 export const StudentProvisioningPage: React.FC = () => {
   const queryClient = useQueryClient()
-  const [fileUploaded, setFileUploaded] = useState(false)
-  const [importSummary, setImportSummary] = useState<ImportSummary | null>(null)
-  const [importErrors, setImportErrors] = useState<{ row: number; error: string }[]>([])
+  const [activeImportId, setActiveImportId] = useState<string | null>(null)
+  const [uploadFileName, setUploadFileName] = useState<string>('')
   const [isDragging, setIsDragging] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
@@ -70,42 +70,42 @@ export const StudentProvisioningPage: React.FC = () => {
   const students = studentsRes?.data || []
   const meta = studentsRes?.meta || studentsRes?.pagination || { total: 0, totalPages: 1 }
 
+  // Live polling for active import job
+  const { data: importStatusRes } = useQuery({
+    queryKey: ['import-status', activeImportId],
+    queryFn: () => studentApi.getImportStatus(activeImportId!),
+    enabled: !!activeImportId,
+    refetchInterval: (query) => {
+      const status = query.state.data?.data?.status
+      if (status === 'COMPLETED' || status === 'COMPLETED_WITH_ERRORS' || status === 'FAILED') {
+        return false
+      }
+      return 1000
+    },
+  })
+
+  const liveJob = importStatusRes?.data
+
+  // Automatically invalidate student list query when import finishes
+  React.useEffect(() => {
+    if (liveJob?.status === 'COMPLETED' || liveJob?.status === 'COMPLETED_WITH_ERRORS') {
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+    }
+  }, [liveJob?.status, queryClient])
+
   const importMutation = useMutation({
     mutationFn: (file: File) => studentApi.importCSV(file),
     onSuccess: (res, file) => {
-      if (res.success) {
-        const report = res.data || {}
-        setImportSummary({
-          totalRows: report.totalRows || report.successCount || 0,
-          successCount: report.successCount || 0,
-          duplicateCount: report.duplicateCount || 0,
-          errorCount: report.errorCount || 0,
-          fileName: file.name,
-        })
-        setImportErrors([])
-        setFileUploaded(true)
-        notify.success(`Successfully imported ${report.successCount || 0} student records!`)
-        queryClient.invalidateQueries({ queryKey: ['students'] })
+      if (res.success && res.data?.importId) {
+        setActiveImportId(res.data.importId)
+        setUploadFileName(file.name)
+        notify.info(`Import started for ${file.name}. Processing in background...`)
       } else {
         notify.error(res.message || 'Roster import failed.')
       }
     },
     onError: (err: any) => {
-      const errorData = err?.response?.data
-      if (errorData?.data?.errors) {
-        setImportErrors(errorData.data.errors)
-        setImportSummary({
-          totalRows: errorData.data.totalRows || 0,
-          successCount: 0,
-          duplicateCount: errorData.data.duplicateCount || 0,
-          errorCount: errorData.data.errorCount || 0,
-          fileName: 'Import File',
-        })
-        setFileUploaded(false)
-        notify.error('Import failed with validation errors. Review the report below.')
-      } else {
-        notify.error(err?.response?.data?.message || err?.message || 'Roster import failed.')
-      }
+      notify.error(err?.response?.data?.message || err?.message || 'Roster upload failed.')
     },
   })
 
@@ -187,15 +187,34 @@ export const StudentProvisioningPage: React.FC = () => {
     }
   }
 
+  const handleDownloadErrors = async () => {
+    if (!activeImportId) return
+    try {
+      const blob = await studentApi.exportImportErrors(activeImportId)
+      const url = window.URL.createObjectURL(
+        new Blob([blob], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+      )
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `Import_Errors_${activeImportId.slice(0, 8)}.xlsx`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+      notify.success('Error report downloaded successfully')
+    } catch {
+      notify.error('Failed to download error report.')
+    }
+  }
+
   const processFileUpload = (file: File) => {
     if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
       notify.error('Invalid file format! Please upload an Excel (.xlsx, .xls) or CSV file.')
       return
     }
 
-    setImportSummary(null)
-    setImportErrors([])
-    setFileUploaded(false)
     importMutation.mutate(file)
   }
 
@@ -320,7 +339,7 @@ export const StudentProvisioningPage: React.FC = () => {
           className="hidden"
         />
 
-        {!fileUploaded && importErrors.length === 0 ? (
+        {!activeImportId ? (
           <div className="space-y-6 text-center">
             <div
               onClick={() => !importMutation.isPending && fileInputRef.current?.click()}
@@ -338,10 +357,10 @@ export const StudentProvisioningPage: React.FC = () => {
                   <Loader2 className="w-10 h-10 text-[#D4AF37] animate-spin" />
                   <div>
                     <p className="text-sm font-bold text-[#111827]">
-                      Processing Roster & Syncing Database...
+                      Uploading & Initializing Import...
                     </p>
                     <p className="text-xs text-[#76777d]">
-                      Validating file rows transactionally
+                      Starting background batch processing engine
                     </p>
                   </div>
                 </div>
@@ -362,22 +381,78 @@ export const StudentProvisioningPage: React.FC = () => {
               )}
             </div>
           </div>
-        ) : fileUploaded ? (
-          <div className="space-y-4 p-5 bg-emerald-50/80 rounded-2xl border border-emerald-200/80 transition-all">
+        ) : liveJob?.status === 'PROCESSING' ? (
+          <div className="space-y-6 p-6 bg-amber-50/60 rounded-2xl border border-amber-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Loader2 className="w-6 h-6 text-[#D4AF37] animate-spin shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-[#111827]">
+                    Importing Student Roster in Background...
+                  </h4>
+                  <p className="text-xs text-[#76777d]">
+                    File: <span className="font-semibold text-[#111827]">{uploadFileName || liveJob.fileName}</span>
+                  </p>
+                </div>
+              </div>
+              <Badge variant="pending" className="text-xs uppercase tracking-wide self-start sm:self-auto">
+                Processing ({liveJob.percentage || 0}%)
+              </Badge>
+            </div>
+
+            {/* Live Progress Bar */}
+            <div className="space-y-2">
+              <div className="w-full bg-amber-200/60 rounded-full h-3 overflow-hidden">
+                <div
+                  className="bg-[#D4AF37] h-full transition-all duration-500 rounded-full"
+                  style={{ width: `${Math.max(5, liveJob.percentage || 0)}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs font-semibold text-[#45464c]">
+                <span>Processed: {liveJob.processedRows || 0} of {liveJob.totalRows || 0} rows</span>
+                <span>Success: {liveJob.successfulRows || 0} | Failed: {liveJob.failedRows || 0}</span>
+              </div>
+            </div>
+
+            {/* Live error preview if any errors happen during processing */}
+            {liveJob.errors && liveJob.errors.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-amber-200">
+                <p className="text-xs font-bold text-red-700 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Encountered {liveJob.errors.length} row warning(s):
+                </p>
+                <div className="max-h-36 overflow-y-auto rounded-xl border border-red-200 bg-white divide-y divide-red-100">
+                  {liveJob.errors.slice(0, 10).map((err: any, i: number) => (
+                    <div key={i} className="px-3 py-1.5 text-[11px] text-red-700 flex justify-between gap-3">
+                      <span className="font-semibold shrink-0">Row {err.row}:</span>
+                      <span className="truncate">{err.error}</span>
+                    </div>
+                  ))}
+                  {liveJob.errors.length > 10 && (
+                    <div className="px-3 py-1.5 text-[11px] text-red-600 font-medium text-center bg-red-50/50">
+                      + {liveJob.errors.length - 10} more rows
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : liveJob?.status === 'COMPLETED' ? (
+          <div className="space-y-4 p-6 bg-emerald-50/80 rounded-2xl border border-emerald-200/80 transition-all">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3 text-emerald-900">
                 <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-bold">
-                      Roster Imported Successfully! ({importSummary?.successCount || 0} Records Created)
+                      Roster Imported Successfully! ({liveJob.successfulRows || 0} Records Created)
                     </p>
                     <Badge variant="approved" className="text-[10px]">
-                      {importSummary?.fileName || 'Roster.xlsx'}
+                      {uploadFileName || liveJob.fileName || 'Roster.xlsx'}
                     </Badge>
                   </div>
                   <p className="text-xs text-emerald-800 mt-0.5">
-                    Welcome credential emails have been sent to all registered students.
+                    All accounts created. Credentials emails have been queued in the background.
                   </p>
                 </div>
               </div>
@@ -385,9 +460,8 @@ export const StudentProvisioningPage: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setFileUploaded(false)
-                  setImportSummary(null)
-                  setImportErrors([])
+                  setActiveImportId(null)
+                  setUploadFileName('')
                 }}
                 className="bg-white border-emerald-200 text-emerald-800 hover:bg-emerald-100/50 shrink-0"
               >
@@ -395,36 +469,96 @@ export const StudentProvisioningPage: React.FC = () => {
               </Button>
             </div>
           </div>
+        ) : liveJob?.status === 'COMPLETED_WITH_ERRORS' ? (
+          <div className="space-y-4 p-6 bg-amber-50 rounded-2xl border border-amber-200 transition-all">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200 pb-4">
+              <div className="flex items-start gap-3 text-amber-900">
+                <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold">
+                    Import Completed with Warnings ({liveJob.successfulRows || 0} Created, {liveJob.failedRows || 0} Failed)
+                  </p>
+                  <p className="text-xs text-amber-800 mt-0.5">
+                    Valid rows were provisioned successfully. Failed rows can be reviewed or downloaded below.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadErrors}
+                  className="bg-white border-amber-300 text-amber-900 hover:bg-amber-100 flex items-center gap-1.5 text-xs"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Failed Rows
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setActiveImportId(null)
+                    setUploadFileName('')
+                  }}
+                  className="bg-white border-amber-300 text-amber-900 hover:bg-amber-100 text-xs"
+                >
+                  Upload Another Roster
+                </Button>
+              </div>
+            </div>
+
+            {/* Error Rows Table */}
+            <div className="max-h-60 overflow-y-auto rounded-xl border border-amber-200 bg-white divide-y divide-amber-100">
+              {liveJob.errors?.map((err: any, i: number) => (
+                <div key={i} className="px-4 py-2.5 flex justify-between gap-4 text-xs text-amber-900">
+                  <span className="font-semibold shrink-0">Row {err.row} ({err.regNumber || err.email || 'Record'}):</span>
+                  <span className="text-left w-full text-red-600">{err.error}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         ) : (
-          /* Detailed Row Validation Failures display */
-          <div className="space-y-4 p-5 bg-red-50 rounded-2xl border border-red-200 transition-all">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-red-200 pb-3">
+          /* Entire Import Failed */
+          <div className="space-y-4 p-6 bg-red-50 rounded-2xl border border-red-200 transition-all">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-red-200 pb-4">
               <div className="flex items-start gap-3 text-red-900">
                 <AlertCircle className="w-6 h-6 text-red-600 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-bold">
-                    Import Failed! ({importSummary?.errorCount || 0} Row Errors Found)
+                    Import Failed! ({liveJob?.failedRows || liveJob?.totalRows || 0} Errors)
                   </p>
                   <p className="text-xs text-red-800 mt-0.5">
-                    The entire sheet upload was rolled back. Correct the errors below and try again.
+                    No student records could be provisioned. Correct the errors below and try again.
                   </p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setFileUploaded(false)
-                  setImportSummary(null)
-                  setImportErrors([])
-                }}
-                className="bg-white border-red-200 text-red-800 hover:bg-red-100/50 shrink-0"
-              >
-                Reset Upload
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                {liveJob?.errors && liveJob.errors.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadErrors}
+                    className="bg-white border-red-300 text-red-900 hover:bg-red-100 flex items-center gap-1.5 text-xs"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download Error Report
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setActiveImportId(null)
+                    setUploadFileName('')
+                  }}
+                  className="bg-white border-red-200 text-red-800 hover:bg-red-100/50 text-xs"
+                >
+                  Reset Upload
+                </Button>
+              </div>
             </div>
             <div className="max-h-60 overflow-y-auto rounded-xl border border-red-200 bg-white divide-y divide-red-100">
-              {importErrors.map((err, i) => (
+              {liveJob?.errors?.map((err: any, i: number) => (
                 <div key={i} className="px-4 py-2.5 flex justify-between gap-4 text-xs text-red-700">
                   <span className="font-semibold shrink-0">Row {err.row}:</span>
                   <span className="text-left w-full">{err.error}</span>

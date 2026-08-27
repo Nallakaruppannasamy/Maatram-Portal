@@ -5,6 +5,7 @@
 
 import { prisma } from '@/config/database';
 import { Student, StudentStatus, UserRole, AccountStatus } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import {
   CreateStudentDTO,
   UpdateStudentDTO,
@@ -577,7 +578,7 @@ export class StudentRepository {
   }
 
   /**
-   * Provisions multiple students in a single transaction. Fully rolls back if any row fails.
+   * Provisions multiple students in a single high-performance batch transaction using bulk inserts.
    */
   async provisionStudentsBulk(
     records: {
@@ -592,60 +593,68 @@ export class StudentRepository {
       organizationId: string;
     }[]
   ): Promise<StudentWithRelations[]> {
+    if (records.length === 0) return [];
+
+    const preparedUsers: any[] = [];
+    const preparedProfiles: any[] = [];
+    const preparedStudents: any[] = [];
+    const createdStudentIds: string[] = [];
+
+    for (const record of records) {
+      const userId = randomUUID();
+      const studentId = randomUUID();
+      const profileId = randomUUID();
+      const regClean = record.registrationNumber.trim().toUpperCase();
+      const verificationCode = `MTM-${new Date().getFullYear()}-${regClean}`;
+      const recordFullName = `${record.firstName} ${record.lastName === '.' ? '' : record.lastName}`.trim();
+
+      preparedUsers.push({
+        id: userId,
+        email: record.email.trim().toLowerCase(),
+        registerNumber: record.registrationNumber.trim(),
+        role: UserRole.student,
+        passwordHash: record.tempPasswordHashed,
+        tempPassword: record.tempPassword,
+        isFirstLogin: true,
+        isActive: true,
+        organizationId: record.organizationId,
+      });
+
+      preparedProfiles.push({
+        id: profileId,
+        userId,
+        fullName: recordFullName,
+      });
+
+      preparedStudents.push({
+        id: studentId,
+        userId,
+        registrationNumber: record.registrationNumber.trim(),
+        firstName: record.firstName.trim(),
+        middleName: record.middleName || null,
+        lastName: record.lastName.trim(),
+        dateOfBirth: record.dateOfBirth,
+        verificationCode,
+        organizationId: record.organizationId,
+        accountStatus: AccountStatus.pending_first_login,
+        status: StudentStatus.ACTIVE,
+      });
+
+      createdStudentIds.push(studentId);
+    }
+
     return prisma.$transaction(
       async (tx) => {
-        const createdStudentIds: string[] = [];
+        // 1. Bulk insert Users
+        await tx.user.createMany({ data: preparedUsers });
 
-        for (const record of records) {
-          const verificationCode = `MTM-${new Date().getFullYear()}-${record.registrationNumber.trim().toUpperCase()}`;
+        // 2. Bulk insert Profiles
+        await tx.userProfile.createMany({ data: preparedProfiles });
 
-          // 1. Create User identity
-          const user = await tx.user.create({
-            data: {
-              email: record.email.trim().toLowerCase(),
-              registerNumber: record.registrationNumber.trim(),
-              role: UserRole.student,
-              passwordHash: record.tempPasswordHashed,
-              tempPassword: record.tempPassword,
-              isFirstLogin: true,
-              isActive: true,
-              organizationId: record.organizationId,
-            },
-          });
+        // 3. Bulk insert Students
+        await tx.student.createMany({ data: preparedStudents });
 
-          // 1.1 Create User Profile
-          const recordFullName = `${record.firstName} ${record.lastName === '.' ? '' : record.lastName}`.trim();
-          await tx.userProfile.create({
-            data: {
-              userId: user.id,
-              fullName: recordFullName,
-            },
-          });
-
-          // 2. Create Student profile
-          const student = await tx.student.create({
-            data: {
-              userId: user.id,
-              registrationNumber: record.registrationNumber.trim(),
-              firstName: record.firstName.trim(),
-              middleName: record.middleName || null,
-              lastName: record.lastName.trim(),
-              dateOfBirth: record.dateOfBirth,
-              verificationCode,
-              organizationId: record.organizationId,
-              accountStatus: AccountStatus.pending_first_login,
-              status: StudentStatus.ACTIVE,
-            },
-          });
-
-          createdStudentIds.push(student.id);
-        }
-
-        if (createdStudentIds.length === 0) {
-          return [];
-        }
-
-        // 3. Batch load all created relations in a single query
+        // 4. Batch load all created relations in a single query
         const loadedStudents = await tx.student.findMany({
           where: { id: { in: createdStudentIds } },
           include: {
@@ -661,12 +670,11 @@ export class StudentRepository {
         return loadedStudents as unknown as StudentWithRelations[];
       },
       {
-        timeout: 60000, // 60 seconds timeout for bulk provisioning
-        maxWait: 10000, // 10 seconds max wait time to acquire connection lock
+        timeout: 60000,
+        maxWait: 10000,
       }
     );
   }
 }
 
 export const studentRepository = new StudentRepository();
-

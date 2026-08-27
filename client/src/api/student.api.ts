@@ -42,6 +42,18 @@ export const studentApi = {
     return res.data
   },
 
+  getImportStatus: async (importId: string): Promise<ApiResponse<any>> => {
+    const res = await apiInstance.get<ApiResponse<any>>(API_ROUTES.STUDENTS.IMPORT_STATUS(importId))
+    return res.data
+  },
+
+  exportImportErrors: async (importId: string): Promise<Blob> => {
+    const res = await apiInstance.get(API_ROUTES.STUDENTS.IMPORT_ERRORS_EXPORT(importId), {
+      responseType: 'blob',
+    })
+    return res.data
+  },
+
   exportCSV: async (params?: Record<string, any>): Promise<Blob> => {
     const res = await apiInstance.get(API_ROUTES.STUDENTS.EXPORT, { params, responseType: 'blob' })
     return res.data

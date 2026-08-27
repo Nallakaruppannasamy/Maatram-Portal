@@ -134,7 +134,7 @@ export class StudentController {
    * Imports students from CSV file.
    */
   /**
-   * Imports students from Excel or CSV file.
+   * Imports students from Excel or CSV file asynchronously.
    */
   importStudents = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     if (!req.file) {
@@ -144,23 +144,40 @@ export class StudentController {
     const actorId = req.user!.userId;
     const actorRole = this.getAuditActorRole(req.user!.role);
 
-    const report = await studentService.importStudents(
+    const initialJob = await studentService.importStudents(
       req.file.buffer,
       req.file.originalname,
       actorId,
       actorRole
     );
 
-    if (report.errorCount > 0) {
-      res.status(400).json({
-        success: false,
-        message: 'Import failed due to row validation errors',
-        data: report,
-      });
-      return;
-    }
+    ResponseFormatter.success(res, initialJob, 'Student import started successfully', 202);
+  });
 
-    ResponseFormatter.success(res, report, 'All students successfully imported');
+  /**
+   * Gets real-time progress and summary of an import job.
+   */
+  getImportStatus = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const status = await studentService.getImportStatus(id);
+    ResponseFormatter.success(res, status, 'Import status retrieved successfully');
+  });
+
+  /**
+   * Exports an Excel workbook of row-level errors for an import job.
+   */
+  exportImportErrors = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const buffer = await studentService.exportImportErrors(id);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=Import_Errors_${id}.xlsx`
+    );
+    res.status(200).send(buffer);
   });
 
   /**
