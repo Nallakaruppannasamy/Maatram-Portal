@@ -10,15 +10,16 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
     "moduleResolution": "node",
+    "ignoreDeprecations": "5.0",
     "sourceMap": true,
     "resolveJsonModule": true,
     "declaration": false,
     "removeComments": true,
-    "baseUrl": ".",
+    "baseUrl": "./",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*", "prisma/**/*"],
   "exclude": ["node_modules", "dist", "src/tests"]
-}
+}
