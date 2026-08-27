@@ -24,14 +24,15 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),
   CLOUDINARY_API_SECRET: z.string().min(1, 'CLOUDINARY_API_SECRET is required'),
 
+  RESEND_API_KEY: z.string().optional(),
   SMTP_HOST: z.string().default('smtp.gmail.com'),
   SMTP_PORT: z
     .string()
     .transform((val) => parseInt(val, 10))
     .default('465'),
-  SMTP_USER: z.string().min(1, 'SMTP_USER is required'),
-  SMTP_PASS: z.string().min(1, 'SMTP_PASS is required'),
-  SMTP_FROM_EMAIL: z.string().email().default('no-reply@maatram.org'),
+  SMTP_USER: z.string().optional().default(''),
+  SMTP_PASS: z.string().optional().default(''),
+  SMTP_FROM_EMAIL: z.string().default('onboarding@resend.dev'),
   SMTP_FROM_NAME: z.string().default('Maatram Foundation'),
 
   SWAGGER_USER: z.string().default('admin'),

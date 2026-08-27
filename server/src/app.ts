@@ -9,7 +9,7 @@ import { requestLogger } from '@/common/middleware/requestLogger';
 import { errorHandler } from '@/common/middleware/error';
 import { setupSwagger } from '@/config/swagger';
 import { checkDatabaseConnection } from '@/config/database';
-import { verifyMailConnection } from '@/config/mail';
+import { verifyMailConnection, isResendActive } from '@/config/mail';
 
 import { configureCloudinary } from '@/config/cloudinary';
 import { ResponseFormatter } from '@/common/responses/formatter';
@@ -143,9 +143,13 @@ app.get('/health/mail', async (req: Request, res: Response, next: NextFunction) 
   try {
     const isMailConnected = await verifyMailConnection();
     if (!isMailConnected) {
-      throw ApiError.internal('Mail server connection check failed');
+      throw ApiError.internal('Mail service connection check failed');
     }
-    ResponseFormatter.success(res, { connected: true }, 'Mail server connection is healthy');
+    ResponseFormatter.success(
+      res,
+      { provider: isResendActive() ? 'resend' : 'smtp', connected: true },
+      'Mail service is healthy'
+    );
   } catch (error) {
     next(error);
   }

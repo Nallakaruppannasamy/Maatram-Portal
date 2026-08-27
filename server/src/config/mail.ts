@@ -21,6 +21,10 @@ const ipv4Lookup = (hostname: string, options: any, callback: any) => {
   });
 };
 
+export const isResendActive = (): boolean => {
+  return Boolean(env.RESEND_API_KEY && (env.NODE_ENV === 'production' || env.NODE_ENV === 'test' || !env.SMTP_USER));
+};
+
 export const transporter = nodemailer.createTransport({
   host: env.SMTP_HOST,
   port: env.SMTP_PORT,
@@ -39,13 +43,24 @@ export const transporter = nodemailer.createTransport({
 } as nodemailer.TransportOptions);
 
 /**
- * Verifies connection status with the SMTP server.
+ * Verifies connection status with the active email provider.
  */
 export const verifyMailConnection = async (): Promise<boolean> => {
+  if (isResendActive()) {
+    logger.info('📧 [MAIL] Resend HTTPS API is active as the email provider.');
+    return true;
+  }
+
+  // Fallback to local SMTP transporter check
+  if (!env.SMTP_USER || !env.SMTP_PASS) {
+    logger.warn('⚠️ SMTP credentials not configured.');
+    return false;
+  }
+
   try {
     const addresses = await dns.promises.resolve4(env.SMTP_HOST).catch(() => []);
     logger.info(
-      `🔍 SMTP DNS Resolution: host=${env.SMTP_HOST} -> IPv4: [${addresses.join(', ')}], port=${env.SMTP_PORT}, secure=${env.SMTP_PORT === 465}, user=${env.SMTP_USER ? env.SMTP_USER.split('@')[0] + '@***' : 'none'}`
+      `🔍 SMTP DNS Resolution: host=${env.SMTP_HOST} -> IPv4: [${addresses.join(', ')}], port=${env.SMTP_PORT}, secure=${env.SMTP_PORT === 465}`
     );
   } catch (e) {
     // Non-blocking DNS diagnostic logging
