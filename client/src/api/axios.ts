@@ -8,7 +8,18 @@ import {
 } from '@/utils/token'
 import { API_ROUTES } from '@/constants/api'
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'
+const getBaseURL = () => {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL
+  }
+  if (import.meta.env.VITE_API_URL) {
+    const rawUrl = import.meta.env.VITE_API_URL.replace(/\/+$/, '')
+    return rawUrl.endsWith('/api/v1') ? rawUrl : `${rawUrl}/api/v1`
+  }
+  return 'http://localhost:5000/api/v1'
+}
+
+const baseURL = getBaseURL()
 
 export const apiInstance = axios.create({
   baseURL,
