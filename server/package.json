@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "nodemon",
     "postinstall": "prisma generate",
-    "build": "npx prisma generate && tsc --project tsconfig.json && tsc-alias",
+    "build": "prisma generate && tsc --project tsconfig.json && tsc-alias",
     "start": "node dist/index.js",
     "lint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint \"src/**/*.ts\"",
     "lint:fix": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint \"src/**/*.ts\" --fix",

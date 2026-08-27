@@ -8,5 +8,9 @@
   "scripts": {
     "build:server": "npm run build --workspace server",
     "start:server": "npm run start --workspace server"
+  },
+  "devDependencies": {
+    "@prisma/client": "^5.22.0",
+    "prisma": "^5.22.0"
   }
 }
