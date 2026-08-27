@@ -6,6 +6,19 @@
 import { z } from 'zod';
 import { UserRole } from '@prisma/client';
 
+const isValidPhone = (val: unknown): boolean => {
+  if (val === undefined || val === null || val === '') return true;
+  if (typeof val !== 'string') return false;
+  const digits = val.replace(/\D/g, '');
+  return digits.length >= 10 && digits.length <= 15 && /^\+?[0-9\s\-()]+$/.test(val.trim());
+};
+
+const phoneSchema = z
+  .string()
+  .refine(isValidPhone, { message: 'Mobile number must contain between 10 and 15 digits' })
+  .optional()
+  .nullable();
+
 export const createUserValidator = z.object({
   body: z.object({
     email: z.string().email('Invalid email address format').trim().toLowerCase(),
@@ -16,10 +29,7 @@ export const createUserValidator = z.object({
       .max(50)
       .optional(),
     fullName: z.string().min(3, 'Full name must be at least 3 characters long').max(100).trim(),
-    mobile: z
-      .string()
-      .regex(/^\d{10,15}$/, 'Mobile number must contain between 10 and 15 digits')
-      .optional(),
+    mobile: phoneSchema,
     designation: z.string().max(100).optional(),
     organizationId: z.string().uuid('Invalid Organization ID format').optional(),
     zoneId: z.string().uuid('Invalid Zone ID format').optional(),
@@ -32,10 +42,7 @@ export const updateUserValidator = z.object({
     role: z.nativeEnum(UserRole).optional(),
     employeeId: z.string().min(2).max(50).optional(),
     fullName: z.string().min(3).max(100).trim().optional(),
-    mobile: z
-      .string()
-      .regex(/^\d{10,15}$/, 'Mobile number must contain between 10 and 15 digits')
-      .optional(),
+    mobile: phoneSchema,
     designation: z.string().max(100).optional(),
     organizationId: z.string().uuid('Invalid Organization ID format').optional(),
     zoneId: z.string().uuid('Invalid Zone ID format').nullable().optional(),

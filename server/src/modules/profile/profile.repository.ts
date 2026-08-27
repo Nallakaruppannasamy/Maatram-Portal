@@ -86,11 +86,11 @@ export class ProfileRepository {
     return prisma.userProfile.upsert({
       where: { userId },
       update: {
-        fullName: data.fullName || undefined,
-        mobile: data.mobile || undefined,
-        designation: data.designation || undefined,
-        profileImage: data.profileImage || undefined,
-        bio: data.bio || undefined,
+        ...(data.fullName !== undefined && { fullName: data.fullName || 'System User' }),
+        ...(data.mobile !== undefined && { mobile: data.mobile }),
+        ...(data.designation !== undefined && { designation: data.designation }),
+        ...(data.profileImage !== undefined && { profileImage: data.profileImage }),
+        ...(data.bio !== undefined && { bio: data.bio }),
       },
       create: {
         userId,

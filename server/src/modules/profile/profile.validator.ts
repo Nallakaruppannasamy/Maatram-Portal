@@ -21,14 +21,30 @@ const sanitizeNumberOrNull = (val: unknown) => {
   return isNaN(num) ? null : num;
 };
 
+const isValidPhone = (val: unknown): boolean => {
+  if (val === undefined || val === null || val === '') return true;
+  if (typeof val !== 'string') return false;
+  const digits = val.replace(/\D/g, '');
+  return digits.length >= 10 && digits.length <= 15 && /^\+?[0-9\s\-()]+$/.test(val.trim());
+};
+
+const phoneSchema = (fieldName: string) =>
+  z.preprocess(
+    emptyToNull,
+    z
+      .string()
+      .refine(isValidPhone, {
+        message: `${fieldName} must contain between 10 and 15 digits (e.g. +91 9876543210 or 9876543210)`,
+      })
+      .optional()
+      .nullable()
+  );
+
 export const updateProfileValidator = z.object({
   body: z.object({
     // Staff/Common fields
     fullName: z.preprocess(emptyToNull, z.string().max(100).optional().nullable()),
-    mobile: z.preprocess(
-      emptyToNull,
-      z.string().regex(/^\d{10,15}$/, 'Mobile number must contain between 10 and 15 digits').optional().nullable()
-    ),
+    mobile: phoneSchema('Mobile number'),
     designation: z.preprocess(emptyToNull, z.string().max(100).optional().nullable()),
     profileImage: z.preprocess(emptyToNull, z.string().max(2048).optional().nullable()),
     bio: z.preprocess(emptyToNull, z.string().max(2000).optional().nullable()),
@@ -50,23 +66,14 @@ export const updateProfileValidator = z.object({
     religion: z.preprocess(emptyToNull, z.string().max(50).optional().nullable()),
 
     // Contact
-    alternateMobile: z.preprocess(
-      emptyToNull,
-      z.string().regex(/^\d{10,15}$/, 'Alternate mobile number must contain between 10 and 15 digits').optional().nullable()
-    ),
+    alternateMobile: phoneSchema('Alternate mobile number'),
 
     // Parent/Guardian
     parentName: z.preprocess(emptyToNull, z.string().max(100).optional().nullable()),
-    parentMobile: z.preprocess(
-      emptyToNull,
-      z.string().regex(/^\d{10,15}$/, 'Parent mobile number must contain between 10 and 15 digits').optional().nullable()
-    ),
+    parentMobile: phoneSchema('Parent mobile number'),
     parentOccupation: z.preprocess(emptyToNull, z.string().max(100).optional().nullable()),
     guardianName: z.preprocess(emptyToNull, z.string().max(100).optional().nullable()),
-    guardianMobile: z.preprocess(
-      emptyToNull,
-      z.string().regex(/^\d{10,15}$/, 'Guardian mobile number must contain between 10 and 15 digits').optional().nullable()
-    ),
+    guardianMobile: phoneSchema('Guardian mobile number'),
 
     // Address
     addressLine1: z.preprocess(emptyToNull, z.string().max(255).optional().nullable()),
