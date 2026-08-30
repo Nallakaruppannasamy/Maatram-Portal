@@ -12,7 +12,7 @@ import { notify } from '@/utils/toast'
 
 export const AssignedCollegesPage: React.FC = () => {
   const { user } = useAuth()
-  const [selectedZoneId, setSelectedZoneId] = useState<string>(user?.zoneId || '')
+  const [selectedZoneId, setSelectedZoneId] = useState<string>((user as any)?.zone?.id || (user as any)?.zoneId || '')
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState<'name' | 'studentCount'>('name')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')

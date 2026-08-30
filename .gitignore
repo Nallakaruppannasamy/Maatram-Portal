@@ -5,6 +5,9 @@ dist/
 *.log
 server/prisma/*.db
 server/prisma/*.db-journal
+scratch/
+server/scratch/
+client/scratch/
 
 # Ignore Stitch design folder and UI images
 # design/
