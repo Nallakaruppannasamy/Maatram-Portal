@@ -16,11 +16,15 @@ import { ResponseFormatter } from '@/common/responses/formatter';
 import { ApiError } from '@/common/exceptions/apiError';
 import path from 'path';
 import fs from 'fs';
+import { requestContextMiddleware } from '@/common/middleware/requestContext';
 
 const app: Express = express();
 
 // Trust the immediate 1st-hop reverse proxy (Render load balancer) for safe req.ip resolution
 app.set('trust proxy', 1);
+
+// Mount Request Context Store for client IP, User-Agent, and tracing
+app.use(requestContextMiddleware);
 
 // Ensure uploads directory exists on startup
 const uploadsDir = path.join(process.cwd(), 'uploads');

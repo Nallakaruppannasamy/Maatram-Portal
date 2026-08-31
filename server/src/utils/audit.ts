@@ -5,6 +5,7 @@
 
 import { prisma } from '@/config/database';
 import { AuditActorRole } from '@prisma/client';
+import { getRequestContext } from '@/common/middleware/requestContext';
 import crypto from 'crypto';
 
 interface AuditLogParams {
@@ -21,9 +22,15 @@ interface AuditLogParams {
 
 /**
  * Creates an audit log entry inside the database.
+ * Automatically resolves client IP address and User Agent from the current Request Context
+ * if not explicitly provided in params.
  */
 export const createAuditLog = async (params: AuditLogParams): Promise<void> => {
+  const ctx = getRequestContext();
   const logCode = `AUD-${crypto.randomUUID().slice(0, 12).toUpperCase()}`;
+
+  const resolvedIp = params.ipAddress || ctx?.ipAddress || '127.0.0.1';
+  const resolvedUserAgent = params.userAgent || ctx?.userAgent || null;
 
   await prisma.auditLog.create({
     data: {
@@ -35,8 +42,8 @@ export const createAuditLog = async (params: AuditLogParams): Promise<void> => {
       targetEntityId: params.targetEntityId,
       targetLabel: params.targetLabel,
       details: params.details,
-      ipAddress: params.ipAddress || '127.0.0.1',
-      userAgent: params.userAgent || null,
+      ipAddress: resolvedIp,
+      userAgent: resolvedUserAgent,
     },
   });
 };
