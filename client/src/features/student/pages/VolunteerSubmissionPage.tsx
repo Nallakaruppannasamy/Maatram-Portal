@@ -1,13 +1,14 @@
 import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { UploadCloud, Calendar, CheckCircle2, ArrowRight, Loader2, Image as ImageIcon, X } from 'lucide-react'
+import { UploadCloud, Calendar, CheckCircle2, ArrowRight, Loader2, Image as ImageIcon, X, AlertCircle } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { volunteerApi } from '@/api/volunteer.api'
 import { useAuth } from '@/hooks/useAuth'
 import { notify } from '@/utils/toast'
+import { getApiErrorMessage } from '@/utils/error'
 
 export const VolunteerSubmissionPage = () => {
   const navigate = useNavigate()
@@ -23,6 +24,7 @@ export const VolunteerSubmissionPage = () => {
   const [imageUrl, setImageUrl] = useState('')
   const [uploading, setUploading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
 
   const showCount = ['TELE_VERIFICATION', 'PHYSICAL_VERIFICATION', 'SCHOOL_VISIT'].includes(category)
 
@@ -30,6 +32,7 @@ export const VolunteerSubmissionPage = () => {
     mutationFn: (payload: any) => volunteerApi.create(payload),
     onSuccess: (res) => {
       if (res.success) {
+        setFormError(null)
         notify.success('Volunteer log submitted successfully!')
         queryClient.invalidateQueries({ queryKey: ['volunteers'] })
         setSubmitted(true)
@@ -37,13 +40,15 @@ export const VolunteerSubmissionPage = () => {
           navigate('/student/volunteer-history')
         }, 1500)
       } else {
-        notify.error(res.message || 'Failed to submit volunteer log.')
+        const msg = res.message || 'Failed to submit volunteer log.'
+        setFormError(msg)
+        notify.error(msg)
       }
     },
     onError: (err: any) => {
-      notify.error(
-        err?.response?.data?.message || err?.message || 'Error submitting volunteer log.'
-      )
+      const msg = getApiErrorMessage(err, 'Error submitting volunteer log.')
+      setFormError(msg)
+      notify.error(msg)
     },
   })
 
@@ -53,26 +58,35 @@ export const VolunteerSubmissionPage = () => {
 
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
-      notify.error('Invalid image type. Only JPG, JPEG, PNG, and WEBP are accepted.')
+      const msg = 'Invalid image type. Only JPG, JPEG, PNG, and WEBP are accepted.'
+      setFormError(msg)
+      notify.error(msg)
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      notify.error('File size exceeds 5MB limit.')
+      const msg = 'File size exceeds 5MB limit.'
+      setFormError(msg)
+      notify.error(msg)
       return
     }
 
     try {
       setUploading(true)
+      setFormError(null)
       const res = await volunteerApi.uploadImage(file)
       if (res.success && res.data?.url) {
         setImageUrl(res.data.url)
         notify.success('Proof image uploaded successfully!')
       } else {
-        notify.error(res.message || 'Failed to upload image.')
+        const msg = res.message || 'Failed to upload image.'
+        setFormError(msg)
+        notify.error(msg)
       }
     } catch (err: any) {
-      notify.error(err?.response?.data?.message || err?.message || 'Error uploading image.')
+      const msg = getApiErrorMessage(err, 'Error uploading image.')
+      setFormError(msg)
+      notify.error(msg)
     } finally {
       setUploading(false)
     }
@@ -89,26 +103,35 @@ export const VolunteerSubmissionPage = () => {
 
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
-      notify.error('Invalid image type. Only JPG, JPEG, PNG, and WEBP are accepted.')
+      const msg = 'Invalid image type. Only JPG, JPEG, PNG, and WEBP are accepted.'
+      setFormError(msg)
+      notify.error(msg)
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      notify.error('File size exceeds 5MB limit.')
+      const msg = 'File size exceeds 5MB limit.'
+      setFormError(msg)
+      notify.error(msg)
       return
     }
 
     try {
       setUploading(true)
+      setFormError(null)
       const res = await volunteerApi.uploadImage(file)
       if (res.success && res.data?.url) {
         setImageUrl(res.data.url)
         notify.success('Proof image uploaded successfully!')
       } else {
-        notify.error(res.message || 'Failed to upload image.')
+        const msg = res.message || 'Failed to upload image.'
+        setFormError(msg)
+        notify.error(msg)
       }
     } catch (err: any) {
-      notify.error(err?.response?.data?.message || err?.message || 'Error uploading image.')
+      const msg = getApiErrorMessage(err, 'Error uploading image.')
+      setFormError(msg)
+      notify.error(msg)
     } finally {
       setUploading(false)
     }
@@ -123,9 +146,12 @@ export const VolunteerSubmissionPage = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError(null)
 
     if (!title.trim() || !description.trim()) {
-      notify.error('Please fill in all required fields.')
+      const msg = 'Please fill in all required fields.'
+      setFormError(msg)
+      notify.error(msg)
       return
     }
 
@@ -140,7 +166,9 @@ export const VolunteerSubmissionPage = () => {
     if (showCount) {
       const parsedCount = parseInt(count)
       if (isNaN(parsedCount) || parsedCount < 1 || parsedCount > 1000) {
-        notify.error('Count must be an integer between 1 and 1000.')
+        const msg = 'Count must be an integer between 1 and 1000.'
+        setFormError(msg)
+        notify.error(msg)
         return
       }
       payload.count = parsedCount
@@ -284,6 +312,16 @@ export const VolunteerSubmissionPage = () => {
                 )}
               </div>
             </div>
+
+            {formError && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-xs text-red-800 animate-in fade-in duration-200">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold">Validation Error</p>
+                  <p>{formError}</p>
+                </div>
+              </div>
+            )}
 
             <Button
               type="submit"

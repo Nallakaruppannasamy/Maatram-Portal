@@ -588,6 +588,24 @@ export class ZoneService {
     let departmentsCreated = 0;
     let programsCreated = 0;
 
+    const getField = (row: any, ...keys: string[]): string => {
+      for (const key of keys) {
+        if (row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== '') {
+          return String(row[key]).trim();
+        }
+      }
+      for (const [k, v] of Object.entries(row)) {
+        const cleanK = k.trim().toLowerCase().replace(/[\s/_-]+/g, '');
+        for (const targetKey of keys) {
+          const cleanTarget = targetKey.trim().toLowerCase().replace(/[\s/_-]+/g, '');
+          if (cleanK === cleanTarget && v !== undefined && v !== null && String(v).trim() !== '') {
+            return String(v).trim();
+          }
+        }
+      }
+      return '';
+    };
+
     await prisma.$transaction(
       async (tx) => {
         const collegeCache = new Map<string, any>();
@@ -596,15 +614,26 @@ export class ZoneService {
 
         for (let i = 0; i < rawData.length; i++) {
           const row = rawData[i];
-          const collegeName = row['College Name']?.toString().trim();
-          const collegeCode = row['College Code']?.toString().trim().toUpperCase();
-          const collegeLocation = row['College Location']?.toString().trim();
-          const departmentName = row['Department Name']?.toString().trim();
-          const programName = row['Degree/Program Name']?.toString().trim();
-          const duration = parseInt(row['Duration (Years)']?.toString() || '4', 10);
+          const collegeName = getField(row, 'College Name', 'College', 'CollegeName');
+          const collegeCode = getField(row, 'College Code', 'Code', 'CollegeCode').toUpperCase();
+          const collegeLocation = getField(row, 'College Location', 'Location', 'CollegeLocation');
+          const departmentName = getField(row, 'Department Name', 'Department', 'DepartmentName');
+          const degreeName = getField(
+            row,
+            'Degree Name',
+            'Degree',
+            'Degree/Program Name',
+            'Program Name',
+            'DegreeName',
+            'Program'
+          );
+          const durationStr = getField(row, 'Duration (Years)', 'Duration', 'DurationYears', 'Duration (years)');
+          const duration = parseInt(durationStr || '4', 10);
 
-          if (!collegeName || !collegeCode || !collegeLocation || !departmentName || !programName) {
-            throw ApiError.badRequest(`Row ${i + 2} has missing required fields`);
+          if (!collegeName || !collegeCode || !collegeLocation || !departmentName || !degreeName) {
+            throw ApiError.badRequest(
+              `Row ${i + 2} is missing required fields (College Name, College Code, College Location, Department Name, Degree Name)`
+            );
           }
 
           // 1. College resolve
@@ -632,15 +661,15 @@ export class ZoneService {
           }
 
           // 2. Degree (DB Department) resolve
-          const degreeKey = `${college.id}:${programName.toLowerCase()}`;
+          const degreeKey = `${college.id}:${degreeName.toLowerCase()}`;
           let degree = deptCache.get(degreeKey);
           if (!degree) {
             degree = await tx.department.findFirst({
-              where: { collegeId: college.id, name: { equals: programName, mode: 'insensitive' } }
+              where: { collegeId: college.id, name: { equals: degreeName, mode: 'insensitive' } }
             });
             if (!degree) {
               degree = await tx.department.create({
-                data: { name: programName, collegeId: college.id }
+                data: { name: degreeName, collegeId: college.id }
               });
               departmentsCreated++; // increment Degree count (stored in DB Department table)
             }
@@ -685,7 +714,7 @@ export class ZoneService {
         'College Code': 'MIT-CHE',
         'College Location': 'Chromepet, Chennai',
         'Department Name': 'Computer Science and Engineering',
-        'Degree/Program Name': 'B.E. Computer Science and Engineering',
+        'Degree Name': 'B.E.',
         'Duration (Years)': 4
       },
       {
@@ -693,7 +722,7 @@ export class ZoneService {
         'College Code': 'CEG-CHE',
         'College Location': 'Guindy, Chennai',
         'Department Name': 'Mechanical Engineering',
-        'Degree/Program Name': 'B.E. Mechanical Engineering',
+        'Degree Name': 'B.E.',
         'Duration (Years)': 4
       }
     ];
