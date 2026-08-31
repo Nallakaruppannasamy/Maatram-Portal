@@ -713,16 +713,16 @@ export class ZoneService {
         'College Name': 'Madras Institute of Technology',
         'College Code': 'MIT-CHE',
         'College Location': 'Chromepet, Chennai',
-        'Department Name': 'Computer Science and Engineering',
         'Degree Name': 'B.E.',
+        'Department Name': 'Computer Science and Engineering',
         'Duration (Years)': 4
       },
       {
         'College Name': 'College of Engineering Guindy',
         'College Code': 'CEG-CHE',
         'College Location': 'Guindy, Chennai',
-        'Department Name': 'Mechanical Engineering',
         'Degree Name': 'B.E.',
+        'Department Name': 'Mechanical Engineering',
         'Duration (Years)': 4
       }
     ];
