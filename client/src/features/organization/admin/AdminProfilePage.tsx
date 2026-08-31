@@ -24,6 +24,7 @@ export const AdminProfilePage: React.FC = () => {
   const [bio, setBio] = useState('')
   const [profileImage, setProfileImage] = useState<string | null>(null)
   const [imageUploading, setImageUploading] = useState(false)
+  const [imageRemoving, setImageRemoving] = useState(false)
 
   // Change Password Form State
   const [currentPassword, setCurrentPassword] = useState('')
@@ -57,12 +58,16 @@ export const AdminProfilePage: React.FC = () => {
     onSuccess: (res) => {
       if (res.success) {
         notify.success('Super Admin Profile details saved successfully!')
+        const currentImg = res.data?.profileImage ?? (profileImage || null)
         updateCurrentUser({
           fullName: fullName.trim(),
           mobile: mobile.trim(),
-          profileImage: profileImage || null,
-          profilePhotoUrl: profileImage || null,
+          profileImage: currentImg,
+          profilePhotoUrl: currentImg,
         })
+        queryClient.setQueryData(['profile'], (old: any) =>
+          old ? { ...old, data: { ...old.data, ...res.data } } : old
+        )
         queryClient.invalidateQueries({ queryKey: ['profile'] })
         queryClient.invalidateQueries({ queryKey: ['auth', 'me'] })
         queryClient.invalidateQueries({ queryKey: ['auth-user'] })
@@ -122,6 +127,9 @@ export const AdminProfilePage: React.FC = () => {
           profileImage: newImageUrl,
           profilePhotoUrl: newImageUrl,
         })
+        queryClient.setQueryData(['profile'], (old: any) =>
+          old ? { ...old, data: { ...old.data, profileImage: newImageUrl } } : old
+        )
         queryClient.invalidateQueries({ queryKey: ['profile'] })
         queryClient.invalidateQueries({ queryKey: ['auth-user'] })
         queryClient.invalidateQueries({ queryKey: ['me'] })
@@ -137,24 +145,43 @@ export const AdminProfilePage: React.FC = () => {
     }
   }
 
-  // Remove Profile Picture
-  const handleRemoveImage = () => {
-    setProfileImage(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+  // Remove Profile Picture with Instant State Synchronization
+  const handleRemoveImage = async () => {
+    try {
+      setImageRemoving(true)
+      const res = await profileApi.update({
+        fullName: fullName.trim(),
+        mobile: mobile.trim(),
+        designation: designation.trim(),
+        bio: bio.trim(),
+        profileImage: null,
+      })
+
+      if (res.success) {
+        setProfileImage(null)
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+        updateCurrentUser({
+          profileImage: null,
+          profilePhotoUrl: null,
+        })
+        queryClient.setQueryData(['profile'], (old: any) =>
+          old ? { ...old, data: { ...old.data, profileImage: null } } : old
+        )
+        queryClient.invalidateQueries({ queryKey: ['profile'] })
+        queryClient.invalidateQueries({ queryKey: ['auth-user'] })
+        queryClient.invalidateQueries({ queryKey: ['me'] })
+        queryClient.invalidateQueries({ queryKey: ['auth', 'me'] })
+        notify.success('Profile picture removed successfully!')
+      } else {
+        notify.error(res.message || 'Failed to remove profile picture.')
+      }
+    } catch (err: any) {
+      notify.error(err?.response?.data?.message || err?.message || 'Error removing profile picture.')
+    } finally {
+      setImageRemoving(false)
     }
-    updateCurrentUser({
-      profileImage: null,
-      profilePhotoUrl: null,
-    })
-    updateMutation.mutate({
-      fullName: fullName.trim(),
-      mobile: mobile.trim(),
-      designation: designation.trim(),
-      bio: bio.trim(),
-      profileImage: null,
-    })
-    notify.info('Profile picture removed.')
   }
 
   // Submit Profile Changes
@@ -260,7 +287,7 @@ export const AdminProfilePage: React.FC = () => {
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={imageUploading}
+                    disabled={imageUploading || imageRemoving}
                     onClick={() => fileInputRef.current?.click()}
                     icon={imageUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                   >
@@ -272,11 +299,12 @@ export const AdminProfilePage: React.FC = () => {
                       type="button"
                       variant="ghost"
                       size="sm"
+                      disabled={imageUploading || imageRemoving}
                       onClick={handleRemoveImage}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      icon={<Trash2 className="w-3.5 h-3.5" />}
+                      icon={imageRemoving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                     >
-                      Remove Photo
+                      {imageRemoving ? 'Removing...' : 'Remove Photo'}
                     </Button>
                   )}
                 </div>

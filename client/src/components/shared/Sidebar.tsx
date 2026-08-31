@@ -161,45 +161,47 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeRole, user, onLogout }) 
         )}
       </div>
 
-      {/* USER PROFILE META BANNER */}
-      <div
-        className={cn(
-          'p-3.5 border-b border-[#E5E7EB] flex items-center bg-[#FCF8FA] gap-3',
-          isCollapsed && 'justify-center'
-        )}
-      >
-        <div className="relative min-w-10 h-10 rounded-full border-2 border-[#D4AF37] bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
-          {user?.avatarUrl || user?.profileImage ? (
-            <img
-              src={getMediaUrl(user.avatarUrl || user.profileImage)}
-              alt="Avatar"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
-            />
-          ) : (
-            <span className="font-bold text-[#111827] text-sm uppercase">
-              {user?.name ? user.name.charAt(0) : activeRole.charAt(0).toUpperCase()}
-            </span>
+      {/* USER PROFILE META BANNER (Excluded for Super Admin) */}
+      {activeRole !== 'admin' && (
+        <div
+          className={cn(
+            'p-3.5 border-b border-[#E5E7EB] flex items-center bg-[#FCF8FA] gap-3',
+            isCollapsed && 'justify-center'
+          )}
+        >
+          <div className="relative min-w-10 h-10 rounded-full border-2 border-[#D4AF37] bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
+            {user?.avatarUrl || user?.profileImage ? (
+              <img
+                src={getMediaUrl(user.avatarUrl || user.profileImage)}
+                alt="Avatar"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            ) : (
+              <span className="font-bold text-[#111827] text-sm uppercase">
+                {user?.name ? user.name.charAt(0) : activeRole.charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          {!isCollapsed && (
+            <div className="overflow-hidden truncate flex-1">
+              <p className="text-xs font-bold text-[#111827] truncate leading-tight">
+                {user?.name || (activeRole === 'zone' ? 'Zone Coordinator' : 'Volunteer Student')}
+              </p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <Badge
+                  variant={activeRole === 'zone' ? 'info' : 'neutral'}
+                  size="sm"
+                >
+                  {activeRole === 'zone' ? 'Zone Incharge' : 'Student'}
+                </Badge>
+              </div>
+            </div>
           )}
         </div>
-        {!isCollapsed && (
-          <div className="overflow-hidden truncate flex-1">
-            <p className="text-xs font-bold text-[#111827] truncate leading-tight">
-              {user?.name || (activeRole === 'admin' ? 'Super Administrator' : activeRole === 'zone' ? 'Zone Coordinator' : 'Volunteer Student')}
-            </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <Badge
-                variant={activeRole === 'admin' ? 'gold' : activeRole === 'zone' ? 'info' : 'neutral'}
-                size="sm"
-              >
-                {activeRole === 'admin' ? 'Super Admin' : activeRole === 'zone' ? 'Zone Incharge' : 'Student'}
-              </Badge>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* NAVIGATION LINKS CONTAINER */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
