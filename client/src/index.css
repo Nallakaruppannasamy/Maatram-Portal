@@ -46,19 +46,62 @@
   background: #76777D;
 }
 
-/* Print Styles for Resume Generator */
+/* Print Styles for Resume Generator & Documents */
 @media print {
-  body {
-    background-color: #ffffff !important;
-  }
-  .no-print {
+  /* Hide all layout sidebars, headers, floating bars, navigation, toast notifications, buttons */
+  aside,
+  header,
+  nav,
+  .no-print,
+  button,
+  [role="dialog"] > div:not(.print-dialog-content),
+  .sonner-toaster {
     display: none !important;
   }
-  .print-area {
+
+  html, body {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #root,
+  .h-screen,
+  .overflow-hidden,
+  .overflow-y-auto {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  main,
+  #main-content {
+    padding: 0 !important;
+    margin: 0 !important;
     width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .print-area,
+  .resume-paper-preview {
+    width: 100% !important;
+    max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     box-shadow: none !important;
     border: none !important;
+    border-radius: 0 !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm 10mm 12mm;
   }
 }

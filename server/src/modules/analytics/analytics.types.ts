@@ -29,6 +29,7 @@ export interface TopStudentItem {
   studentYear: string;
   points: number;
   activitiesCount: number;
+  profileImage?: string | null;
 }
 
 export interface CollegePerformanceItem {

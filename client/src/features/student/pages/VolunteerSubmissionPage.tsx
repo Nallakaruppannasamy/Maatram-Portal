@@ -17,7 +17,7 @@ export const VolunteerSubmissionPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [title, setTitle] = useState('')
-  const [category, setCategory] = useState('TELE_VERIFICATION')
+  const [category, setCategory] = useState('PHYSICAL_VERIFICATION')
   const [count, setCount] = useState('1')
   const [eventDate, setEventDate] = useState(new Date().toISOString().split('T')[0])
   const [description, setDescription] = useState('')
@@ -210,13 +210,11 @@ export const VolunteerSubmissionPage = () => {
                     disabled={submitMutation.isPending}
                     className="w-full bg-[#FFFFFF] border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50"
                   >
-                    <option value="TELE_VERIFICATION">Tele Verification</option>
                     <option value="PHYSICAL_VERIFICATION">Physical Verification</option>
+                    <option value="TELE_VERIFICATION">Tele Verification</option>
                     <option value="SCHOOL_VISIT">School Visit</option>
-                    <option value="KARPOM_KARPIPOM_TUTORING">Karpom Karpipom Tutoring</option>
-                    <option value="OFFLINE_PANEL_VOLUNTEERING">Offline Panel Volunteering</option>
-                    <option value="SANGAMAM_VOLUNTEERING">Sangamam Volunteering</option>
-                    <option value="OTHER_OFFLINE_EVENT_VOLUNTEERING">Other Offline Event Volunteering</option>
+                    <option value="OFFLINE_PANEL_VOLUNTEERING">Offline Event</option>
+                    <option value="OTHER_OFFLINE_EVENT_VOLUNTEERING">Others</option>
                   </select>
                 </div>
 

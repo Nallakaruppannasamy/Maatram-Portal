@@ -188,6 +188,16 @@ export class AnalyticsService {
           batch: true,
           collegeId: true,
           zoneId: true,
+          profileImage: true,
+          user: {
+            select: {
+              userProfile: {
+                select: {
+                  profileImage: true,
+                },
+              },
+            },
+          },
           college: {
             select: {
               id: true,
@@ -332,6 +342,10 @@ export class AnalyticsService {
         studentYear: this.formatStudentYearDisplay(curr.student.academicYear, curr.student.semester),
         points: curr.points,
         activitiesCount: curr.activitiesCount,
+        profileImage:
+          curr.student.profileImage ||
+          curr.student.user?.userProfile?.profileImage ||
+          null,
       });
     }
 

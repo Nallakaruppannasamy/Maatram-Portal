@@ -108,7 +108,7 @@ export const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ data }) => {
   const imageUrl = profileImage ? getMediaUrl(profileImage) : null
 
   return (
-    <div className="w-full max-w-4xl bg-white border border-[#E5E7EB] rounded-2xl shadow-xl p-8 sm:p-10 space-y-6 print:p-0 print:border-none print:shadow-none text-[#111827] font-sans">
+    <div className="w-full max-w-4xl bg-white border border-[#E5E7EB] rounded-2xl shadow-xl p-8 sm:p-10 space-y-6 print:p-0 print:border-none print:shadow-none print:max-w-none print:w-full print:rounded-none resume-paper-preview text-[#111827] font-sans">
       {/* Header Info */}
       <div className="flex flex-col md:flex-row justify-between items-start border-b-2 border-[#111827] pb-6 gap-6">
         <div className="space-y-3 grow">
@@ -309,34 +309,85 @@ export const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ data }) => {
       )}
 
       {/* Verified Volunteer Impact Section */}
-      {volunteerSubmissions.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-xs font-bold text-[#111827] uppercase tracking-widest border-b border-[#E5E7EB] pb-1 flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Verified volunteering & community outreach
-          </h3>
-          <div className="space-y-3 text-xs">
-            {volunteerSubmissions.map((log) => {
-              const formattedDate = log.eventDate ? new Date(log.eventDate).toLocaleDateString(undefined, {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-              }) : ''
-              return (
-                <div key={log.id} className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] space-y-1">
-                  <div className="flex justify-between font-bold text-[#111827]">
-                    <span>{log.title}</span>
-                    <span className="text-[#D4AF37]">{log.count ? `${log.count} Units` : 'Logged Activity'}</span>
-                  </div>
-                  <p className="text-[#45464c] text-[11px] leading-relaxed">{log.description}</p>
-                  <p className="text-[9px] text-[#76777d] font-bold uppercase tracking-wider">
-                    Category: {log.category.replace(/_/g, ' ')} {formattedDate && `• Date: ${formattedDate}`}
-                  </p>
+      {(() => {
+        const approvedLogs = volunteerSubmissions.filter(
+          (log: any) => !log.status || String(log.status).toLowerCase() === 'approved'
+        )
+
+        const physicalCount = approvedLogs
+          .filter((log) => log.category === 'PHYSICAL_VERIFICATION')
+          .reduce((sum, log) => sum + (Number(log.count) || 1), 0)
+
+        const teleCount = approvedLogs
+          .filter((log) => log.category === 'TELE_VERIFICATION')
+          .reduce((sum, log) => sum + (Number(log.count) || 1), 0)
+
+        const schoolCount = approvedLogs
+          .filter((log) => log.category === 'SCHOOL_VISIT')
+          .reduce((sum, log) => sum + (Number(log.count) || 1), 0)
+
+        const offlineCount = approvedLogs.filter(
+          (log) =>
+            log.category === 'OFFLINE_PANEL_VOLUNTEERING' ||
+            log.category === 'SANGAMAM_VOLUNTEERING'
+        ).length
+
+        const othersList = approvedLogs.filter(
+          (log) =>
+            log.category === 'OTHER_OFFLINE_EVENT_VOLUNTEERING' ||
+            log.category === 'KARPOM_KARPIPOM_TUTORING'
+        )
+
+        const formatStat = (num: number) => (num < 10 ? `0${num}` : `${num}`)
+
+        return (
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-[#111827] uppercase tracking-widest border-b border-[#E5E7EB] pb-1 flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Verified Volunteering & Community Outreach
+            </h3>
+
+            {/* 4 Compact Statistics Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] text-center space-y-1">
+                <p className="text-[10px] font-semibold text-[#45464c] uppercase tracking-wider">Physical Verification</p>
+                <p className="text-xl font-extrabold text-[#111827] tracking-tight">{formatStat(physicalCount)}</p>
+              </div>
+
+              <div className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] text-center space-y-1">
+                <p className="text-[10px] font-semibold text-[#45464c] uppercase tracking-wider">Tele Verification</p>
+                <p className="text-xl font-extrabold text-[#111827] tracking-tight">{formatStat(teleCount)}</p>
+              </div>
+
+              <div className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] text-center space-y-1">
+                <p className="text-[10px] font-semibold text-[#45464c] uppercase tracking-wider">School Visit</p>
+                <p className="text-xl font-extrabold text-[#111827] tracking-tight">{formatStat(schoolCount)}</p>
+              </div>
+
+              <div className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] text-center space-y-1">
+                <p className="text-[10px] font-semibold text-[#45464c] uppercase tracking-wider">Offline Events</p>
+                <p className="text-xl font-extrabold text-[#111827] tracking-tight">{formatStat(offlineCount)}</p>
+              </div>
+            </div>
+
+            {/* Others Volunteering Works List */}
+            {othersList.length > 0 && (
+              <div className="pt-2 space-y-2">
+                <h4 className="text-[11px] font-bold text-[#111827] uppercase tracking-wider text-gray-600">
+                  Other Volunteering Activities
+                </h4>
+                <div className="space-y-2 text-xs">
+                  {othersList.map((log) => (
+                    <div key={log.id} className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] space-y-1">
+                      <div className="font-bold text-[#111827]">{log.title}</div>
+                      <p className="text-[#45464c] text-[11px] leading-relaxed">{log.description}</p>
+                    </div>
+                  ))}
                 </div>
-              )
-            })}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Footer System Verification */}
       <div className="pt-6 border-t border-[#E5E7EB] text-center text-[9px] text-gray-400 font-mono tracking-wider">

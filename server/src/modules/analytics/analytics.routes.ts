@@ -16,9 +16,9 @@ import {
 
 const router = Router();
 
-// Protect all analytics routes - Super Admin only
+// Protect all analytics routes - Super Admin and Zone Incharges
 router.use(requireAuth);
-router.use(requireRole('admin'));
+router.use(requireRole('admin', 'zone'));
 
 // Main volunteering analytics endpoint
 router.get(

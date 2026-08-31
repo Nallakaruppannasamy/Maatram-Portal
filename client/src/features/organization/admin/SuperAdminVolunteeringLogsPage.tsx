@@ -33,13 +33,13 @@ const safeString = (val: any, fallback: string = 'N/A'): string => {
 }
 
 const CATEGORY_MAP: Record<string, string> = {
-  TELE_VERIFICATION: 'Tele Verification',
   PHYSICAL_VERIFICATION: 'Physical Verification',
+  TELE_VERIFICATION: 'Tele Verification',
   SCHOOL_VISIT: 'School Visit',
+  OFFLINE_PANEL_VOLUNTEERING: 'Offline Event',
+  OTHER_OFFLINE_EVENT_VOLUNTEERING: 'Others',
   KARPOM_KARPIPOM_TUTORING: 'Karpom Karpipom Tutoring',
-  OFFLINE_PANEL_VOLUNTEERING: 'Offline Panel Volunteering',
   SANGAMAM_VOLUNTEERING: 'Sangamam Volunteering',
-  OTHER_OFFLINE_EVENT_VOLUNTEERING: 'Other Offline Event Volunteering',
 }
 
 const getStatusBadge = (status: string) => {

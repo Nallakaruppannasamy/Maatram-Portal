@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/Button'
 import { TableLoader } from '@/components/ui/TableLoader'
 import { zoneApi } from '@/api/zone.api'
 import { profileApi } from '@/api/profile.api'
+import { getMediaUrl } from '@/utils/media'
 import {
   analyticsApi,
   AnalyticsQueryParams,
@@ -440,49 +441,103 @@ export const SuperAdminAnalyticsPage: React.FC = () => {
             <p className="text-[11px] text-gray-400">No active students have approved volunteering logs for the selected filters.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-[#E5E7EB]">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#FCF8FA] text-[#76777d] uppercase text-[10px] font-black tracking-wider border-b border-[#E5E7EB]">
-                <tr>
-                  <th className="py-3.5 px-4 w-16 text-center">Rank</th>
-                  <th className="py-3.5 px-4">Scholar Name & Reg #</th>
-                  <th className="py-3.5 px-4">Partner College</th>
-                  <th className="py-3.5 px-4">Zone</th>
-                  <th className="py-3.5 px-4">Academic Year</th>
-                  <th className="py-3.5 px-4 text-center">Activities</th>
-                  <th className="py-3.5 px-4 text-right">Points</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E5E7EB] font-medium text-[#111827]">
-                {topStudents.map((st) => (
-                  <tr key={st.studentId} className="hover:bg-[#FCF8FA]/60 transition-colors">
-                    <td className="py-3.5 px-4 text-center">{renderRankBadge(st.rank)}</td>
-                    <td className="py-3.5 px-4">
-                      <div className="font-bold text-[#111827]">{st.studentName}</div>
-                      <div className="text-[10px] text-gray-400 font-mono">{st.registrationNumber}</div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-gray-900">{st.collegeName}</div>
-                      <div className="text-[10px] text-gray-400 font-mono">{st.collegeCode}</div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <Badge variant="neutral" className="text-[10px] font-bold">
-                        {st.zoneName}
-                      </Badge>
-                    </td>
-                    <td className="py-3.5 px-4 text-gray-600 font-semibold">{st.studentYear}</td>
-                    <td className="py-3.5 px-4 text-center font-bold text-indigo-900">
-                      {st.activitiesCount}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <span className="inline-block px-3 py-1 bg-amber-50 text-amber-700 font-black rounded-lg border border-amber-200">
-                        {st.points} pts
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {topStudents.map((st) => {
+              const avatarUrl = st.profileImage ? getMediaUrl(st.profileImage) : null
+              const initials = st.studentName
+                ? st.studentName
+                    .split(' ')
+                    .filter(Boolean)
+                    .map((n) => n[0])
+                    .slice(0, 2)
+                    .join('')
+                    .toUpperCase()
+                : 'ST'
+
+              return (
+                <div
+                  key={st.studentId}
+                  className="bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] hover:border-[#D4AF37]/60 hover:shadow-lg transition-all duration-300 p-5 flex flex-col justify-between relative group overflow-hidden"
+                >
+                  {/* Rank Crown/Badge Header */}
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-1.5">
+                      {renderRankBadge(st.rank)}
+                      <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">
+                        Rank #{st.rank}
                       </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    <Badge variant="neutral" className="text-[9px] font-bold py-0.5 px-2">
+                      {st.zoneCode || st.zoneName}
+                    </Badge>
+                  </div>
+
+                  {/* Profile Picture & Identity */}
+                  <div className="flex flex-col items-center text-center space-y-2 py-2">
+                    <div className="relative">
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={st.studentName}
+                          className="w-16 h-16 rounded-full object-cover border-2 border-[#D4AF37]/50 shadow-sm"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none'
+                          }}
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#111827] to-slate-700 text-[#D4AF37] font-black text-lg flex items-center justify-center border-2 border-[#D4AF37]/40 shadow-sm">
+                          {initials}
+                        </div>
+                      )}
+                      {st.rank === 1 && (
+                        <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-950 p-1 rounded-full shadow-md text-[10px]" title="Top Rank Scholar">
+                          👑
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="w-full">
+                      <h3
+                        className="text-sm font-extrabold text-[#111827] truncate tracking-tight"
+                        title={st.studentName}
+                      >
+                        {st.studentName}
+                      </h3>
+                      <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                        <span className="text-[10px] font-mono font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                          {st.registrationNumber}
+                        </span>
+                        <span className="text-[10px] font-semibold text-gray-400">
+                          {st.studentYear}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* College Details */}
+                  <div className="mt-3 pt-3 border-t border-gray-100 text-center space-y-0.5">
+                    <p className="text-[11px] font-bold text-gray-800 line-clamp-1" title={st.collegeName}>
+                      {st.collegeName}
+                    </p>
+                    <p className="text-[10px] text-gray-400 font-mono font-medium">
+                      {st.collegeCode} • {st.zoneName}
+                    </p>
+                  </div>
+
+                  {/* Metrics Banner */}
+                  <div className="mt-4 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 text-center bg-[#FCF8FA] -mx-5 -mb-5 p-3 rounded-b-2xl">
+                    <div className="space-y-0.5 border-r border-gray-200">
+                      <p className="text-[9px] font-black uppercase tracking-wider text-gray-400">Activities</p>
+                      <p className="text-xs font-black text-indigo-900">{st.activitiesCount}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-[9px] font-black uppercase tracking-wider text-amber-600">Points</p>
+                      <p className="text-xs font-black text-amber-700">{st.points} pts</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </Card>
