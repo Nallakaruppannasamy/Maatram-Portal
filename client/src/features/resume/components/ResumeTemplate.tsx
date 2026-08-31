@@ -341,43 +341,59 @@ export const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ data }) => {
         const formatStat = (num: number) => (num < 10 ? `0${num}` : `${num}`)
 
         return (
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold text-[#111827] uppercase tracking-widest border-b border-[#E5E7EB] pb-1 flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Verified Volunteering & Community Outreach
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold text-[#111827] uppercase tracking-widest border-b border-[#E5E7EB] pb-1">
+              Volunteering Works
             </h3>
 
-            {/* 4 Compact Statistics Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] text-center space-y-1">
-                <p className="text-[10px] font-semibold text-[#45464c] uppercase tracking-wider">Physical Verification</p>
-                <p className="text-xl font-extrabold text-[#111827] tracking-tight">{formatStat(physicalCount)}</p>
+            {/* 4 Statistics Cards matching changes.pdf Reference Image (2x2 Grid) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-white rounded-2xl border-2 border-black flex items-center justify-between">
+                <div className="text-sm font-bold text-black leading-tight">
+                  Physical<br />Verification
+                </div>
+                <div className="text-3xl font-black text-black tracking-tight">
+                  {formatStat(physicalCount)}
+                </div>
               </div>
 
-              <div className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] text-center space-y-1">
-                <p className="text-[10px] font-semibold text-[#45464c] uppercase tracking-wider">Tele Verification</p>
-                <p className="text-xl font-extrabold text-[#111827] tracking-tight">{formatStat(teleCount)}</p>
+              <div className="p-4 bg-white rounded-2xl border-2 border-black flex items-center justify-between">
+                <div className="text-sm font-bold text-black leading-tight">
+                  Tele<br />Verification
+                </div>
+                <div className="text-3xl font-black text-black tracking-tight">
+                  {formatStat(teleCount)}
+                </div>
               </div>
 
-              <div className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] text-center space-y-1">
-                <p className="text-[10px] font-semibold text-[#45464c] uppercase tracking-wider">School Visit</p>
-                <p className="text-xl font-extrabold text-[#111827] tracking-tight">{formatStat(schoolCount)}</p>
+              <div className="p-4 bg-white rounded-2xl border-2 border-black flex items-center justify-between">
+                <div className="text-sm font-bold text-black leading-tight">
+                  School<br />Visit
+                </div>
+                <div className="text-3xl font-black text-black tracking-tight">
+                  {formatStat(schoolCount)}
+                </div>
               </div>
 
-              <div className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] text-center space-y-1">
-                <p className="text-[10px] font-semibold text-[#45464c] uppercase tracking-wider">Offline Events</p>
-                <p className="text-xl font-extrabold text-[#111827] tracking-tight">{formatStat(offlineCount)}</p>
+              <div className="p-4 bg-white rounded-2xl border-2 border-black flex items-center justify-between">
+                <div className="text-sm font-bold text-black leading-tight">
+                  Offline<br />Events
+                </div>
+                <div className="text-3xl font-black text-black tracking-tight">
+                  {formatStat(offlineCount)}
+                </div>
               </div>
             </div>
 
             {/* Others Volunteering Works List */}
             {othersList.length > 0 && (
               <div className="pt-2 space-y-2">
-                <h4 className="text-[11px] font-bold text-[#111827] uppercase tracking-wider text-gray-600">
-                  Other Volunteering Activities
+                <h4 className="text-[11px] font-bold text-[#111827] uppercase tracking-wider text-gray-700">
+                  Others
                 </h4>
                 <div className="space-y-2 text-xs">
                   {othersList.map((log) => (
-                    <div key={log.id} className="p-3 bg-[#FCF8FA] rounded-xl border border-[#E5E7EB] space-y-1">
+                    <div key={log.id} className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-1">
                       <div className="font-bold text-[#111827]">{log.title}</div>
                       <p className="text-[#45464c] text-[11px] leading-relaxed">{log.description}</p>
                     </div>

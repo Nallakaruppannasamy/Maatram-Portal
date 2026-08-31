@@ -459,46 +459,36 @@ export const SuperAdminAnalyticsPage: React.FC = () => {
                   key={st.studentId}
                   className="bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] hover:border-[#D4AF37]/60 hover:shadow-lg transition-all duration-300 p-5 flex flex-col justify-between relative group overflow-hidden"
                 >
-                  {/* Rank Crown/Badge Header */}
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-1.5">
-                      {renderRankBadge(st.rank)}
-                      <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">
-                        Rank #{st.rank}
-                      </span>
-                    </div>
-                    <Badge variant="neutral" className="text-[9px] font-bold py-0.5 px-2">
-                      {st.zoneCode || st.zoneName}
-                    </Badge>
-                  </div>
-
-                  {/* Profile Picture & Identity */}
-                  <div className="flex flex-col items-center text-center space-y-2 py-2">
-                    <div className="relative">
+                  <div className="flex flex-col items-center text-center space-y-3">
+                    {/* Portrait Profile Photo matching reference image */}
+                    <div className="w-full h-40 rounded-xl overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 border border-[#E5E7EB] relative flex items-center justify-center shadow-inner group-hover:border-[#D4AF37]/50 transition-colors">
                       {avatarUrl ? (
                         <img
                           src={avatarUrl}
                           alt={st.studentName}
-                          className="w-16 h-16 rounded-full object-cover border-2 border-[#D4AF37]/50 shadow-sm"
+                          className="w-full h-full object-cover object-top"
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none'
                           }}
                         />
                       ) : (
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#111827] to-slate-700 text-[#D4AF37] font-black text-lg flex items-center justify-center border-2 border-[#D4AF37]/40 shadow-sm">
+                        <div className="w-full h-full bg-gradient-to-br from-[#111827] to-slate-800 text-[#D4AF37] font-black text-2xl flex items-center justify-center">
                           {initials}
                         </div>
                       )}
                       {st.rank === 1 && (
-                        <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-950 p-1 rounded-full shadow-md text-[10px]" title="Top Rank Scholar">
-                          👑
+                        <span
+                          className="absolute top-2 right-2 bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full shadow-md text-[10px] font-black flex items-center gap-1"
+                          title="Top Rank Scholar"
+                        >
+                          👑 Top 1
                         </span>
                       )}
                     </div>
 
-                    <div className="w-full">
+                    <div className="w-full px-1">
                       <h3
-                        className="text-sm font-extrabold text-[#111827] truncate tracking-tight"
+                        className="text-xs font-black uppercase text-[#111827] truncate tracking-tight"
                         title={st.studentName}
                       >
                         {st.studentName}
@@ -507,15 +497,13 @@ export const SuperAdminAnalyticsPage: React.FC = () => {
                         <span className="text-[10px] font-mono font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
                           {st.registrationNumber}
                         </span>
-                        <span className="text-[10px] font-semibold text-gray-400">
-                          {st.studentYear}
-                        </span>
+                        <span className="text-[10px] font-semibold text-gray-400">{st.studentYear}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* College Details */}
-                  <div className="mt-3 pt-3 border-t border-gray-100 text-center space-y-0.5">
+                  <div className="mt-2 pt-2 border-t border-gray-100 text-center space-y-0.5">
                     <p className="text-[11px] font-bold text-gray-800 line-clamp-1" title={st.collegeName}>
                       {st.collegeName}
                     </p>
@@ -525,7 +513,7 @@ export const SuperAdminAnalyticsPage: React.FC = () => {
                   </div>
 
                   {/* Metrics Banner */}
-                  <div className="mt-4 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 text-center bg-[#FCF8FA] -mx-5 -mb-5 p-3 rounded-b-2xl">
+                  <div className="mt-3 pt-2 border-t border-gray-100 grid grid-cols-2 gap-2 text-center bg-[#FCF8FA] -mx-5 -mb-5 p-3 rounded-b-2xl">
                     <div className="space-y-0.5 border-r border-gray-200">
                       <p className="text-[9px] font-black uppercase tracking-wider text-gray-400">Activities</p>
                       <p className="text-xs font-black text-indigo-900">{st.activitiesCount}</p>
