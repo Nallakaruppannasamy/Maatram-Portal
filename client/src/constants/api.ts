@@ -47,4 +47,9 @@ export const API_ROUTES = {
     BY_ID: (id: string) => `/audit-logs/${id}`,
     ACTIONS: '/audit-logs/actions',
   },
+  ANALYTICS: {
+    VOLUNTEERING: '/analytics/volunteering',
+    COLLEGE_DRILLDOWN: (collegeId: string) => `/analytics/colleges/${collegeId}`,
+    ZONE_DRILLDOWN: (zoneId: string) => `/analytics/zones/${zoneId}`,
+  },
 } as const

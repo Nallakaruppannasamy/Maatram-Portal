@@ -108,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeRole, user, onLogout }) 
     { title: 'Zone Management', path: '/admin/zones', icon: Building2 },
     { title: 'Team Management', path: '/admin/team', icon: ShieldCheck },
     { title: 'Volunteering Logs', path: '/admin/volunteering-logs', icon: ClipboardCheck },
-    { title: 'Global Analytics', path: '/admin/analytics', icon: BarChart3 },
+    { title: 'Volunteering Analytics', path: '/admin/analytics', icon: BarChart3 },
     { title: 'Audit Logs', path: '/admin/audit-logs', icon: CheckSquare },
   ]
 
