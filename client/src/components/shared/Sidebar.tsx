@@ -110,6 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeRole, user, onLogout }) 
     { title: 'Volunteering Logs', path: '/admin/volunteering-logs', icon: ClipboardCheck },
     { title: 'Volunteering Analytics', path: '/admin/analytics', icon: BarChart3 },
     { title: 'Audit Logs', path: '/admin/audit-logs', icon: CheckSquare },
+    { title: 'Profile', path: '/admin/profile', icon: User },
   ]
 
   const commonNav: NavItem[] = [

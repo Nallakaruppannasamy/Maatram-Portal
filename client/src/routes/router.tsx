@@ -41,6 +41,7 @@ import { OrganizationHierarchyPage } from '@/features/organization/admin/Organiz
 import { TeamManagementPage } from '@/features/organization/admin/TeamManagementPage'
 import { SuperAdminVolunteeringLogsPage } from '@/features/organization/admin/SuperAdminVolunteeringLogsPage'
 import { SuperAdminAnalyticsPage } from '@/features/analytics/pages/SuperAdminAnalyticsPage'
+import { AdminProfilePage } from '@/features/organization/admin/AdminProfilePage'
 import { AuditLogsPage } from '@/features/organization/pages/AuditLogsPage'
 
 // Shared Tools
@@ -267,6 +268,14 @@ export const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={[ROLES.ADMIN]}>
             <AuditLogsPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/admin/profile',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+            <AdminProfilePage />
           </RoleGuard>
         ),
       },

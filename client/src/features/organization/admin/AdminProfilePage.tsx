@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Loader2, Upload, Trash2, Camera, Lock, CheckCircle2, User, ShieldCheck } from 'lucide-react'
+import { Loader2, Upload, Trash2, Lock, CheckCircle2, User, ShieldCheck, Shield } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { notify } from '@/utils/toast'
 import { getMediaUrl } from '@/utils/media'
 
-export const ZoneProfilePage = () => {
+export const AdminProfilePage: React.FC = () => {
   const queryClient = useQueryClient()
   const { user, updateCurrentUser } = useAuth()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -56,15 +56,13 @@ export const ZoneProfilePage = () => {
     mutationFn: (payload: any) => profileApi.update(payload),
     onSuccess: (res) => {
       if (res.success) {
-        notify.success('Zone Profile details saved successfully!')
-        if (updateCurrentUser) {
-          updateCurrentUser({
-            fullName: fullName.trim(),
-            mobile: mobile.trim(),
-            profileImage: profileImage || null,
-            profilePhotoUrl: profileImage || null,
-          })
-        }
+        notify.success('Super Admin Profile details saved successfully!')
+        updateCurrentUser({
+          fullName: fullName.trim(),
+          mobile: mobile.trim(),
+          profileImage: profileImage || null,
+          profilePhotoUrl: profileImage || null,
+        })
         queryClient.invalidateQueries({ queryKey: ['profile'] })
         queryClient.invalidateQueries({ queryKey: ['auth', 'me'] })
         queryClient.invalidateQueries({ queryKey: ['auth-user'] })
@@ -120,12 +118,10 @@ export const ZoneProfilePage = () => {
       if (res.success && res.data?.fileUrl) {
         const newImageUrl = res.data.fileUrl
         setProfileImage(newImageUrl)
-        if (updateCurrentUser) {
-          updateCurrentUser({
-            profileImage: newImageUrl,
-            profilePhotoUrl: newImageUrl,
-          })
-        }
+        updateCurrentUser({
+          profileImage: newImageUrl,
+          profilePhotoUrl: newImageUrl,
+        })
         queryClient.invalidateQueries({ queryKey: ['profile'] })
         queryClient.invalidateQueries({ queryKey: ['auth-user'] })
         queryClient.invalidateQueries({ queryKey: ['me'] })
@@ -147,12 +143,10 @@ export const ZoneProfilePage = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
-    if (updateCurrentUser) {
-      updateCurrentUser({
-        profileImage: null,
-        profilePhotoUrl: null,
-      })
-    }
+    updateCurrentUser({
+      profileImage: null,
+      profilePhotoUrl: null,
+    })
     updateMutation.mutate({
       fullName: fullName.trim(),
       mobile: mobile.trim(),
@@ -200,10 +194,10 @@ export const ZoneProfilePage = () => {
   }
 
   if (isLoading) {
-    return <LoadingPage message="Loading zone profile details..." />
+    return <LoadingPage message="Loading administrator profile details..." />
   }
 
-  const displayName = fullName || user?.fullName || user?.name || user?.email || 'Zone Incharge'
+  const displayName = fullName || user?.fullName || user?.name || user?.email || 'Super Administrator'
   const initials = displayName
     .split(' ')
     .map((n: string) => n[0])
@@ -214,8 +208,8 @@ export const ZoneProfilePage = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300">
       <div>
-        <h2 className="text-2xl font-extrabold text-[#111827] tracking-tight">Zone Incharge Profile</h2>
-        <p className="text-xs text-[#45464c]">Manage your official profile, bio, contact preferences, and security settings.</p>
+        <h2 className="text-2xl font-extrabold text-[#111827] tracking-tight">Super Admin Profile</h2>
+        <p className="text-xs text-[#45464c]">Manage your executive profile, credentials, contact information, and security preferences.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -233,7 +227,7 @@ export const ZoneProfilePage = () => {
                   />
                 ) : (
                   <div className="w-24 h-24 rounded-2xl bg-[#111827] text-white flex items-center justify-center font-bold text-3xl border-2 border-slate-700 shadow-sm">
-                    <span className="text-[#D4AF37]">{initials}</span>
+                    <span className="text-[#D4AF37]">{initials || <Shield className="w-10 h-10 text-[#D4AF37]" />}</span>
                   </div>
                 )}
 
@@ -247,10 +241,10 @@ export const ZoneProfilePage = () => {
               <div className="flex-1 text-center sm:text-left space-y-2">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                   <h3 className="text-xl font-bold text-[#111827]">{displayName}</h3>
-                  <Badge variant="info">Zone Incharge</Badge>
+                  <Badge variant="gold">Super Admin</Badge>
                 </div>
                 <p className="text-xs text-[#76777d]">
-                  Designation: <span className="font-semibold text-[#111827]">{designation || 'Zone Administrator'}</span>
+                  Designation: <span className="font-semibold text-[#111827]">{designation || 'Super Administrator'}</span>
                 </p>
 
                 {/* Avatar Action Controls */}
@@ -292,7 +286,7 @@ export const ZoneProfilePage = () => {
             {/* Profile Update Form */}
             <form onSubmit={handleSaveProfile} className="space-y-6">
               <h4 className="text-sm font-bold text-[#111827] flex items-center gap-2">
-                <User className="w-4 h-4 text-[#D4AF37]" /> Personal Details
+                <User className="w-4 h-4 text-[#D4AF37]" /> Personal & Executive Details
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -321,7 +315,7 @@ export const ZoneProfilePage = () => {
                   value={designation}
                   onChange={(e) => setDesignation(e.target.value)}
                   disabled={updateMutation.isPending}
-                  placeholder="e.g. North Zone Regional In-Charge"
+                  placeholder="e.g. Chief Executive / Super Administrator"
                 />
               </div>
 
@@ -334,7 +328,7 @@ export const ZoneProfilePage = () => {
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   disabled={updateMutation.isPending}
-                  placeholder="Briefly describe your zone administration responsibilities..."
+                  placeholder="Briefly describe your foundation administration responsibilities..."
                   className="w-full px-3.5 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-xs text-[#111827] focus:ring-2 focus:ring-[#111827] focus:border-transparent outline-none transition disabled:bg-gray-50"
                 />
               </div>
@@ -411,4 +405,4 @@ export const ZoneProfilePage = () => {
   )
 }
 
-export default ZoneProfilePage
+export default AdminProfilePage

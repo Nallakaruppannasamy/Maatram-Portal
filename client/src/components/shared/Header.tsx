@@ -55,10 +55,10 @@ export const Header: React.FC<HeaderProps> = ({
         return {
           label: 'Super Admin',
           badgeVariant: 'gold' as const,
-          defaultTitle: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Super Administrator' : 'Super Administrator',
+          defaultTitle: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.fullName || 'Super Administrator' : 'Super Administrator',
           subtitle: 'Maatram Executive Team',
           icon: Shield,
-          profileLink: '/admin/dashboard',
+          profileLink: '/admin/profile',
         }
       case 'zone':
         return {
