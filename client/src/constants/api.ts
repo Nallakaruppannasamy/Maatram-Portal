@@ -20,6 +20,7 @@ export const API_ROUTES = {
   },
   USERS: {
     BASE: '/users',
+    EXPORT: '/users/export',
     BY_ID: (id: string) => `/users/${id}`,
     ACTIVATE: (id: string) => `/users/${id}/activate`,
     DEACTIVATE: (id: string) => `/users/${id}/deactivate`,
@@ -31,6 +32,7 @@ export const API_ROUTES = {
     BASE: '/students',
     BY_ID: (id: string) => `/students/${id}`,
     STATUS: (id: string) => `/students/${id}/status`,
+    BULK_DEACTIVATE: '/students/bulk-deactivate',
     SPOC: (id: string) => `/students/${id}/spoc`,
     IMPORT: '/students/import',
     IMPORT_STATUS: (id: string) => `/students/imports/${id}`,
@@ -39,6 +41,7 @@ export const API_ROUTES = {
   },
   VOLUNTEERS: {
     BASE: '/volunteers',
+    EXPORT: '/volunteers/export',
     BY_ID: (id: string) => `/volunteers/${id}`,
     STATUS: (id: string) => `/volunteers/${id}/status`,
   },
@@ -48,6 +51,8 @@ export const API_ROUTES = {
     ACTIONS: '/audit-logs/actions',
   },
   ANALYTICS: {
+    SUPER_ADMIN_DASHBOARD: '/analytics/dashboard/super-admin',
+    ZONE_DASHBOARD: '/analytics/dashboard/zone',
     VOLUNTEERING: '/analytics/volunteering',
     COLLEGE_DRILLDOWN: (collegeId: string) => `/analytics/colleges/${collegeId}`,
     ZONE_DRILLDOWN: (zoneId: string) => `/analytics/zones/${zoneId}`,

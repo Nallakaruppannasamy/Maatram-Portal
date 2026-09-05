@@ -44,6 +44,7 @@ export interface UpdateProfileDTO {
   collegeId?: string;
   departmentId?: string;
   programId?: string;
+  stream?: string | null;
   batch?: string;
   course?: string;
 

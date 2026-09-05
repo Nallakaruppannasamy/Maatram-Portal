@@ -91,6 +91,12 @@ export const updateProfileValidator = z.object({
     collegeId: z.preprocess(emptyToNull, z.string().uuid('Invalid College ID').optional().nullable()),
     departmentId: z.preprocess(emptyToNull, z.string().uuid('Invalid Department ID').optional().nullable()),
     programId: z.preprocess(emptyToNull, z.string().uuid('Invalid Program ID').optional().nullable()),
+    stream: z.preprocess(
+      emptyToNull,
+      z.enum(['Arts & Science', 'Engineering', 'Nursing'], {
+        errorMap: () => ({ message: 'Stream must be one of: Arts & Science, Engineering, Nursing' }),
+      }).optional().nullable()
+    ),
     batch: z.preprocess(
       emptyToNull,
       z.string().regex(/^\d{4}-\d{4}$/, 'Batch must be in format YYYY-YYYY (e.g. 2024-2028)').optional().nullable()

@@ -117,7 +117,65 @@ export interface AnalyticsQueryParams {
   collegeId?: string
 }
 
+export interface DashboardResponse {
+  overview: {
+    totalStudents: number
+    activeStudents: number
+    inactiveStudents: number
+    activeZones?: number
+    totalColleges: number
+    zoneIncharges?: number
+    superAdmins?: number
+    totalSpocs: number
+    activeVolunteers: number
+  }
+  volunteeringActivities: {
+    total: number
+    approved: number
+    rejected: number
+    pending: number
+  }
+  categoryDistribution: Record<string, number>
+  monthlyTrends: Array<{
+    month: string
+    activities: number
+    volunteers: number
+    points: number
+  }>
+  yearDistribution: Record<string, number>
+  conversionRate: number
+  highlights: {
+    topZone?: ZonePerformanceItem | null
+    topCollege?: CollegePerformanceItem | null
+    topStudents: TopStudentItem[]
+    lowestZone?: ZonePerformanceItem | null
+    lowestCollege?: CollegePerformanceItem | null
+  }
+  zone?: {
+    id: string
+    name: string
+    code: string
+    regionLabel: string
+    inchargeName: string
+  }
+}
+
 export const analyticsApi = {
+  getSuperAdminDashboard: async (): Promise<ApiResponse<DashboardResponse>> => {
+    const res = await apiInstance.get<ApiResponse<DashboardResponse>>(
+      API_ROUTES.ANALYTICS.SUPER_ADMIN_DASHBOARD
+    )
+    return res.data
+  },
+
+  getZoneDashboard: async (zoneId?: string): Promise<ApiResponse<DashboardResponse>> => {
+    const res = await apiInstance.get<ApiResponse<DashboardResponse>>(
+      API_ROUTES.ANALYTICS.ZONE_DASHBOARD,
+      { params: zoneId ? { zoneId } : undefined }
+    )
+    return res.data
+  },
+
   getVolunteeringAnalytics: async (
     params?: AnalyticsQueryParams
   ): Promise<ApiResponse<VolunteeringAnalyticsResponse>> => {

@@ -73,6 +73,22 @@ export class UserController {
     await userService.toggleUserActivation(id, false, actorId, actorRole);
     ResponseFormatter.success(res, null, 'User deactivated successfully');
   });
+
+  /**
+   * Export team members as Excel file
+   */
+  export = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const buffer = await userService.exportToExcel(req.query);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=team-export-${Date.now()}.xlsx`
+    );
+    res.status(200).send(buffer);
+  });
 }
 
 export const userController = new UserController();

@@ -25,6 +25,7 @@ import { ResumeViewerPage } from '@/features/resume/pages/ResumeViewerPage'
 import { ZoneDashboardPage } from '@/features/dashboard/pages/ZoneDashboardPage'
 import { VolunteerApprovalPage } from '@/features/organization/incharge/VolunteerApprovalPage'
 import { ZoneStudentManagementPage } from '@/features/organization/incharge/ZoneStudentManagementPage'
+import { ZoneArchivedStudentsPage } from '@/features/organization/incharge/ZoneArchivedStudentsPage'
 import { AssignedCollegesPage } from '@/features/organization/incharge/AssignedCollegesPage'
 import { ZoneAnalyticsPage } from '@/features/analytics/pages/ZoneAnalyticsPage'
 import { ZoneProfilePage } from '@/features/organization/incharge/ZoneProfilePage'
@@ -146,6 +147,14 @@ export const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={[ROLES.ZONE, ROLES.ADMIN]}>
             <ZoneStudentManagementPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/zone/archived-students',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ZONE]}>
+            <ZoneArchivedStudentsPage />
           </RoleGuard>
         ),
       },
@@ -284,7 +293,7 @@ export const router = createBrowserRouter([
       {
         path: '/notifications',
         element: (
-          <RoleGuard allowedRoles={[ROLES.STUDENT, ROLES.ZONE, ROLES.ADMIN]}>
+          <RoleGuard allowedRoles={[ROLES.STUDENT, ROLES.ZONE]}>
             <NotificationsPage />
           </RoleGuard>
         ),

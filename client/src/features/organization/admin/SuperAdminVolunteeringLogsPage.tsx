@@ -10,15 +10,19 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
+  Download,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { TableLoader } from '@/components/ui/TableLoader'
 import { volunteerApi } from '@/api/volunteer.api'
 import { zoneApi } from '@/api/zone.api'
+import { profileApi } from '@/api/profile.api'
 import { getMediaUrl } from '@/utils/media'
 import { useDebounce } from '@/hooks/useDebounce'
+import { notify } from '@/utils/toast'
 
 const safeString = (val: any, fallback: string = 'N/A'): string => {
   if (val === null || val === undefined) return fallback
@@ -36,7 +40,7 @@ const CATEGORY_MAP: Record<string, string> = {
   PHYSICAL_VERIFICATION: 'Physical Verification',
   TELE_VERIFICATION: 'Tele Verification',
   SCHOOL_VISIT: 'School Visit',
-  OFFLINE_PANEL_VOLUNTEERING: 'Offline Event',
+  OFFLINE_PANEL_VOLUNTEERING: 'Offline Events',
   OTHER_OFFLINE_EVENT_VOLUNTEERING: 'Others',
   KARPOM_KARPIPOM_TUTORING: 'Karpom Karpipom Tutoring',
   SANGAMAM_VOLUNTEERING: 'Sangamam Volunteering',
@@ -59,6 +63,8 @@ export const SuperAdminVolunteeringLogsPage = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
   const [zoneFilter, setZoneFilter] = useState<string>('')
+  const [collegeFilter, setCollegeFilter] = useState<string>('')
+  const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null)
   const [activeImage, setActiveImage] = useState<string | null>(null)
 
@@ -67,7 +73,7 @@ export const SuperAdminVolunteeringLogsPage = () => {
   // Reset page to 1 when filters change
   useEffect(() => {
     setPage(1)
-  }, [debouncedSearch, statusFilter, zoneFilter])
+  }, [debouncedSearch, statusFilter, zoneFilter, collegeFilter, categoryFilter])
 
   // Fetch zones for zone filter dropdown
   const { data: zonesRes } = useQuery({
@@ -76,9 +82,16 @@ export const SuperAdminVolunteeringLogsPage = () => {
   })
   const zones = zonesRes?.data || []
 
+  // Fetch colleges for college filter dropdown
+  const { data: collegesRes } = useQuery({
+    queryKey: ['colleges'],
+    queryFn: () => profileApi.getColleges(),
+  })
+  const colleges = collegesRes?.data || []
+
   // Fetch volunteering logs
   const { data: submissionsRes, isLoading } = useQuery({
-    queryKey: ['volunteering-logs', page, limit, debouncedSearch, statusFilter, zoneFilter],
+    queryKey: ['volunteering-logs', page, limit, debouncedSearch, statusFilter, zoneFilter, collegeFilter, categoryFilter],
     queryFn: () =>
       volunteerApi.list({
         view: 'logs',
@@ -88,6 +101,8 @@ export const SuperAdminVolunteeringLogsPage = () => {
         search: debouncedSearch || undefined,
         status: statusFilter === 'all' ? undefined : statusFilter,
         zoneId: zoneFilter || undefined,
+        collegeId: collegeFilter || undefined,
+        category: categoryFilter || undefined,
       }),
   })
 
@@ -103,6 +118,30 @@ export const SuperAdminVolunteeringLogsPage = () => {
       setSelectedSubmission(null)
     }
   }, [submissions, selectedSubmission])
+
+  // Export full filtered dataset to Excel
+  const handleExportLogs = async () => {
+    try {
+      const blob = await volunteerApi.exportLogs({
+        search: debouncedSearch || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        zoneId: zoneFilter || undefined,
+        collegeId: collegeFilter || undefined,
+        category: categoryFilter || undefined,
+      })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Volunteering_Logs_${Date.now()}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+      notify.success('Volunteering logs exported to Excel successfully')
+    } catch {
+      notify.error('Failed to export volunteering logs.')
+    }
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -121,13 +160,22 @@ export const SuperAdminVolunteeringLogsPage = () => {
             Global view of all student volunteer activity logs across zones with proof evidence inspection.
           </p>
         </div>
+
+        <Button
+          variant="gold"
+          size="md"
+          icon={<Download className="w-4 h-4" />}
+          onClick={handleExportLogs}
+        >
+          Export to Excel
+        </Button>
       </div>
 
       {/* Filter and Search Bar */}
       <Card className="p-4 bg-white border border-[#E5E7EB] rounded-2xl shadow-xs">
-        <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
+        <div className="flex flex-wrap gap-3 items-center justify-between">
           {/* Search Input */}
-          <div className="relative flex-1 w-full">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -139,7 +187,7 @@ export const SuperAdminVolunteeringLogsPage = () => {
           </div>
 
           {/* Status Tabs */}
-          <div className="flex items-center gap-1 bg-[#FCF8FA] p-1 rounded-xl border border-[#E5E7EB] w-full md:w-auto overflow-x-auto">
+          <div className="flex items-center gap-1 bg-[#FCF8FA] p-1 rounded-xl border border-[#E5E7EB] overflow-x-auto">
             {(['all', 'pending', 'approved', 'rejected'] as const).map((st) => (
               <button
                 key={st}
@@ -156,8 +204,40 @@ export const SuperAdminVolunteeringLogsPage = () => {
             ))}
           </div>
 
+          {/* Category Filter */}
+          <div className="w-full sm:w-44">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="w-full px-3 py-2 text-xs border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37] bg-[#FCF8FA] text-[#111827] font-semibold"
+            >
+              <option value="">All Categories</option>
+              <option value="PHYSICAL_VERIFICATION">Physical Verification</option>
+              <option value="TELE_VERIFICATION">Tele Verification</option>
+              <option value="SCHOOL_VISIT">School Visit</option>
+              <option value="OFFLINE_PANEL_VOLUNTEERING">Offline Events</option>
+              <option value="OTHER_OFFLINE_EVENT_VOLUNTEERING">Others</option>
+            </select>
+          </div>
+
+          {/* College Selector */}
+          <div className="w-full sm:w-44">
+            <select
+              value={collegeFilter}
+              onChange={(e) => setCollegeFilter(e.target.value)}
+              className="w-full px-3 py-2 text-xs border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37] bg-[#FCF8FA] text-[#111827] font-semibold truncate"
+            >
+              <option value="">All Colleges</option>
+              {colleges.map((c: any) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Zone Selector */}
-          <div className="w-full md:w-56">
+          <div className="w-full sm:w-40">
             <select
               value={zoneFilter}
               onChange={(e) => setZoneFilter(e.target.value)}

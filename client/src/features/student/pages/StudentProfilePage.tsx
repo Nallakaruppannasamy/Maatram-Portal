@@ -52,6 +52,7 @@ export const StudentProfilePage = () => {
   const [collegeId, setCollegeId] = useState('')
   const [departmentId, setDepartmentId] = useState('')
   const [programId, setProgramId] = useState('')
+  const [stream, setStream] = useState('')
   const [batch, setBatch] = useState('')
   const [cgpa, setCgpa] = useState('')
   const [semesterGrades, setSemesterGrades] = useState<{ semesterNumber: number; gpa: string }[]>([])
@@ -255,8 +256,9 @@ export const StudentProfilePage = () => {
       setCollegeId(profile.collegeId || '')
       setDepartmentId(profile.departmentId || '')
       setProgramId(profile.programId || '')
+      setStream(profile.stream || '')
       setBatch(profile.batch || '')
-      setCgpa(profile.cgpa ? String(profile.cgpa) : '')
+      setCgpa(profile.cgpa !== undefined && profile.cgpa !== null ? String(profile.cgpa) : '')
 
       // Construct GPA list (semesters 1 to 8)
       const gradesMap = new Map<number, string>(
@@ -367,6 +369,7 @@ export const StudentProfilePage = () => {
         collegeId: collegeId || null,
         departmentId: departmentId || null,
         programId: programId || null,
+        stream: stream || null,
         batch: batch || null,
         cgpa: cgpa !== '' && cgpa !== null && cgpa !== undefined ? parseFloat(cgpa) : null,
         semesterGrades: formattedSemesterGrades.length > 0 ? formattedSemesterGrades : undefined,
@@ -856,7 +859,7 @@ export const StudentProfilePage = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* College Dropdown */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider">
@@ -920,6 +923,23 @@ export const StudentProfilePage = () => {
                 </select>
               </div>
 
+              {/* Stream Dropdown - Allowed values ONLY: Arts & Science, Engineering, Nursing */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#111827] uppercase tracking-wider">
+                  Stream
+                </label>
+                <select
+                  value={stream}
+                  onChange={(e) => setStream(e.target.value)}
+                  className={selectClassName}
+                >
+                  <option value="">Select Stream</option>
+                  <option value="Arts & Science">Arts & Science</option>
+                  <option value="Engineering">Engineering</option>
+                  <option value="Nursing">Nursing</option>
+                </select>
+              </div>
+
               <Input
                 label="Batch"
                 value={batch}
@@ -949,14 +969,18 @@ export const StudentProfilePage = () => {
                 min="0"
                 max="10"
                 value={cgpa} 
-                onChange={(e) => setCgpa(e.target.value)}
+                disabled
+                helperText="Auto-calculated from semester GPAs"
                 placeholder="0.00 to 10.00"
               />
             </div>
 
             {/* Semester GPA Inputs */}
             <div className="pt-6 border-t border-gray-100">
-              <h4 className="text-sm font-semibold text-[#111827] mb-4">Semester-wise GPA Tracker</h4>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-semibold text-[#111827]">Semester-wise GPA Tracker</h4>
+                <span className="text-xs text-gray-500 font-medium">Auto-derives cumulative CGPA</span>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {semesterGrades.map((g, idx) => (
                   <div key={g.semesterNumber} className="space-y-1">
@@ -973,6 +997,17 @@ export const StudentProfilePage = () => {
                         const updated = [...semesterGrades]
                         updated[idx].gpa = e.target.value
                         setSemesterGrades(updated)
+
+                        // Auto-calculate cumulative CGPA
+                        const valid = updated
+                          .map((item) => parseFloat(item.gpa))
+                          .filter((v) => !isNaN(v) && v > 0)
+                        if (valid.length > 0) {
+                          const avg = valid.reduce((a, b) => a + b, 0) / valid.length
+                          setCgpa(avg.toFixed(2))
+                        } else {
+                          setCgpa('')
+                        }
                       }}
                       placeholder="e.g. 8.5"
                       className="w-full bg-[#FFFFFF] border border-[#E5E7EB] rounded-xl px-3 py-2 text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50"

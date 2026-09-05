@@ -50,4 +50,9 @@ export const volunteerApi = {
     })
     return res.data
   },
+
+  exportLogs: async (params?: Record<string, any>): Promise<Blob> => {
+    const res = await apiInstance.get(API_ROUTES.VOLUNTEERS.EXPORT, { params, responseType: 'blob' })
+    return res.data
+  },
 }

@@ -396,6 +396,9 @@ export class StudentRepository {
     if (options.status) {
       where.status = options.status;
     }
+    if (options.stream && options.stream !== 'All' && options.stream !== 'all') {
+      where.stream = { equals: options.stream.trim(), mode: 'insensitive' };
+    }
     if (options.batch) {
       where.batch = { equals: options.batch.trim(), mode: 'insensitive' };
     }
@@ -406,8 +409,19 @@ export class StudentRepository {
       where.isSpoc = options.isSpoc;
     }
 
-    // Active vs Archived lifecycle filtering (defaults to User.isActive = true)
-    if (options.isActive !== undefined) {
+    // Account Status filter (active vs deactivated)
+    const rawAccountStatus = (options.accountStatus as string)?.toLowerCase();
+    if (rawAccountStatus === 'active') {
+      where.user = {
+        ...((where.user as Record<string, unknown>) || {}),
+        isActive: true,
+      };
+    } else if (rawAccountStatus === 'deactivated' || rawAccountStatus === 'inactive') {
+      where.user = {
+        ...((where.user as Record<string, unknown>) || {}),
+        isActive: false,
+      };
+    } else if (options.isActive !== undefined) {
       where.user = {
         ...((where.user as Record<string, unknown>) || {}),
         isActive: options.isActive,
@@ -443,6 +457,31 @@ export class StudentRepository {
     }
 
     return where;
+  }
+
+  /**
+   * Bulk deactivates students by updating User.isActive = false.
+   */
+  async bulkDeactivate(studentIds: string[], zoneId?: string): Promise<{ count: number }> {
+    const students = await prisma.student.findMany({
+      where: {
+        id: { in: studentIds },
+        ...(zoneId ? { zoneId } : {}),
+      },
+      select: { id: true, userId: true },
+    });
+
+    const userIds = students.map((s) => s.userId);
+    if (userIds.length === 0) {
+      return { count: 0 };
+    }
+
+    const updateResult = await prisma.user.updateMany({
+      where: { id: { in: userIds } },
+      data: { isActive: false },
+    });
+
+    return { count: updateResult.count };
   }
 
   /**

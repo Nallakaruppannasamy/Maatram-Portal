@@ -158,7 +158,20 @@ export class ProfileRepository {
       calculatedSemester = calculated.semester;
     }
 
-    // 4. Update student and semester grades within a transaction
+    // 4. Compute CGPA automatically from semester grades if present
+    let computedCgpa = data.cgpa !== undefined ? data.cgpa : student.cgpa;
+    if (data.semesterGrades && data.semesterGrades.length > 0) {
+      const validGrades = data.semesterGrades.filter(
+        (g) => typeof g.gpa === 'number' && !isNaN(g.gpa) && g.gpa > 0
+      );
+      if (validGrades.length > 0) {
+        computedCgpa = Number(
+          (validGrades.reduce((sum, item) => sum + item.gpa, 0) / validGrades.length).toFixed(2)
+        );
+      }
+    }
+
+    // 5. Update student and semester grades within a transaction
     return prisma.$transaction(async (tx) => {
       if (data.semesterGrades) {
         // Clear existing GPAs
@@ -206,11 +219,12 @@ export class ProfileRepository {
           collegeId: targetCollegeId,
           departmentId: targetDeptId,
           programId: targetProgramId,
+          stream: data.stream === null ? null : (data.stream || undefined),
           zoneId: resolvedZoneId, // Automatically assigned!
           batch: targetBatch || undefined,
           academicYear: calculatedAcademicYear || undefined,
           semester: calculatedSemester || undefined,
-          cgpa: data.cgpa !== undefined ? data.cgpa : undefined,
+          cgpa: computedCgpa,
           careerObjective: data.careerObjective === null ? null : (data.careerObjective || undefined),
           profileImage: data.profileImage === null ? null : (data.profileImage || undefined),
         },

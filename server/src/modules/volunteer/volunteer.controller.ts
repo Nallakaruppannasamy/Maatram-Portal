@@ -126,6 +126,19 @@ export class VolunteerController {
       result.meta
     );
   });
+
+  /**
+   * Exports all filtered volunteering logs to an Excel file.
+   */
+  exportVolunteeringLogs = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const actorId = req.user?.userId;
+    const actorRole = req.user?.role;
+    const buffer = await volunteerService.exportVolunteeringLogs(req.query, actorId, actorRole);
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="volunteering-logs.xlsx"');
+    res.send(buffer);
+  });
 }
 
 export const volunteerController = new VolunteerController();

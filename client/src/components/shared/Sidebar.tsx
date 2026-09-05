@@ -93,6 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeRole, user, onLogout }) 
     },
     { title: 'Volunteering Logs', path: '/zone/volunteering-logs', icon: ClipboardCheck },
     { title: 'Zone Students', path: '/zone/students', icon: Users },
+    { title: 'Archived Students', path: '/zone/archived-students', icon: Archive },
     { title: 'Assigned Colleges', path: '/zone/colleges', icon: Building2 },
     { title: 'Zone Analytics', path: '/zone/analytics', icon: BarChart3 },
     { title: 'Audit Logs', path: '/zone/audit-logs', icon: CheckSquare },
@@ -113,9 +114,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeRole, user, onLogout }) 
     { title: 'Profile', path: '/admin/profile', icon: User },
   ]
 
-  const commonNav: NavItem[] = [
+  const commonNav: NavItem[] = activeRole !== 'admin' ? [
     { title: 'Notifications', path: '/notifications', icon: Bell },
-  ]
+  ] : []
 
   const currentNav = activeRole === 'student' ? studentNav : activeRole === 'zone' ? zoneNav : adminNav
 

@@ -63,9 +63,14 @@ router.put(
 );
 router.patch(
   '/:id/status',
-  requireRole('admin'),
+  requireRole('admin', 'zone'),
   validate(changeStudentStatusSchema),
   studentController.changeStatus
+);
+router.post(
+  '/bulk-deactivate',
+  requireRole('admin', 'zone'),
+  studentController.bulkDeactivate
 );
 router.post(
   '/import',

@@ -204,6 +204,7 @@ export class VolunteerRepository {
     search?: string;
     status?: string;
     category?: string;
+    collegeId?: string;
     studentId?: string;
     zoneId?: string;
   }): Promise<{ items: any[]; total: number }> {
@@ -215,8 +216,11 @@ export class VolunteerRepository {
     if (options.status) {
       where.status = options.status.toLowerCase() as any;
     }
-    if (options.category) {
+    if (options.category && options.category !== 'All' && options.category !== 'all') {
       where.category = options.category as any;
+    }
+    if (options.collegeId && options.collegeId !== 'All' && options.collegeId !== 'all') {
+      where.student = { ...where.student, collegeId: options.collegeId };
     }
     if (options.studentId) {
       where.studentId = options.studentId;
@@ -265,6 +269,69 @@ export class VolunteerRepository {
     ]);
 
     return { items, total };
+  }
+
+  /**
+   * Fetches all matching submissions without pagination for exports.
+   */
+  async exportSubmissions(options: {
+    search?: string;
+    status?: string;
+    category?: string;
+    collegeId?: string;
+    studentId?: string;
+    zoneId?: string;
+  }): Promise<any[]> {
+    const where: Record<string, any> = {};
+    if (options.status) {
+      where.status = options.status.toLowerCase() as any;
+    }
+    if (options.category && options.category !== 'All' && options.category !== 'all') {
+      where.category = options.category as any;
+    }
+    if (options.collegeId && options.collegeId !== 'All' && options.collegeId !== 'all') {
+      where.student = { ...where.student, collegeId: options.collegeId };
+    }
+    if (options.studentId) {
+      where.studentId = options.studentId;
+    }
+    if (options.zoneId) {
+      where.zoneId = options.zoneId;
+    }
+
+    if (options.search && options.search.trim()) {
+      const q = options.search.trim();
+      where.OR = [
+        { title: { contains: q, mode: 'insensitive' } },
+        { submissionCode: { contains: q, mode: 'insensitive' } },
+        { student: { firstName: { contains: q, mode: 'insensitive' } } },
+        { student: { lastName: { contains: q, mode: 'insensitive' } } },
+        { student: { registrationNumber: { contains: q, mode: 'insensitive' } } },
+        { student: { college: { name: { contains: q, mode: 'insensitive' } } } },
+      ];
+    }
+
+    return prisma.volunteerSubmission.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        student: {
+          include: {
+            user: true,
+            college: true,
+            department: true,
+            program: true,
+            zone: true,
+          },
+        },
+        zone: true,
+        reviewer: {
+          include: {
+            userProfile: true,
+          },
+        },
+      },
+    });
   }
 
   /**

@@ -20,6 +20,19 @@ const router = Router();
 router.use(requireAuth);
 router.use(requireRole('admin', 'zone'));
 
+// Dashboard endpoints
+router.get(
+  '/dashboard/super-admin',
+  requireRole('admin'),
+  analyticsController.getSuperAdminDashboard
+);
+
+router.get(
+  '/dashboard/zone',
+  requireRole('zone', 'admin'),
+  analyticsController.getZoneDashboard
+);
+
 // Main volunteering analytics endpoint
 router.get(
   '/volunteering',

@@ -172,6 +172,7 @@ model Student {
   careerObjective       String?       @db.Text
   profileImage          String?       @db.VarChar(255)
   isSpoc                Boolean       @default(false)
+  stream                String?       @db.VarChar(50)
 
   // Relations
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -207,6 +208,7 @@ model Student {
   @@index([accountStatus, zoneId])
   @@index([isSpoc])
   @@index([isSpoc, zoneId])
+  @@index([stream])
 }
 
 model Zone {

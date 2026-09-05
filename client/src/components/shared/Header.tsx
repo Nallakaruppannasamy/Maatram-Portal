@@ -138,19 +138,21 @@ export const Header: React.FC<HeaderProps> = ({
           {roleConfig.label}
         </Badge>
 
-        {/* Notifications Button */}
-        <Link
-          to="/notifications"
-          aria-label="Notifications"
-          className="relative p-2 text-[#45464c] hover:text-[#111827] hover:bg-[#FCF8FA] rounded-xl border border-transparent hover:border-[#E5E7EB] transition-all"
-        >
-          <Bell className="w-5 h-5" />
-          {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 min-w-[18px] h-4 px-1 bg-[#D4AF37] text-[#111827] text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white animate-pulse">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
-          )}
-        </Link>
+        {/* Notifications Button (Hidden for Super Admin) */}
+        {activeRole !== 'admin' && (
+          <Link
+            to="/notifications"
+            aria-label="Notifications"
+            className="relative p-2 text-[#45464c] hover:text-[#111827] hover:bg-[#FCF8FA] rounded-xl border border-transparent hover:border-[#E5E7EB] transition-all"
+          >
+            <Bell className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 min-w-[18px] h-4 px-1 bg-[#D4AF37] text-[#111827] text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white animate-pulse">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </Link>
+        )}
 
         {/* User Profile Dropdown */}
         <div className="relative border-l border-[#E5E7EB] pl-4" ref={menuRef}>
@@ -217,19 +219,21 @@ export const Header: React.FC<HeaderProps> = ({
                   <span>My Profile</span>
                 </Link>
 
-                <Link
-                  to="/notifications"
-                  onClick={() => setIsProfileMenuOpen(false)}
-                  className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-[#45464c] hover:text-[#111827] hover:bg-[#FCF8FA] transition-colors"
-                >
-                  <Bell className="w-4 h-4 text-[#76777d]" />
-                  <span>Notifications</span>
-                  {unreadCount > 0 && (
-                    <span className="ml-auto bg-[#D4AF37]/20 text-[#745c00] text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                      {unreadCount}
-                    </span>
-                  )}
-                </Link>
+                {activeRole !== 'admin' && (
+                  <Link
+                    to="/notifications"
+                    onClick={() => setIsProfileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-[#45464c] hover:text-[#111827] hover:bg-[#FCF8FA] transition-colors"
+                  >
+                    <Bell className="w-4 h-4 text-[#76777d]" />
+                    <span>Notifications</span>
+                    {unreadCount > 0 && (
+                      <span className="ml-auto bg-[#D4AF37]/20 text-[#745c00] text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                )}
               </div>
 
               <div className="pt-1 border-t border-[#E5E7EB]">

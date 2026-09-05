@@ -12,8 +12,6 @@ import {
   Loader2,
   Plus,
   Download,
-  ToggleLeft,
-  ToggleRight,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -21,7 +19,6 @@ import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { studentApi } from '@/api/student.api'
-import { userApi } from '@/api/user.api'
 import { notify } from '@/utils/toast'
 import { useDebounce } from '@/hooks/useDebounce'
 
@@ -39,6 +36,8 @@ export const StudentProvisioningPage: React.FC = () => {
   const [uploadFileName, setUploadFileName] = useState<string>('')
   const [isDragging, setIsDragging] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [accountStatusFilter, setAccountStatusFilter] = useState<'all' | 'active' | 'deactivated'>('all')
+  const [lifecycleStatusFilter, setLifecycleStatusFilter] = useState<'all' | 'activated' | 'pending_first_login'>('all')
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
 
   // Pagination states
@@ -57,14 +56,22 @@ export const StudentProvisioningPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const debouncedSearch = useDebounce(searchQuery, 400)
 
-  // Reset page to 1 when search changes
+  // Reset page to 1 when filters change
   React.useEffect(() => {
     setPage(1)
-  }, [debouncedSearch])
+  }, [debouncedSearch, accountStatusFilter, lifecycleStatusFilter])
 
   const { data: studentsRes, isLoading: loadingList } = useQuery({
-    queryKey: ['students', 'provisioning', debouncedSearch, page],
-    queryFn: () => studentApi.list({ search: debouncedSearch, page, limit, view: 'provisioning' }),
+    queryKey: ['students', 'provisioning', debouncedSearch, accountStatusFilter, lifecycleStatusFilter, page],
+    queryFn: () =>
+      studentApi.list({
+        search: debouncedSearch,
+        accountStatus: accountStatusFilter !== 'all' ? accountStatusFilter : undefined,
+        lifecycleStatus: lifecycleStatusFilter !== 'all' ? lifecycleStatusFilter : undefined,
+        page,
+        limit,
+        view: 'provisioning',
+      }),
   })
 
   const students = studentsRes?.data || []
@@ -126,18 +133,6 @@ export const StudentProvisioningPage: React.FC = () => {
     },
   })
 
-  const toggleActiveMutation = useMutation({
-    mutationFn: ({ userId, active }: { userId: string; active: boolean }) =>
-      active ? userApi.activate(userId) : userApi.deactivate(userId),
-    onSuccess: (_, variables) => {
-      notify.success(`Student account ${variables.active ? 'activated' : 'deactivated'} successfully!`)
-      queryClient.invalidateQueries({ queryKey: ['students'] })
-    },
-    onError: (err: any) => {
-      notify.error(err?.response?.data?.message || err?.message || 'Failed to update account status.')
-    },
-  })
-
   const handleDownloadTemplate = async () => {
     try {
       const blob = await studentApi.downloadTemplate()
@@ -161,11 +156,11 @@ export const StudentProvisioningPage: React.FC = () => {
 
   const handleExportProvisioning = async () => {
     try {
-      // Export current provisioning table (respecting search, sorting, and pagination)
+      // Export entire filtered dataset (no pagination params)
       const blob = await studentApi.exportCSV({
         search: debouncedSearch,
-        page,
-        limit,
+        accountStatus: accountStatusFilter !== 'all' ? accountStatusFilter : undefined,
+        lifecycleStatus: lifecycleStatusFilter !== 'all' ? lifecycleStatusFilter : undefined,
         format: 'xlsx',
         view: 'provisioning',
       })
@@ -176,14 +171,14 @@ export const StudentProvisioningPage: React.FC = () => {
       )
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', `Maatram_Student_Roster_${Date.now()}.xlsx`)
+      link.setAttribute('download', `Maatram_Student_Provisioning_${Date.now()}.xlsx`)
       document.body.appendChild(link)
       link.click()
       link.remove()
       window.URL.revokeObjectURL(url)
-      notify.success('Student roster exported successfully')
+      notify.success('Student provisioning dataset exported successfully')
     } catch {
-      notify.error('Failed to export student roster.')
+      notify.error('Failed to export student provisioning dataset.')
     }
   }
 
@@ -571,7 +566,7 @@ export const StudentProvisioningPage: React.FC = () => {
 
       {/* Account Activation Directory Table */}
       <Card className="border border-[#E5E7EB] bg-white rounded-2xl overflow-hidden shadow-xs">
-        <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E5E7EB] pb-5">
+        <CardHeader className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#E5E7EB] pb-5">
           <div>
             <CardTitle className="text-lg font-extrabold text-[#111827]">
               Account Activation Directory
@@ -581,8 +576,8 @@ export const StudentProvisioningPage: React.FC = () => {
             </CardDescription>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <div className="relative w-full sm:w-64">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative w-full sm:w-56">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#76777d]" />
               <input
                 type="text"
@@ -592,6 +587,29 @@ export const StudentProvisioningPage: React.FC = () => {
                 className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#FCF8FA] border border-[#E5E7EB] rounded-xl focus:outline-none focus:border-[#D4AF37] transition-all"
               />
             </div>
+
+            {/* Account Status Filter */}
+            <select
+              value={accountStatusFilter}
+              onChange={(e) => setAccountStatusFilter(e.target.value as any)}
+              className="px-3 py-1.5 text-xs bg-[#FCF8FA] border border-[#E5E7EB] rounded-xl text-[#111827] focus:outline-none focus:border-[#D4AF37] cursor-pointer"
+            >
+              <option value="all">All Account Statuses</option>
+              <option value="active">Active</option>
+              <option value="deactivated">Deactivated</option>
+            </select>
+
+            {/* Lifecycle Status Filter */}
+            <select
+              value={lifecycleStatusFilter}
+              onChange={(e) => setLifecycleStatusFilter(e.target.value as any)}
+              className="px-3 py-1.5 text-xs bg-[#FCF8FA] border border-[#E5E7EB] rounded-xl text-[#111827] focus:outline-none focus:border-[#D4AF37] cursor-pointer"
+            >
+              <option value="all">All Lifecycle Statuses</option>
+              <option value="activated">Activated</option>
+              <option value="pending_first_login">Pending First Login</option>
+            </select>
+
             <Badge variant="gold" className="shrink-0 font-bold px-3 py-1">
               {meta.total} Accounts Found
             </Badge>
@@ -628,7 +646,6 @@ export const StudentProvisioningPage: React.FC = () => {
                     const isFirstLogin = student.user?.isFirstLogin ?? student.isFirstLogin ?? (student.accountStatus === 'pending_first_login')
                     const statusInfo = formatLifecycleStatus(isFirstLogin, student.accountStatus || student.user?.accountStatus)
                     const isUserActive = student.user?.isActive !== false
-                    const targetUserId = student.userId || student.user?.id
 
                     return (
                       <tr key={student.id} className="hover:bg-[#FCF8FA]/80 transition-colors">
@@ -656,38 +673,15 @@ export const StudentProvisioningPage: React.FC = () => {
                         </td>
                         <td className="py-3.5 px-4 text-[#76777d]">{formatDate(student.createdAt)}</td>
                         <td className="py-3.5 px-4">
-                          <button
-                            type="button"
-                            disabled={toggleActiveMutation.isPending || !targetUserId}
-                            onClick={() => {
-                              if (!targetUserId) {
-                                notify.error('User record ID not found for student')
-                                return
-                              }
-                              toggleActiveMutation.mutate({
-                                userId: targetUserId,
-                                active: !isUserActive,
-                              })
-                            }}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${
                               isUserActive
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                                : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : 'bg-rose-50 text-rose-700 border-rose-200'
                             }`}
-                            title={isUserActive ? 'Click to deactivate account' : 'Click to activate account'}
                           >
-                            {isUserActive ? (
-                              <>
-                                <ToggleRight className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Active</span>
-                              </>
-                            ) : (
-                              <>
-                                <ToggleLeft className="w-3.5 h-3.5 text-rose-600" />
-                                <span>Deactivated</span>
-                              </>
-                            )}
-                          </button>
+                            {isUserActive ? 'Active' : 'Deactivated'}
+                          </span>
                         </td>
                         <td className="py-3.5 px-4">
                           <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>

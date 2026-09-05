@@ -22,6 +22,7 @@ import {
   QueryParams,
 } from '@/utils/query-helper';
 import { AuditActorRole, Prisma, UserRole } from '@prisma/client';
+import * as XLSX from 'xlsx';
 
 export class UserService {
   /**
@@ -265,6 +266,68 @@ export class UserService {
       throw ApiError.notFound('User not found');
     }
     return user;
+  }
+
+  /**
+   * Generates Excel buffer for filtered team members.
+   */
+  async exportToExcel(params: QueryParams): Promise<Buffer> {
+    const where: Prisma.UserWhereInput = {};
+
+    if (params.isActive !== undefined && params.isActive !== 'all' && params.isActive !== '') {
+      where.isActive = params.isActive === 'true' || (params.isActive as unknown) === true;
+    }
+
+    if (params.role && (params.role === 'admin' || params.role === 'zone')) {
+      where.role = params.role as UserRole;
+    } else {
+      where.role = { in: [UserRole.admin, UserRole.zone] };
+    }
+
+    if (params.organizationId && params.organizationId !== 'all') {
+      where.organizationId = params.organizationId as string;
+    }
+
+    if (params.zoneId && params.zoneId !== 'all') {
+      where.zoneId = params.zoneId as string;
+    }
+
+    if (params.search) {
+      Object.assign(
+        where,
+        buildSearchQuery(params.search, ['email', 'employeeId', 'userProfile.fullName'])
+      );
+    }
+
+    const { orderBy } = parseQueryParams(params, 'email');
+
+    const users = await prisma.user.findMany({
+      where,
+      orderBy: orderBy as Prisma.UserOrderByWithRelationInput | undefined,
+      include: {
+        userProfile: true,
+        organization: true,
+        zone: true,
+      },
+    });
+
+    const rows = users.map((u) => ({
+      'Full Name': u.userProfile?.fullName || 'N/A',
+      Email: u.email,
+      'Employee ID': u.employeeId || 'N/A',
+      Role: u.role === 'admin' ? 'Super Admin' : u.role === 'zone' ? 'Zone Incharge' : u.role,
+      Designation: u.userProfile?.designation || 'N/A',
+      Mobile: u.userProfile?.mobile || 'N/A',
+      Organization: u.organization?.name || 'N/A',
+      'Assigned Zone': u.zone?.name || 'All Zones',
+      Status: u.isActive ? 'Active' : 'Deactivated',
+      'Created At': u.createdAt ? u.createdAt.toISOString().split('T')[0] : 'N/A',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Team Members');
+    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
   }
 }
 

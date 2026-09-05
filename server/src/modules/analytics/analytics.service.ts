@@ -681,6 +681,409 @@ export class AnalyticsService {
       colleges: zoneAnalytics.collegePerformance,
     };
   }
+
+  /**
+   * Comprehensive Super Admin Executive Dashboard aggregation.
+   */
+  async getSuperAdminDashboard(): Promise<any> {
+    const [
+      totalStudents,
+      activeStudents,
+      inactiveStudents,
+      activeZones,
+      totalColleges,
+      zoneIncharges,
+      superAdmins,
+      totalSpocs,
+      activeVolunteersList,
+      totalActivities,
+      approvedActivities,
+      rejectedActivities,
+      pendingActivities,
+      approvedSubmissions,
+      allStudents,
+      analyticsData,
+    ] = await Promise.all([
+      prisma.student.count(),
+      prisma.student.count({
+        where: {
+          status: StudentStatus.ACTIVE,
+          user: { isActive: true },
+        },
+      }),
+      prisma.student.count({
+        where: {
+          OR: [{ status: { not: StudentStatus.ACTIVE } }, { user: { isActive: false } }],
+        },
+      }),
+      prisma.zone.count({ where: { isActive: true } }),
+      prisma.college.count({ where: { isActive: true } }),
+      prisma.user.count({ where: { role: 'zone', isActive: true } }),
+      prisma.user.count({ where: { role: 'admin', isActive: true } }),
+      prisma.student.count({
+        where: {
+          isSpoc: true,
+          status: StudentStatus.ACTIVE,
+          user: { isActive: true },
+        },
+      }),
+      prisma.volunteerSubmission.findMany({
+        where: { status: VolunteerStatus.approved },
+        select: { studentId: true },
+        distinct: ['studentId'],
+      }),
+      prisma.volunteerSubmission.count(),
+      prisma.volunteerSubmission.count({ where: { status: VolunteerStatus.approved } }),
+      prisma.volunteerSubmission.count({ where: { status: VolunteerStatus.rejected } }),
+      prisma.volunteerSubmission.count({ where: { status: VolunteerStatus.pending } }),
+      prisma.volunteerSubmission.findMany({
+        where: { status: VolunteerStatus.approved },
+        select: {
+          category: true,
+          count: true,
+          eventDate: true,
+          studentId: true,
+        },
+      }),
+      prisma.student.findMany({
+        where: {
+          status: StudentStatus.ACTIVE,
+          user: { isActive: true },
+        },
+        select: {
+          academicYear: true,
+          semester: true,
+        },
+      }),
+      this.getVolunteeringAnalytics({ period: 'total' }),
+    ]);
+
+    const activeVolunteersCount = activeVolunteersList.length;
+    const conversionRate =
+      totalStudents > 0
+        ? Number(((activeVolunteersCount / totalStudents) * 100).toFixed(1))
+        : 0;
+
+    // Volunteering Category Distribution (5 standard categories)
+    const categoryDistribution: Record<string, number> = {
+      'Physical Verification': 0,
+      'Tele-verification': 0,
+      'School Visit': 0,
+      'Offline Events': 0,
+      Others: 0,
+    };
+
+    for (const sub of approvedSubmissions) {
+      if (sub.category === VolunteerCategory.PHYSICAL_VERIFICATION) {
+        categoryDistribution['Physical Verification'] += Number(sub.count) || 1;
+      } else if (sub.category === VolunteerCategory.TELE_VERIFICATION) {
+        categoryDistribution['Tele-verification'] += Number(sub.count) || 1;
+      } else if (sub.category === VolunteerCategory.SCHOOL_VISIT) {
+        categoryDistribution['School Visit'] += Number(sub.count) || 1;
+      } else if (
+        sub.category === VolunteerCategory.OFFLINE_PANEL_VOLUNTEERING ||
+        sub.category === VolunteerCategory.SANGAMAM_VOLUNTEERING ||
+        sub.category === VolunteerCategory.OTHER_OFFLINE_EVENT_VOLUNTEERING
+      ) {
+        categoryDistribution['Offline Events'] += 1;
+      } else {
+        categoryDistribution['Others'] += 1;
+      }
+    }
+
+    // Monthly Volunteering Trend (Last 6-12 Months)
+    const monthlyMap = new Map<string, { activities: number; volunteers: Set<string>; points: number }>();
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // Pre-populate last 6 calendar months
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+      monthlyMap.set(key, { activities: 0, volunteers: new Set(), points: 0 });
+    }
+
+    for (const sub of approvedSubmissions) {
+      const d = new Date(sub.eventDate);
+      const key = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+      if (monthlyMap.has(key)) {
+        const entry = monthlyMap.get(key)!;
+        entry.activities += 1;
+        entry.volunteers.add(sub.studentId);
+        entry.points += this.calculatePoints(sub.category, sub.count);
+      }
+    }
+
+    const monthlyTrends = Array.from(monthlyMap.entries()).map(([month, data]) => ({
+      month,
+      activities: data.activities,
+      volunteers: data.volunteers.size,
+      points: data.points,
+    }));
+
+    // Year-wise Student Distribution
+    const yearDistribution: Record<string, number> = {
+      '1st Year': 0,
+      '2nd Year': 0,
+      '3rd Year': 0,
+      '4th Year': 0,
+    };
+
+    for (const s of allStudents) {
+      const yr = this.formatStudentYearDisplay(s.academicYear, s.semester);
+      if (yearDistribution[yr] !== undefined) {
+        yearDistribution[yr] += 1;
+      }
+    }
+
+    // Performance Highlights
+    const sortedZones = [...analyticsData.zonePerformance].sort((a, b) => b.points - a.points);
+    const topZone = sortedZones[0] || null;
+    const lowestZone = sortedZones.length > 1 ? sortedZones[sortedZones.length - 1] : null;
+
+    const sortedColleges = [...analyticsData.collegePerformance].sort((a, b) => b.points - a.points);
+    const topCollege = sortedColleges[0] || null;
+    const lowestCollege = sortedColleges.length > 1 ? sortedColleges[sortedColleges.length - 1] : null;
+
+    const topStudents = analyticsData.topStudents.slice(0, 5);
+
+    return {
+      overview: {
+        totalStudents,
+        activeStudents,
+        inactiveStudents,
+        activeZones,
+        totalColleges,
+        zoneIncharges,
+        superAdmins,
+        totalSpocs,
+        activeVolunteers: activeVolunteersCount,
+      },
+      volunteeringActivities: {
+        total: totalActivities,
+        approved: approvedActivities,
+        rejected: rejectedActivities,
+        pending: pendingActivities,
+      },
+      categoryDistribution,
+      monthlyTrends,
+      yearDistribution,
+      conversionRate,
+      highlights: {
+        topZone,
+        topCollege,
+        topStudents,
+        lowestZone,
+        lowestCollege,
+      },
+    };
+  }
+
+  /**
+   * Comprehensive Zone Dashboard aggregation strictly scoped to a single zone.
+   */
+  async getZoneDashboard(zoneId: string): Promise<any> {
+    const zone = await prisma.zone.findUnique({
+      where: { id: zoneId },
+      include: {
+        incharge: {
+          include: {
+            userProfile: true,
+          },
+        },
+      },
+    });
+
+    if (!zone) {
+      throw ApiError.notFound('Zone not found');
+    }
+
+    const [
+      totalStudents,
+      activeStudents,
+      inactiveStudents,
+      collegesCount,
+      totalSpocs,
+      activeVolunteersList,
+      totalActivities,
+      approvedActivities,
+      rejectedActivities,
+      pendingActivities,
+      approvedSubmissions,
+      allStudents,
+      zoneAnalyticsData,
+    ] = await Promise.all([
+      prisma.student.count({ where: { zoneId } }),
+      prisma.student.count({
+        where: {
+          zoneId,
+          status: StudentStatus.ACTIVE,
+          user: { isActive: true },
+        },
+      }),
+      prisma.student.count({
+        where: {
+          zoneId,
+          OR: [{ status: { not: StudentStatus.ACTIVE } }, { user: { isActive: false } }],
+        },
+      }),
+      prisma.college.count({ where: { zoneId, isActive: true } }),
+      prisma.student.count({
+        where: {
+          zoneId,
+          isSpoc: true,
+          status: StudentStatus.ACTIVE,
+          user: { isActive: true },
+        },
+      }),
+      prisma.volunteerSubmission.findMany({
+        where: { zoneId, status: VolunteerStatus.approved },
+        select: { studentId: true },
+        distinct: ['studentId'],
+      }),
+      prisma.volunteerSubmission.count({ where: { zoneId } }),
+      prisma.volunteerSubmission.count({ where: { zoneId, status: VolunteerStatus.approved } }),
+      prisma.volunteerSubmission.count({ where: { zoneId, status: VolunteerStatus.rejected } }),
+      prisma.volunteerSubmission.count({ where: { zoneId, status: VolunteerStatus.pending } }),
+      prisma.volunteerSubmission.findMany({
+        where: { zoneId, status: VolunteerStatus.approved },
+        select: {
+          category: true,
+          count: true,
+          eventDate: true,
+          studentId: true,
+        },
+      }),
+      prisma.student.findMany({
+        where: {
+          zoneId,
+          status: StudentStatus.ACTIVE,
+          user: { isActive: true },
+        },
+        select: {
+          academicYear: true,
+          semester: true,
+        },
+      }),
+      this.getVolunteeringAnalytics({ period: 'total', zoneId }),
+    ]);
+
+    const activeVolunteersCount = activeVolunteersList.length;
+    const conversionRate =
+      totalStudents > 0
+        ? Number(((activeVolunteersCount / totalStudents) * 100).toFixed(1))
+        : 0;
+
+    // Volunteering Category Distribution (5 standard categories)
+    const categoryDistribution: Record<string, number> = {
+      'Physical Verification': 0,
+      'Tele-verification': 0,
+      'School Visit': 0,
+      'Offline Events': 0,
+      Others: 0,
+    };
+
+    for (const sub of approvedSubmissions) {
+      if (sub.category === VolunteerCategory.PHYSICAL_VERIFICATION) {
+        categoryDistribution['Physical Verification'] += Number(sub.count) || 1;
+      } else if (sub.category === VolunteerCategory.TELE_VERIFICATION) {
+        categoryDistribution['Tele-verification'] += Number(sub.count) || 1;
+      } else if (sub.category === VolunteerCategory.SCHOOL_VISIT) {
+        categoryDistribution['School Visit'] += Number(sub.count) || 1;
+      } else if (
+        sub.category === VolunteerCategory.OFFLINE_PANEL_VOLUNTEERING ||
+        sub.category === VolunteerCategory.SANGAMAM_VOLUNTEERING ||
+        sub.category === VolunteerCategory.OTHER_OFFLINE_EVENT_VOLUNTEERING
+      ) {
+        categoryDistribution['Offline Events'] += 1;
+      } else {
+        categoryDistribution['Others'] += 1;
+      }
+    }
+
+    // Monthly Volunteering Trend
+    const monthlyMap = new Map<string, { activities: number; volunteers: Set<string>; points: number }>();
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+      monthlyMap.set(key, { activities: 0, volunteers: new Set(), points: 0 });
+    }
+
+    for (const sub of approvedSubmissions) {
+      const d = new Date(sub.eventDate);
+      const key = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+      if (monthlyMap.has(key)) {
+        const entry = monthlyMap.get(key)!;
+        entry.activities += 1;
+        entry.volunteers.add(sub.studentId);
+        entry.points += this.calculatePoints(sub.category, sub.count);
+      }
+    }
+
+    const monthlyTrends = Array.from(monthlyMap.entries()).map(([month, data]) => ({
+      month,
+      activities: data.activities,
+      volunteers: data.volunteers.size,
+      points: data.points,
+    }));
+
+    // Year-wise Student Distribution
+    const yearDistribution: Record<string, number> = {
+      '1st Year': 0,
+      '2nd Year': 0,
+      '3rd Year': 0,
+      '4th Year': 0,
+    };
+
+    for (const s of allStudents) {
+      const yr = this.formatStudentYearDisplay(s.academicYear, s.semester);
+      if (yearDistribution[yr] !== undefined) {
+        yearDistribution[yr] += 1;
+      }
+    }
+
+    // Performance Highlights for this Zone
+    const sortedColleges = [...zoneAnalyticsData.collegePerformance].sort((a, b) => b.points - a.points);
+    const topCollege = sortedColleges[0] || null;
+    const lowestCollege = sortedColleges.length > 1 ? sortedColleges[sortedColleges.length - 1] : null;
+    const topStudents = zoneAnalyticsData.topStudents.slice(0, 5);
+
+    return {
+      zone: {
+        id: zone.id,
+        name: zone.name,
+        code: zone.code,
+        regionLabel: zone.regionLabel,
+        inchargeName: zone.incharge?.userProfile?.fullName || 'Zone Incharge',
+      },
+      overview: {
+        totalStudents,
+        activeStudents,
+        inactiveStudents,
+        totalColleges: collegesCount,
+        totalSpocs,
+        activeVolunteers: activeVolunteersCount,
+      },
+      volunteeringActivities: {
+        total: totalActivities,
+        approved: approvedActivities,
+        rejected: rejectedActivities,
+        pending: pendingActivities,
+      },
+      categoryDistribution,
+      monthlyTrends,
+      yearDistribution,
+      conversionRate,
+      highlights: {
+        topCollege,
+        topStudents,
+        lowestCollege,
+      },
+    };
+  }
 }
 
 export const analyticsService = new AnalyticsService();

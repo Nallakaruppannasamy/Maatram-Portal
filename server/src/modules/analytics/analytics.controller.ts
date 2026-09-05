@@ -102,6 +102,38 @@ export class AnalyticsController {
       ResponseFormatter.success(res, data, 'Zone drill-down analytics retrieved successfully');
     }
   );
+
+  /**
+   * Super Admin Executive Dashboard.
+   */
+  getSuperAdminDashboard = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const data = await analyticsService.getSuperAdminDashboard();
+      ResponseFormatter.success(res, data, 'Super Admin dashboard metrics retrieved successfully');
+    }
+  );
+
+  /**
+   * Zone Dashboard strictly scoped to the authenticated Zone Incharge's zone.
+   */
+  getZoneDashboard = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      let targetZoneId = (req.query.zoneId as string) || (req.params.zoneId as string);
+      const assignedZoneId = await this.enforceZoneScope(req);
+
+      if (assignedZoneId) {
+        // Enforce strict authenticated zone isolation
+        targetZoneId = assignedZoneId;
+      }
+
+      if (!targetZoneId) {
+        throw ApiError.badRequest('Zone ID is required');
+      }
+
+      const data = await analyticsService.getZoneDashboard(targetZoneId);
+      ResponseFormatter.success(res, data, 'Zone dashboard metrics retrieved successfully');
+    }
+  );
 }
 
 export const analyticsController = new AnalyticsController();

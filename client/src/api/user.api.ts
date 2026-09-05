@@ -32,4 +32,9 @@ export const userApi = {
     const res = await apiInstance.patch<ApiResponse<AuthUser>>(API_ROUTES.USERS.DEACTIVATE(id))
     return res.data
   },
+
+  exportToExcel: async (params?: Record<string, any>): Promise<Blob> => {
+    const res = await apiInstance.get(API_ROUTES.USERS.EXPORT, { params, responseType: 'blob' })
+    return res.data
+  },
 }

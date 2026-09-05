@@ -10,14 +10,18 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
+  Download,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { TableLoader } from '@/components/ui/TableLoader'
 import { volunteerApi } from '@/api/volunteer.api'
+import { zoneApi } from '@/api/zone.api'
 import { getMediaUrl } from '@/utils/media'
 import { useDebounce } from '@/hooks/useDebounce'
+import { notify } from '@/utils/toast'
 
 const safeString = (val: any, fallback: string = 'N/A'): string => {
   if (val === null || val === undefined) return fallback
@@ -57,6 +61,8 @@ export const ZoneVolunteeringLogsPage = () => {
   const [limit] = useState(10)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
+  const [collegeFilter, setCollegeFilter] = useState<string>('')
+  const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null)
   const [activeImage, setActiveImage] = useState<string | null>(null)
 
@@ -65,11 +71,18 @@ export const ZoneVolunteeringLogsPage = () => {
   // Reset page to 1 when filters change
   useEffect(() => {
     setPage(1)
-  }, [debouncedSearch, statusFilter])
+  }, [debouncedSearch, statusFilter, collegeFilter, categoryFilter])
+
+  // Fetch assigned colleges for college filter dropdown
+  const { data: collegesRes } = useQuery({
+    queryKey: ['my-zone-colleges'],
+    queryFn: () => zoneApi.getMyColleges(),
+  })
+  const colleges = collegesRes?.data || []
 
   // Fetch volunteering logs (automatically scoped to Zone Incharge's assigned zone by backend)
   const { data: submissionsRes, isLoading } = useQuery({
-    queryKey: ['zone-volunteering-logs', page, limit, debouncedSearch, statusFilter],
+    queryKey: ['zone-volunteering-logs', page, limit, debouncedSearch, statusFilter, collegeFilter, categoryFilter],
     queryFn: () =>
       volunteerApi.list({
         view: 'logs',
@@ -78,6 +91,8 @@ export const ZoneVolunteeringLogsPage = () => {
         limit,
         search: debouncedSearch || undefined,
         status: statusFilter === 'all' ? undefined : statusFilter,
+        collegeId: collegeFilter || undefined,
+        category: categoryFilter || undefined,
       }),
   })
 
@@ -93,6 +108,29 @@ export const ZoneVolunteeringLogsPage = () => {
       setSelectedSubmission(null)
     }
   }, [submissions, selectedSubmission])
+
+  // Export full filtered dataset to Excel
+  const handleExportLogs = async () => {
+    try {
+      const blob = await volunteerApi.exportLogs({
+        search: debouncedSearch || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        collegeId: collegeFilter || undefined,
+        category: categoryFilter || undefined,
+      })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Zone_Volunteering_Logs_${Date.now()}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+      notify.success('Volunteering logs exported to Excel successfully')
+    } catch {
+      notify.error('Failed to export volunteering logs.')
+    }
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -111,13 +149,22 @@ export const ZoneVolunteeringLogsPage = () => {
             Audit and inspect student volunteer activity logs and uploaded proof evidence for your assigned zone.
           </p>
         </div>
+
+        <Button
+          variant="gold"
+          size="md"
+          icon={<Download className="w-4 h-4" />}
+          onClick={handleExportLogs}
+        >
+          Export to Excel
+        </Button>
       </div>
 
       {/* Filter and Search Bar */}
       <Card className="p-4 bg-white border border-[#E5E7EB] rounded-2xl shadow-xs">
-        <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
+        <div className="flex flex-wrap gap-3 items-center justify-between">
           {/* Search Input */}
-          <div className="relative flex-1 w-full">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -129,7 +176,7 @@ export const ZoneVolunteeringLogsPage = () => {
           </div>
 
           {/* Status Tabs */}
-          <div className="flex items-center gap-1 bg-[#FCF8FA] p-1 rounded-xl border border-[#E5E7EB] w-full md:w-auto overflow-x-auto">
+          <div className="flex items-center gap-1 bg-[#FCF8FA] p-1 rounded-xl border border-[#E5E7EB] overflow-x-auto">
             {(['all', 'pending', 'approved', 'rejected'] as const).map((st) => (
               <button
                 key={st}
@@ -144,6 +191,40 @@ export const ZoneVolunteeringLogsPage = () => {
                 {st}
               </button>
             ))}
+          </div>
+
+          {/* Category Filter */}
+          <div className="w-full sm:w-44">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="w-full px-3 py-2 text-xs border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37] bg-[#FCF8FA] text-[#111827] font-semibold"
+            >
+              <option value="">All Categories</option>
+              <option value="PHYSICAL_VERIFICATION">Physical Verification</option>
+              <option value="TELE_VERIFICATION">Tele Verification</option>
+              <option value="SCHOOL_VISIT">School Visit</option>
+              <option value="OFFLINE_PANEL_VOLUNTEERING">Offline Event</option>
+              <option value="OTHER_OFFLINE_EVENT_VOLUNTEERING">Others</option>
+              <option value="KARPOM_KARPIPOM_TUTORING">Karpom Karpipom Tutoring</option>
+              <option value="SANGAMAM_VOLUNTEERING">Sangamam Volunteering</option>
+            </select>
+          </div>
+
+          {/* College Selector */}
+          <div className="w-full sm:w-44">
+            <select
+              value={collegeFilter}
+              onChange={(e) => setCollegeFilter(e.target.value)}
+              className="w-full px-3 py-2 text-xs border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37] bg-[#FCF8FA] text-[#111827] font-semibold truncate"
+            >
+              <option value="">All Colleges</option>
+              {colleges.map((c: any) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </Card>

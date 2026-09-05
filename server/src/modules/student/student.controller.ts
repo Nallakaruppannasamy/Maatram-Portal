@@ -80,9 +80,39 @@ export class StudentController {
     const actorId = req.user!.userId;
     const actorRole = this.getAuditActorRole(req.user!.role);
 
+    if (req.user?.role === 'zone') {
+      const student = await studentService.getStudentById(id);
+      const assignedZoneId = await zoneService.getAssignedZoneIdForUser(actorId);
+      if (!assignedZoneId || student.zoneId !== assignedZoneId) {
+        throw ApiError.forbidden('Access denied: You can only modify student accounts within your assigned zone');
+      }
+    }
+
     const student = await studentService.changeStatus(id, status, actorId, actorRole);
 
     ResponseFormatter.success(res, student, `Student status successfully changed to ${status}`);
+  });
+
+  /**
+   * Bulk deactivates students.
+   */
+  bulkDeactivate = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { studentIds } = req.body;
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      throw ApiError.badRequest('studentIds must be a non-empty array of strings');
+    }
+
+    let zoneId: string | undefined;
+    if (req.user?.role === 'zone') {
+      const assignedZoneId = await zoneService.getAssignedZoneIdForUser(req.user.userId);
+      zoneId = assignedZoneId || req.user.zoneId;
+    }
+
+    const actorId = req.user!.userId;
+    const actorRole = this.getAuditActorRole(req.user!.role);
+
+    const result = await studentService.bulkDeactivate(studentIds, zoneId, actorId, actorRole);
+    ResponseFormatter.success(res, result, `Successfully deactivated ${result.count} students`);
   });
 
   /**

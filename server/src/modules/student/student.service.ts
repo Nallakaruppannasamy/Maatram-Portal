@@ -89,6 +89,7 @@ import {
   ImportStatus,
   Student,
   AccountStatus,
+  NotificationType,
 } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import * as XLSX from 'xlsx';
@@ -398,6 +399,8 @@ export class StudentService {
       collegeId: queryParams.collegeId as string,
       departmentId: queryParams.departmentId as string,
       status: queryParams.status as StudentStatus,
+      stream: queryParams.stream as string,
+      accountStatus: queryParams.accountStatus as string,
       batch: queryParams.batch as string,
       academicYear: queryParams.academicYear as string,
     };
@@ -412,10 +415,10 @@ export class StudentService {
       }
     }
 
-    // Handle active vs archived scope and enforce Super Admin RBAC on archived queries
+    // Handle active vs archived scope and enforce role access
     if (queryParams.scope === 'archived') {
-      if (actorRole && actorRole !== 'admin') {
-        throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+      if (actorRole && actorRole !== 'admin' && actorRole !== 'zone') {
+        throw ApiError.forbidden('Access denied: Unauthorized access to archived student records');
       }
       options.scope = 'archived';
       options.isActive = false;
@@ -432,8 +435,8 @@ export class StudentService {
         options.isActive = true;
       } else if (queryParams.isActive === 'false' || queryParams.isActive === '0') {
         options.isActive = false;
-        if (actorRole && actorRole !== 'admin') {
-          throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+        if (actorRole && actorRole !== 'admin' && actorRole !== 'zone') {
+          throw ApiError.forbidden('Access denied: Unauthorized access to archived student records');
         }
       }
     }
@@ -526,17 +529,49 @@ export class StudentService {
       targetEntityType: 'student',
       targetEntityId: updated.id,
       targetLabel: fullName,
-      details: `Student ${fullName} (${updated.registrationNumber}) was ${isSpoc ? 'marked as' : 'unmarked from'} SPOC by actor ${actorId}`,
+      details: isSpoc ? `Assigned SPOC status to student ${fullName}` : `Removed SPOC status from student ${fullName}`,
     });
 
-    logger.info(
-      `[STUDENT_SPOC_UPDATED] SPOC status for ${fullName} set to ${isSpoc} by actor ${actorId}`
-    );
+    // Student notification on SPOC assignment
+    if (isSpoc && updated.user?.id) {
+      await prisma.notification.create({
+        data: {
+          recipientId: updated.user.id,
+          title: 'SPOC Assignment Notice',
+          message: 'Congratulations! You have been assigned as a Student SPOC for your institution.',
+          type: NotificationType.info,
+        },
+      }).catch((e) => logger.warn(`Failed to create SPOC notification: ${e.message}`));
+    }
 
     return {
       ...updated,
       fullName,
     };
+  }
+
+  /**
+   * Bulk deactivates students.
+   */
+  async bulkDeactivate(
+    studentIds: string[],
+    zoneId: string | undefined,
+    actorId: string,
+    actorRole: AuditActorRole
+  ): Promise<{ count: number }> {
+    const result = await studentRepository.bulkDeactivate(studentIds, zoneId);
+
+    await createAuditLog({
+      actorId,
+      actorRole,
+      action: 'STUDENTS_BULK_DEACTIVATED',
+      targetEntityType: 'student',
+      targetEntityId: studentIds[0] || 'bulk',
+      targetLabel: `${result.count} students`,
+      details: `Bulk deactivation of ${result.count} student accounts by ${actorRole} ${actorId}`,
+    });
+
+    return result;
   }
 
   /**
@@ -729,6 +764,8 @@ result.push(current.trim());
       collegeId: queryParams.collegeId as string,
       departmentId: queryParams.departmentId as string,
       status: queryParams.status as StudentStatus,
+      stream: queryParams.stream as string,
+      accountStatus: queryParams.accountStatus as string,
       batch: queryParams.batch as string,
       academicYear: queryParams.academicYear as string,
     };
@@ -743,10 +780,9 @@ result.push(current.trim());
       }
     }
 
-    // Handle active vs archived scope and enforce Super Admin RBAC on archived queries
     if (queryParams.scope === 'archived') {
-      if (actorRole && actorRole !== 'admin') {
-        throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+      if (actorRole && actorRole !== 'admin' && actorRole !== 'zone') {
+        throw ApiError.forbidden('Access denied: Unauthorized access to archived student records');
       }
       options.scope = 'archived';
       options.isActive = false;
@@ -763,23 +799,15 @@ result.push(current.trim());
         options.isActive = true;
       } else if (queryParams.isActive === 'false' || queryParams.isActive === '0') {
         options.isActive = false;
-        if (actorRole && actorRole !== 'admin') {
-          throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+        if (actorRole && actorRole !== 'admin' && actorRole !== 'zone') {
+          throw ApiError.forbidden('Access denied: Unauthorized access to archived student records');
         }
       }
     }
 
     const { orderBy } = parseQueryParams(options, 'registrationNumber');
-    
-    let students: StudentWithRelations[];
-    if (queryParams.page !== undefined && queryParams.limit !== undefined) {
-      const page = parseInt(String(queryParams.page), 10) || 1;
-      const limit = parseInt(String(queryParams.limit), 10) || 10;
-      const skip = (page - 1) * limit;
-      students = await studentRepository.listStudents(options, skip, limit, orderBy);
-    } else {
-      students = await studentRepository.exportStudents(options, orderBy);
-    }
+    // Exports must always export the entire filtered dataset
+    const students = await studentRepository.exportStudents(options, orderBy);
 
     if (queryParams.view === 'provisioning') {
       const headers = [
@@ -788,6 +816,7 @@ result.push(current.trim());
         'Email Address',
         'Temp Password',
         'Import Date',
+        'Account Status',
         'Lifecycle Status',
       ];
       const lines = [headers.join(',')];
@@ -799,6 +828,7 @@ result.push(current.trim());
         );
         const importDate = student.user?.createdAt ? student.user.createdAt.toISOString().split('T')[0] : 'N/A';
         const rawStatus = (student.user as any)?.accountStatus || student.accountStatus || 'pending_first_login';
+        const accountStatusLabel = student.user?.isActive === false ? 'DEACTIVATED' : 'ACTIVE';
 
         const row = [
           this.formatCsvValue(fullName || student.user?.email || ''),
@@ -806,6 +836,7 @@ result.push(current.trim());
           this.formatCsvValue(student.user?.email || ''),
           this.formatCsvValue(student.user?.tempPassword || 'Set by user'),
           this.formatCsvValue(importDate),
+          this.formatCsvValue(accountStatusLabel),
           this.formatCsvValue(rawStatus),
         ];
         lines.push(row.join(','));
@@ -817,11 +848,15 @@ result.push(current.trim());
       'Register Number',
       'Name',
       'College Name',
+      'Stream',
+      'Degree',
+      'Department',
       'Zone',
       'Batch',
       'CGPA',
       'SPOC',
-      'Status',
+      'Account Status',
+      'Lifecycle Status',
     ];
 
     const lines = [headers.join(',')];
@@ -833,17 +868,21 @@ result.push(current.trim());
         student.lastName
       );
 
-      const statusLabel = student.user?.isActive === false ? 'DEACTIVATED' : (student.status || 'ACTIVE');
+      const accountStatusLabel = student.user?.isActive === false ? 'DEACTIVATED' : 'ACTIVE';
 
       const row = [
         this.formatCsvValue(student.registrationNumber || 'UNASSIGNED'),
         this.formatCsvValue(fullName || 'Scholar Student'),
-        this.formatCsvValue(student.college?.name || 'Maatram College'),
+        this.formatCsvValue(student.college?.name || 'N/A'),
+        this.formatCsvValue(student.stream || 'N/A'),
+        this.formatCsvValue(student.department?.name || 'N/A'),
+        this.formatCsvValue(student.program?.name || 'N/A'),
         this.formatCsvValue(student.zone?.name || 'N/A'),
-        this.formatCsvValue(student.batch || '2024-2028'),
+        this.formatCsvValue(student.batch || 'N/A'),
         this.formatCsvValue(student.cgpa ? Number(student.cgpa).toFixed(2) : 'N/A'),
         this.formatCsvValue(student.isSpoc ? 'Yes' : 'No'),
-        this.formatCsvValue(statusLabel),
+        this.formatCsvValue(accountStatusLabel),
+        this.formatCsvValue(student.status || 'ACTIVE'),
       ];
 
       lines.push(row.join(','));
@@ -865,6 +904,8 @@ result.push(current.trim());
       collegeId: queryParams.collegeId as string,
       departmentId: queryParams.departmentId as string,
       status: queryParams.status as StudentStatus,
+      stream: queryParams.stream as string,
+      accountStatus: queryParams.accountStatus as string,
       batch: queryParams.batch as string,
       academicYear: queryParams.academicYear as string,
     };
@@ -879,10 +920,10 @@ result.push(current.trim());
       }
     }
 
-    // Handle active vs archived scope and enforce Super Admin RBAC on archived queries
+    // Handle active vs archived scope and enforce role access
     if (queryParams.scope === 'archived') {
-      if (actorRole && actorRole !== 'admin') {
-        throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+      if (actorRole && actorRole !== 'admin' && actorRole !== 'zone') {
+        throw ApiError.forbidden('Access denied: Unauthorized access to archived student records');
       }
       options.scope = 'archived';
       options.isActive = false;
@@ -899,23 +940,15 @@ result.push(current.trim());
         options.isActive = true;
       } else if (queryParams.isActive === 'false' || queryParams.isActive === '0') {
         options.isActive = false;
-        if (actorRole && actorRole !== 'admin') {
-          throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+        if (actorRole && actorRole !== 'admin' && actorRole !== 'zone') {
+          throw ApiError.forbidden('Access denied: Unauthorized access to archived student records');
         }
       }
     }
 
     const { orderBy } = parseQueryParams(options, 'registrationNumber');
-    
-    let students: StudentWithRelations[];
-    if (queryParams.page !== undefined && queryParams.limit !== undefined) {
-      const page = parseInt(String(queryParams.page), 10) || 1;
-      const limit = parseInt(String(queryParams.limit), 10) || 10;
-      const skip = (page - 1) * limit;
-      students = await studentRepository.listStudents(options, skip, limit, orderBy);
-    } else {
-      students = await studentRepository.exportStudents(options, orderBy);
-    }
+    // Export entire filtered dataset
+    const students = await studentRepository.exportStudents(options, orderBy);
 
     let rows: Record<string, any>[];
     if (queryParams.view === 'provisioning') {
@@ -923,6 +956,7 @@ result.push(current.trim());
         const fullName = this.computeFullName(s.firstName, s.middleName, s.lastName);
         const importDate = s.user?.createdAt ? s.user.createdAt.toISOString().split('T')[0] : 'N/A';
         const rawStatus = (s.user as any)?.accountStatus || s.accountStatus || 'pending_first_login';
+        const accountStatusLabel = s.user?.isActive === false ? 'DEACTIVATED' : 'ACTIVE';
 
         return {
           'Student Name': fullName || s.user?.email || '',
@@ -930,22 +964,27 @@ result.push(current.trim());
           'Email Address': s.user?.email || '',
           'Temp Password': s.user?.tempPassword || 'Set by user',
           'Import Date': importDate,
+          'Account Status': accountStatusLabel,
           'Lifecycle Status': rawStatus,
         };
       });
     } else {
       rows = students.map((s) => {
         const fullName = this.computeFullName(s.firstName, s.middleName, s.lastName);
-        const statusLabel = s.user?.isActive === false ? 'DEACTIVATED' : (s.status || 'ACTIVE');
+        const accountStatusLabel = s.user?.isActive === false ? 'DEACTIVATED' : 'ACTIVE';
         return {
           'Register Number': s.registrationNumber || 'UNASSIGNED',
           Name: fullName || 'Scholar Student',
-          'College Name': s.college?.name || 'Maatram College',
+          'College Name': s.college?.name || 'N/A',
+          Stream: s.stream || 'N/A',
+          Degree: s.department?.name || 'N/A',
+          Department: s.program?.name || 'N/A',
           Zone: s.zone?.name || 'N/A',
-          Batch: s.batch || '2024-2028',
+          Batch: s.batch || 'N/A',
           CGPA: s.cgpa ? Number(s.cgpa).toFixed(2) : 'N/A',
           SPOC: s.isSpoc ? 'Yes' : 'No',
-          Status: statusLabel,
+          'Account Status': accountStatusLabel,
+          'Lifecycle Status': s.status || 'ACTIVE',
         };
       });
     }
