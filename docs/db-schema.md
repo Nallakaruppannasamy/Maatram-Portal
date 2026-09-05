@@ -82,6 +82,10 @@ Workflow state of volunteering submissions:
 - `approved`: Verified and credited towards student hours/counts.
 - `rejected`: Rejected with reviewer feedback.
 
+### `NotificationType`
+Notification categories for system alerts:
+- `approved`, `rejected`, `pending`, `info`, `alert`.
+
 ### `AuditActorRole`
 Actor classification in audit logs:
 - `admin`, `zone`, `student`, `system`.
@@ -159,6 +163,7 @@ Comprehensive academic, personal, geographic, and SPOC data for scholars.
 | `collegeId` | `UUID` | Yes | NULL | FK to `colleges.id` |
 | `departmentId` | `UUID` | Yes | NULL | FK to `departments.id` |
 | `programId` | `UUID` | Yes | NULL | FK to `programs.id` |
+| `stream` | `VARCHAR(50)` | Yes | NULL | Academic stream (`Arts & Science`, `Engineering`, `Nursing`) |
 | `course` | `VARCHAR(100)`| Yes | NULL | Degree / Course title |
 | `batch` | `VARCHAR(10)` | Yes | NULL | Academic batch (e.g. `2024-2028`) |
 | `academicYear` | `VARCHAR(10)` | Yes | NULL | Current year (e.g. `2nd Year`) |
@@ -168,7 +173,7 @@ Comprehensive academic, personal, geographic, and SPOC data for scholars.
 | `resumeLastGeneratedAt` | `TIMESTAMPTZ` | Yes | NULL | Timestamp of latest resume export |
 | `accountStatus` | `AccountStatus` | No | `pending_first_login` | Student provisioning state |
 | `status` | `StudentStatus` | No | `ACTIVE` | Scholar academic standing |
-| `cgpa` | `DECIMAL(4,2)`| Yes | NULL | Cumulative GPA (up to 10.00) |
+| `cgpa` | `DECIMAL(4,2)`| Yes | NULL | Cumulative GPA (up to 10.00, auto-computed) |
 | `careerObjective`| `TEXT` | Yes | NULL | Personal career summary for resume |
 | `profileImage` | `VARCHAR(255)`| Yes | NULL | Cloudinary CDN image URL |
 | `isSpoc` | `BOOLEAN` | No | `false` | Student Point of Contact flag |
@@ -177,6 +182,7 @@ Comprehensive academic, personal, geographic, and SPOC data for scholars.
 - `students_userId_key` (UNIQUE)
 - `students_registrationNumber_key` (UNIQUE)
 - `students_verificationCode_key` (UNIQUE)
+- `students_stream_idx`
 - `students_zoneId_idx`
 - `students_collegeId_idx`
 - `students_departmentId_idx`
