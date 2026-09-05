@@ -234,9 +234,15 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
   const handleBulkOpenCV = () => {
     if (selectedStudentIds.length === 0) return
     selectedStudentIds.forEach((id) => {
-      window.open(`/resume/${id}`, '_blank')
+      const link = document.createElement('a')
+      link.href = `/resume/${id}`
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
     })
-    notify.info(`Opened ${selectedStudentIds.length} resume tabs`)
+    notify.info(`Opened ${selectedStudentIds.length} resume tab(s)`)
   }
 
   const handleBulkDeactivate = () => {

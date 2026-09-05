@@ -14,7 +14,6 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Star,
   Archive,
   ToggleLeft,
   ToggleRight,
@@ -63,7 +62,6 @@ export const ZoneArchivedStudentsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [collegeFilter, setCollegeFilter] = useState<string>('All')
   const [academicYearFilter, setAcademicYearFilter] = useState<string>('All')
-  const [spocFilter, setSpocFilter] = useState<'All' | 'SPOC Only' | 'Non-SPOC'>('All')
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [showExportMenu, setShowExportMenu] = useState<boolean>(false)
   const [sortBy, setSortBy] = useState<string>('')
@@ -88,7 +86,6 @@ export const ZoneArchivedStudentsPage: React.FC = () => {
       currentPage,
       collegeFilter,
       academicYearFilter,
-      spocFilter,
       sortBy,
       sortOrder,
     ],
@@ -100,7 +97,6 @@ export const ZoneArchivedStudentsPage: React.FC = () => {
         limit: 10,
         collegeId: collegeFilter !== 'All' ? collegeFilter : undefined,
         academicYear: academicYearFilter !== 'All' ? academicYearFilter : undefined,
-        isSpoc: spocFilter === 'All' ? undefined : spocFilter === 'SPOC Only',
         sortBy: sortBy || undefined,
         sortOrder: sortBy ? sortOrder : undefined,
       }),
@@ -166,7 +162,6 @@ export const ZoneArchivedStudentsPage: React.FC = () => {
         sortOrder: sortBy ? sortOrder : undefined,
         collegeId: collegeFilter !== 'All' ? collegeFilter : undefined,
         academicYear: academicYearFilter !== 'All' ? academicYearFilter : undefined,
-        isSpoc: spocFilter === 'All' ? undefined : spocFilter === 'SPOC Only',
       })
 
       const url = window.URL.createObjectURL(blob)
@@ -247,20 +242,13 @@ export const ZoneArchivedStudentsPage: React.FC = () => {
         </div>
 
         {/* Summary Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <StatCard
             title="Total Zone Archived"
             value={meta.total}
             icon={Archive}
             colorClass="bg-slate-100"
             iconColor="text-slate-700"
-          />
-          <StatCard
-            title="Archived SPOCs"
-            value={students.filter((s) => s.isSpoc).length}
-            icon={Star}
-            colorClass="bg-amber-50"
-            iconColor="text-[#D4AF37]"
           />
           <StatCard
             title="Current Page"
@@ -295,20 +283,6 @@ export const ZoneArchivedStudentsPage: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap gap-2.5">
-            {/* SPOC Filter */}
-            <select
-              value={spocFilter}
-              onChange={(e) => {
-                setSpocFilter(e.target.value as any)
-                setCurrentPage(1)
-              }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-slate-800 outline-none"
-            >
-              <option value="All">All SPOC Status</option>
-              <option value="SPOC Only">SPOC Only</option>
-              <option value="Non-SPOC">Non-SPOC</option>
-            </select>
-
             {/* College Filter */}
             <select
               value={collegeFilter}
@@ -344,14 +318,12 @@ export const ZoneArchivedStudentsPage: React.FC = () => {
 
             {(collegeFilter !== 'All' ||
               academicYearFilter !== 'All' ||
-              spocFilter !== 'All' ||
               searchTerm ||
               sortBy) && (
               <button
                 onClick={() => {
                   setCollegeFilter('All')
                   setAcademicYearFilter('All')
-                  setSpocFilter('All')
                   setSearchTerm('')
                   setSortBy('')
                   setCurrentPage(1)
@@ -368,14 +340,12 @@ export const ZoneArchivedStudentsPage: React.FC = () => {
         {/* Table Container */}
         <div className="grow">
           {isLoading ? (
-            <TableLoader rows={6} columns={13} />
+            <TableLoader rows={6} columns={12} />
           ) : students.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
               <Archive size={40} className="mx-auto text-gray-300 mb-3" />
               <p className="text-gray-500 font-semibold text-sm">
-                {spocFilter === 'SPOC Only'
-                  ? 'No archived SPOC students found in your assigned zone.'
-                  : 'No archived student records found in your assigned zone.'}
+                No archived student records found in your assigned zone.
               </p>
               <p className="text-xs text-gray-400 mt-1">
                 Deactivated students in your zone will appear here.
@@ -437,9 +407,6 @@ export const ZoneArchivedStudentsPage: React.FC = () => {
                     >
                       Current Year {renderSortIndicator('academicYear')}
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
-                      SPOC
-                    </th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                       Account Status
                     </th>
@@ -471,18 +438,13 @@ export const ZoneArchivedStudentsPage: React.FC = () => {
                       return `${y}th Year`
                     }
                     const academicYearLabel = getYearLabel(student.academicYear)
-                    const isSpocActive = !!student.isSpoc
                     const isUserActive = (student.user?.isActive !== false) && (student.status !== 'DEACTIVATED')
                     const isRowStatusPending = toggleStatusMutation.isPending && pendingStatusId === student.id
 
                     return (
                       <tr
                         key={student.id}
-                        className={`transition-colors ${
-                          isSpocActive
-                            ? 'bg-amber-50/40 hover:bg-amber-50/70 border-l-4 border-l-[#D4AF37]'
-                            : 'hover:bg-gray-50'
-                        }`}
+                        className="hover:bg-gray-50 transition-colors"
                       >
                         <td className="px-3 py-4 whitespace-nowrap text-gray-500 font-medium text-center">
                           {(currentPage - 1) * 10 + index + 1}
@@ -506,14 +468,7 @@ export const ZoneArchivedStudentsPage: React.FC = () => {
                           </a>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap font-semibold text-gray-900">
-                          <div className="flex items-center gap-2">
-                            <span>{name}</span>
-                            {isSpocActive && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-[#D4AF37]/15 text-[#996515] border border-[#D4AF37]/30">
-                                <Star size={10} className="fill-[#D4AF37] text-[#D4AF37]" /> SPOC
-                              </span>
-                            )}
-                          </div>
+                          <span>{name}</span>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-gray-700">
                           <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-800">
@@ -527,17 +482,6 @@ export const ZoneArchivedStudentsPage: React.FC = () => {
                         <td className="px-4 py-4 whitespace-nowrap text-gray-600">{batch}</td>
                         <td className="px-4 py-4 whitespace-nowrap font-semibold text-gray-700">
                           {academicYearLabel}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-center">
-                          {isSpocActive ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
-                              <Star size={12} className="fill-[#D4AF37] text-[#D4AF37]" /> SPOC
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-medium text-gray-400 bg-gray-100">
-                              No
-                            </span>
-                          )}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           <button
