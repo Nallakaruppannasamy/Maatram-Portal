@@ -616,8 +616,8 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                       'Scholar Student'
                     )
                     const stream = safeString((student as any).stream, 'N/A')
-                    const degree = safeString((student as any).degree, 'N/A')
-                    const dept = safeString((student as any).department?.name || (student as any).departmentName || (student as any).department, 'N/A')
+                    const degree = safeString((student as any).degree || (student as any).program?.name || (student as any).course, 'N/A')
+                    const dept = safeString((student as any).departmentName || (student as any).department?.name || (student as any).department, 'N/A')
                     const college = safeString(student.college?.name || student.collegeName, 'Maatram College')
                     const zone = safeString(student.zone?.name || (student as any).zoneName, 'N/A')
                     const batch = safeString(student.batch, '2024-2028')

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Search,
   ChevronDown,
@@ -16,6 +16,8 @@ import {
   ArrowDown,
   Star,
   Archive,
+  ToggleLeft,
+  ToggleRight,
 } from 'lucide-react'
 import { TableLoader } from '@/components/ui/TableLoader'
 import { Avatar } from '@/components/ui/Avatar'
@@ -58,6 +60,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, colorClas
 )
 
 export const ArchivedStudentsPage: React.FC = () => {
+  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [collegeFilter, setCollegeFilter] = useState<string>('All')
   const [zoneFilter, setZoneFilter] = useState<string>('All')
@@ -67,6 +70,7 @@ export const ArchivedStudentsPage: React.FC = () => {
   const [showExportMenu, setShowExportMenu] = useState<boolean>(false)
   const [sortBy, setSortBy] = useState<string>('')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [pendingStatusId, setPendingStatusId] = useState<string | null>(null)
   const exportMenuRef = useRef<HTMLDivElement>(null)
 
   const debouncedSearch = useDebounce(searchTerm, 400)
@@ -114,6 +118,29 @@ export const ArchivedStudentsPage: React.FC = () => {
 
   const students = studentsRes?.data || []
   const meta = studentsRes?.meta || { total: 0, page: currentPage, totalPages: 1 }
+
+  // Account Status Toggle Mutation (allows activating archived students back to active)
+  const toggleStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => {
+      setPendingStatusId(id)
+      return studentApi.changeStatus(id, status)
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['archived-students'] })
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+      notify.success(
+        variables.status === 'active'
+          ? 'Student account activated successfully'
+          : 'Student account deactivated successfully'
+      )
+    },
+    onError: (err: any) => {
+      notify.error(err.response?.data?.message || 'Failed to update account status')
+    },
+    onSettled: () => {
+      setPendingStatusId(null)
+    },
+  })
 
   // Sorting Handler
   const handleSort = (field: string) => {
@@ -372,7 +399,7 @@ export const ArchivedStudentsPage: React.FC = () => {
         {/* Table Container */}
         <div className="grow">
           {isLoading ? (
-            <TableLoader rows={6} columns={10} />
+            <TableLoader rows={6} columns={13} />
           ) : students.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
               <Archive size={40} className="mx-auto text-gray-300 mb-3" />
@@ -407,6 +434,15 @@ export const ArchivedStudentsPage: React.FC = () => {
                       onClick={() => handleSort('name')}
                     >
                       Name {renderSortIndicator('name')}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      Stream
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      Degree
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      Department
                     </th>
                     <th
                       className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
@@ -450,6 +486,9 @@ export const ArchivedStudentsPage: React.FC = () => {
                       student.fullName || student.user?.fullName || student.user?.email,
                       'Scholar Student'
                     )
+                    const stream = safeString((student as any).stream, 'N/A')
+                    const degree = safeString((student as any).degree || (student as any).program?.name || (student as any).course, 'N/A')
+                    const dept = safeString((student as any).departmentName || (student as any).department?.name || (student as any).department, 'N/A')
                     const college = safeString(student.college?.name || student.collegeName, 'Maatram College')
                     const zone = safeString(student.zone?.name || (student as any).zoneName, 'N/A')
                     const batch = safeString(student.batch, '2024-2028')
@@ -464,6 +503,8 @@ export const ArchivedStudentsPage: React.FC = () => {
                     }
                     const academicYearLabel = getYearLabel(student.academicYear)
                     const isSpocActive = !!student.isSpoc
+                    const isUserActive = (student.user?.isActive !== false) && (student.status !== 'DEACTIVATED')
+                    const isRowStatusPending = toggleStatusMutation.isPending && pendingStatusId === student.id
 
                     return (
                       <tr
@@ -505,6 +546,13 @@ export const ArchivedStudentsPage: React.FC = () => {
                             )}
                           </div>
                         </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-gray-700">
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-800">
+                            {stream}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-gray-700">{degree}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-gray-700">{dept}</td>
                         <td className="px-4 py-4 whitespace-nowrap text-gray-700">{college}</td>
                         <td className="px-4 py-4 whitespace-nowrap text-gray-600">{zone}</td>
                         <td className="px-4 py-4 whitespace-nowrap text-gray-600">{batch}</td>
@@ -523,9 +571,34 @@ export const ArchivedStudentsPage: React.FC = () => {
                           )}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
-                          <span className="px-2.5 py-1 rounded text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
-                            DEACTIVATED
-                          </span>
+                          <button
+                            type="button"
+                            disabled={isRowStatusPending}
+                            onClick={() =>
+                              toggleStatusMutation.mutate({
+                                id: student.id,
+                                status: isUserActive ? 'deactivated' : 'active',
+                              })
+                            }
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
+                              isUserActive
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                            } ${isRowStatusPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            title={isUserActive ? 'Click to deactivate account' : 'Click to activate account'}
+                          >
+                            {isUserActive ? (
+                              <>
+                                <ToggleRight className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Active</span>
+                              </>
+                            ) : (
+                              <>
+                                <ToggleLeft className="w-3.5 h-3.5 text-rose-600" />
+                                <span>Deactivated</span>
+                              </>
+                            )}
+                          </button>
                         </td>
                       </tr>
                     )

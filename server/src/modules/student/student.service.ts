@@ -465,9 +465,14 @@ export class StudentService {
           }
         : undefined;
 
+      const degree = student.program?.name || student.course || 'N/A';
+      const departmentName = student.department?.name || 'N/A';
+
       return {
         ...student,
         user: safeUser,
+        degree,
+        departmentName,
         isFirstLogin: student.user?.isFirstLogin ?? (student.accountStatus === 'pending_first_login'),
         fullName: this.computeFullName(student.firstName, student.middleName, student.lastName),
       };
@@ -875,8 +880,8 @@ result.push(current.trim());
         this.formatCsvValue(fullName || 'Scholar Student'),
         this.formatCsvValue(student.college?.name || 'N/A'),
         this.formatCsvValue(student.stream || 'N/A'),
+        this.formatCsvValue(student.program?.name || student.course || 'N/A'),
         this.formatCsvValue(student.department?.name || 'N/A'),
-        this.formatCsvValue(student.program?.name || 'N/A'),
         this.formatCsvValue(student.zone?.name || 'N/A'),
         this.formatCsvValue(student.batch || 'N/A'),
         this.formatCsvValue(student.cgpa ? Number(student.cgpa).toFixed(2) : 'N/A'),
@@ -977,8 +982,8 @@ result.push(current.trim());
           Name: fullName || 'Scholar Student',
           'College Name': s.college?.name || 'N/A',
           Stream: s.stream || 'N/A',
-          Degree: s.department?.name || 'N/A',
-          Department: s.program?.name || 'N/A',
+          Degree: s.program?.name || s.course || 'N/A',
+          Department: s.department?.name || 'N/A',
           Zone: s.zone?.name || 'N/A',
           Batch: s.batch || 'N/A',
           CGPA: s.cgpa ? Number(s.cgpa).toFixed(2) : 'N/A',
