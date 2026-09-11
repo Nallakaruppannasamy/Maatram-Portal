@@ -4,7 +4,6 @@ import { UserRole } from '@/constants/roles'
 import { authApi, LoginPayload } from '@/api/auth.api'
 import {
   getAccessToken,
-  getRefreshToken,
   getStoredUser,
   setAccessToken,
   setRefreshToken,
@@ -104,16 +103,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }
 
   const refresh = async (): Promise<void> => {
-    const refreshToken = getRefreshToken()
-    if (!refreshToken) return
-    const res = await authApi.refresh(refreshToken)
-    if (res.success && res.data) {
-      setAccessTokenState(res.data.accessToken)
-      setAccessToken(res.data.accessToken)
-      const rotatedToken = res.data.refreshToken || res.data.newRefreshToken
-      if (rotatedToken) {
-        setRefreshToken(rotatedToken)
+    try {
+      const res = await authApi.refresh()
+      if (res.success && res.data) {
+        setAccessTokenState(res.data.accessToken)
+        setAccessToken(res.data.accessToken)
       }
+    } catch {
+      // Refresh failed; handled by interceptors if needed
     }
   }
 

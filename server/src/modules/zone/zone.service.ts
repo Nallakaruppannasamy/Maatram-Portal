@@ -18,7 +18,7 @@ import {
   QueryParams,
 } from '@/utils/query-helper';
 import { Zone, AuditActorRole, Prisma } from '@prisma/client';
-import * as XLSX from 'xlsx';
+import { exportToExcelBuffer, parseExcelBuffer } from '@/utils/excel';
 
 export class ZoneService {
   /**
@@ -290,10 +290,7 @@ export class ZoneService {
     const zoneId = await this.getAssignedZoneIdForUser(userId);
     if (!zoneId) {
       if (format === 'xlsx') {
-        const worksheet = XLSX.utils.json_to_sheet([]);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Colleges');
-        return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+        return await exportToExcelBuffer('Colleges', []);
       }
       return 'College Name,Code,Location,Departments,Programs,Total Students,Active Students\n';
     }
@@ -390,10 +387,7 @@ export class ZoneService {
     }));
 
     if (format === 'xlsx') {
-      const worksheet = XLSX.utils.json_to_sheet(rows);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Colleges');
-      return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+      return await exportToExcelBuffer('Colleges', rows);
     } else {
       const headers = [
         'College Name',
@@ -579,10 +573,7 @@ export class ZoneService {
 
   // --- Excel Bulk Import & Template ---
   async importZoneStructure(zoneId: string, fileBuffer: Buffer): Promise<any> {
-    const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const rawData = XLSX.utils.sheet_to_json<any>(worksheet);
+    const rawData = await parseExcelBuffer(fileBuffer);
 
     let collegesCreated = 0;
     let departmentsCreated = 0;
@@ -727,10 +718,7 @@ export class ZoneService {
       }
     ];
 
-    const worksheet = XLSX.utils.json_to_sheet(headers);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
-    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+    return await exportToExcelBuffer('Template', headers);
   }
 }
 

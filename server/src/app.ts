@@ -35,10 +35,10 @@ if (!fs.existsSync(uploadsDir)) {
 // 1. Configure Cloudinary configuration bindings
 configureCloudinary();
 
-// 2. Global rate limiter (100 requests per 15 minutes)
+// 2. Global rate limiter (500 requests per 15 minutes across general API endpoints)
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 100,
+  limit: 500,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: {
@@ -48,8 +48,6 @@ const globalLimiter = rateLimit({
 });
 
 // 3. Security & Optimization Middlewares
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-
 const configuredOrigins = env.FRONTEND_URL.split(',')
   .map((u) => u.trim().replace(/\/+$/, ''))
   .filter(Boolean);
@@ -68,6 +66,66 @@ const allowedOrigins = Array.from(
 );
 
 app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          ...(env.NODE_ENV !== 'production' ? ["'unsafe-eval'", "'unsafe-inline'"] : ["'self'"]),
+        ],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+        imgSrc: [
+          "'self'",
+          'data:',
+          'blob:',
+          'https://res.cloudinary.com',
+          'https://*.cloudinary.com',
+        ],
+        connectSrc: [
+          "'self'",
+          'https://res.cloudinary.com',
+          'https://api.cloudinary.com',
+          'http://localhost:*',
+          'ws://localhost:*',
+          'https://*.onrender.com',
+          ...configuredOrigins,
+        ],
+        mediaSrc: ["'self'", 'https://res.cloudinary.com', 'blob:'],
+        objectSrc: ["'none'"],
+        frameSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    hsts:
+      env.NODE_ENV === 'production'
+        ? {
+            maxAge: 31536000,
+            includeSubDomains: true,
+            preload: false,
+          }
+        : false,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    frameguard: { action: 'deny' },
+    noSniff: true,
+  })
+);
+
+// Explicit Permissions-Policy header for privacy and hardware isolation
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.setHeader(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), payment=(), usb=()'
+  );
+  next();
+});
+
+app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
@@ -76,7 +134,7 @@ app.use(
       if (isAllowed) {
         callback(null, true);
       } else {
-        callback(new Error(`Origin ${origin} not allowed by CORS`));
+        callback(ApiError.forbidden(`Origin ${origin} not allowed by CORS`));
       }
     },
     credentials: true,

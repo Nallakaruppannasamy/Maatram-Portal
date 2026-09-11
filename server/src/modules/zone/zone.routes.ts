@@ -17,6 +17,7 @@ import {
   createProgramValidator
 } from './zone.validator';
 import multer from 'multer';
+import { importLimiter, exportLimiter } from '@/common/middleware/rateLimiter';
 
 const upload = multer({ storage: multer.memoryStorage() });
 const router = Router();
@@ -29,10 +30,10 @@ router.get('/import/template', requireRole('admin'), zoneController.downloadTemp
 
 // Read-only endpoints accessible to both admins and zone incharges
 router.get('/my/colleges', requireRole('admin', 'zone'), zoneController.getMyColleges);
-router.get('/my/colleges/export', requireRole('admin', 'zone'), zoneController.exportMyColleges);
+router.get('/my/colleges/export', exportLimiter, requireRole('admin', 'zone'), zoneController.exportMyColleges);
 router.get('/', requireRole('admin', 'zone'), zoneController.list);
 router.get('/:zoneId/colleges', requireRole('admin', 'zone'), zoneController.getZoneColleges);
-router.get('/:zoneId/colleges/export', requireRole('admin', 'zone'), zoneController.exportZoneColleges);
+router.get('/:zoneId/colleges/export', exportLimiter, requireRole('admin', 'zone'), zoneController.exportZoneColleges);
 router.get('/:id', requireRole('admin', 'zone'), zoneController.getOne);
 
 // Write endpoints restricted to admins only
@@ -56,6 +57,6 @@ router.put('/programs/:programId', requireRole('admin'), validate(createProgramV
 router.delete('/programs/:programId', requireRole('admin'), zoneController.deleteProgram);
 
 // Import route
-router.post('/:zoneId/import', requireRole('admin'), upload.single('file'), zoneController.importStructure);
+router.post('/:zoneId/import', importLimiter, requireRole('admin'), upload.single('file'), zoneController.importStructure);
 
 export default router;

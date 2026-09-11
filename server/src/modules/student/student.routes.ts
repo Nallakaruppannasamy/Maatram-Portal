@@ -16,6 +16,7 @@ import {
   updateStudentSpocSchema,
 } from './student.validator';
 import multer from 'multer';
+import { importLimiter, exportLimiter } from '@/common/middleware/rateLimiter';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -29,7 +30,7 @@ router.use(requireAuth);
 
 // Read endpoints
 router.get('/', requireRole('admin', 'zone'), studentController.listStudents);
-router.get('/export', requireRole('admin', 'zone'), studentController.exportStudents);
+router.get('/export', exportLimiter, requireRole('admin', 'zone'), studentController.exportStudents);
 router.get('/template', requireRole('admin'), studentController.getTemplate);
 router.get('/:id/resume', studentController.getResume);
 router.get('/:id', requireRole('admin', 'zone'), studentController.getStudentById);
@@ -74,6 +75,7 @@ router.post(
 );
 router.post(
   '/import',
+  importLimiter,
   requireRole('admin'),
   upload.single('file'),
   studentController.importStudents
@@ -85,6 +87,7 @@ router.get(
 );
 router.get(
   '/imports/:id/errors/export',
+  exportLimiter,
   requireRole('admin'),
   studentController.exportImportErrors
 );

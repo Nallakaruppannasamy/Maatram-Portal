@@ -1,9 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import {
   getAccessToken,
-  getRefreshToken,
   setAccessToken,
-  setRefreshToken,
   clearAuthStorage,
 } from '@/utils/token'
 import { API_ROUTES } from '@/constants/api'
@@ -92,20 +90,16 @@ apiInstance.interceptors.response.use(
       isRefreshing = true
 
       try {
-        const refreshToken = getRefreshToken()
+        // SEC-009: Browser automatically sends HttpOnly refresh cookie via withCredentials: true
         const response = await axios.post(
           `${baseURL}${API_ROUTES.AUTH.REFRESH}`,
-          { refreshToken },
+          {},
           { withCredentials: true }
         )
 
         if (response.data?.success) {
-          const { accessToken, refreshToken: rotatedRefreshToken, newRefreshToken } = response.data.data
+          const { accessToken } = response.data.data
           setAccessToken(accessToken)
-          const nextRefreshToken = rotatedRefreshToken || newRefreshToken
-          if (nextRefreshToken) {
-            setRefreshToken(nextRefreshToken)
-          }
 
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${accessToken}`

@@ -422,6 +422,7 @@ async function runSecurityHardeningTests() {
     );
     const multerVer = pkgJson.dependencies.multer;
     const nodemailerVer = pkgJson.dependencies.nodemailer;
+    const exceljsVer = pkgJson.dependencies.exceljs;
     const xlsxVer = pkgJson.dependencies.xlsx;
 
     assert(
@@ -432,7 +433,8 @@ async function runSecurityHardeningTests() {
       nodemailerVer.includes('10.0.6') || nodemailerVer.startsWith('^10'),
       `nodemailer version upgraded to >= 10.0.6 (current: ${nodemailerVer})`
     );
-    assert(xlsxVer === '^0.18.5', `xlsx version documented at ${xlsxVer} with known upstream limitations`);
+    assert(!xlsxVer, `vulnerable xlsx package is completely removed`);
+    assert(exceljsVer, `exceljs package is installed (current: ${exceljsVer})`);
 
     console.log(`\n==================================================`);
     console.log(`🎉 ALL SECURITY TESTS PASSED: ${totalPassed} Passed, ${totalFailed} Failed`);

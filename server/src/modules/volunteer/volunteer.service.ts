@@ -18,7 +18,7 @@ import {
 } from './volunteer.types';
 import { prisma } from '@/config/database';
 import { zoneService } from '../zone/zone.service';
-import * as XLSX from 'xlsx';
+import { exportToExcelBuffer } from '@/utils/excel';
 
 // ─── Status Transition State Machine ─────────────────────────────────────────
 
@@ -612,10 +612,7 @@ class VolunteerService {
       if (assignedZoneId) {
         zoneId = assignedZoneId;
       } else {
-        const emptyWb = XLSX.utils.book_new();
-        const emptyWs = XLSX.utils.json_to_sheet([]);
-        XLSX.utils.book_append_sheet(emptyWb, emptyWs, 'Volunteering Logs');
-        return XLSX.write(emptyWb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+        return await exportToExcelBuffer('Volunteering Logs', []);
       }
     } else if (actorRole === 'admin' && queryParams.zoneId && queryParams.zoneId !== 'All' && queryParams.zoneId !== 'all') {
       zoneId = String(queryParams.zoneId);
@@ -659,10 +656,7 @@ class VolunteerService {
       };
     });
 
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Volunteering Logs');
-    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+    return await exportToExcelBuffer('Volunteering Logs', rows);
   }
 }
 

@@ -9,6 +9,14 @@ import { ResponseFormatter } from '@/common/responses/formatter';
 import { asyncHandler } from '@/common/responses/asyncHandler';
 import { ApiError } from '@/common/exceptions/apiError';
 
+const getRefreshTokenCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+  path: '/api/v1/auth',
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+});
+
 export class AuthController {
   /**
    * Dual login endpoint (email/register number + password)
@@ -17,15 +25,13 @@ export class AuthController {
     const { identifier, password } = req.body;
     const result = await authService.login(identifier, password);
 
-    // Set refresh token in HTTP-only cookie for enhanced security
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    // Set refresh token in HttpOnly, Secure, restricted-path cookie (SEC-009)
+    res.cookie('refreshToken', result.refreshToken, getRefreshTokenCookieOptions());
 
-    ResponseFormatter.success(res, result, 'Logged in successfully');
+    // Omit refresh token from JSON payload to prevent JavaScript storage
+    const { refreshToken, ...clientData } = result;
+
+    ResponseFormatter.success(res, clientData, 'Logged in successfully');
   });
 
   /**
@@ -33,7 +39,7 @@ export class AuthController {
    */
   refresh = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const refreshToken =
-      req.body.refreshToken || req.cookies?.refreshToken || req.headers['x-refresh-token'];
+      req.cookies?.refreshToken || req.body?.refreshToken || req.headers['x-refresh-token'];
 
     if (!refreshToken || typeof refreshToken !== 'string') {
       throw ApiError.badRequest('Refresh token is required');
@@ -42,14 +48,12 @@ export class AuthController {
     const result = await authService.refreshToken(refreshToken);
 
     // Update refresh token cookie
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    res.cookie('refreshToken', result.refreshToken, getRefreshTokenCookieOptions());
 
-    ResponseFormatter.success(res, result, 'Token refreshed successfully');
+    // Omit refresh token from JSON payload to prevent JavaScript storage
+    const { refreshToken: newRefreshToken, ...clientData } = result;
+
+    ResponseFormatter.success(res, clientData, 'Token refreshed successfully');
   });
 
   /**
@@ -57,7 +61,7 @@ export class AuthController {
    */
   logout = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const refreshToken =
-      req.body.refreshToken || req.cookies?.refreshToken || req.headers['x-refresh-token'];
+      req.cookies?.refreshToken || req.body?.refreshToken || req.headers['x-refresh-token'];
 
     if (refreshToken && typeof refreshToken === 'string') {
       await authService.logout(req.user!.userId, refreshToken);
@@ -66,7 +70,8 @@ export class AuthController {
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+      path: '/api/v1/auth',
     });
     ResponseFormatter.success(res, null, 'Logged out successfully');
   });

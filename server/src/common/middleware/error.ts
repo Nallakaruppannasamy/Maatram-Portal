@@ -26,6 +26,8 @@ export const errorHandler = (
 
   if (err instanceof ApiError) {
     error = err;
+  } else if (err.message && err.message.includes('not allowed by CORS')) {
+    error = ApiError.forbidden(err.message);
   } else if (err instanceof ZodError) {
     const errors = err.errors.map((issue) => ({
       field: issue.path.join('.'),

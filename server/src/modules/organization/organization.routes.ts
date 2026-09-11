@@ -10,6 +10,8 @@ import { requireAuth } from '@/common/middleware/auth';
 import { requireRole } from '@/common/middleware/rbac';
 import { createOrganizationValidator, updateOrganizationValidator } from './organization.validator';
 
+import { exportLimiter } from '@/common/middleware/rateLimiter';
+
 const router = Router();
 
 // Protect all routes with auth
@@ -18,7 +20,7 @@ router.use(requireAuth);
 // Read-only endpoints accessible to both admins and zone incharges
 router.get('/', requireRole('admin', 'zone'), organizationController.list);
 router.get('/hierarchy', requireRole('admin', 'zone'), organizationController.getHierarchy);
-router.get('/export', requireRole('admin'), organizationController.exportHierarchy);
+router.get('/export', exportLimiter, requireRole('admin'), organizationController.exportHierarchy);
 router.get('/:id', requireRole('admin', 'zone'), organizationController.getOne);
 
 // Write endpoints restricted to admins only

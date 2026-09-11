@@ -22,7 +22,7 @@ import {
   QueryParams,
 } from '@/utils/query-helper';
 import { AuditActorRole, Prisma, UserRole } from '@prisma/client';
-import * as XLSX from 'xlsx';
+import { exportToExcelBuffer } from '@/utils/excel';
 
 export class UserService {
   /**
@@ -324,10 +324,7 @@ export class UserService {
       'Created At': u.createdAt ? u.createdAt.toISOString().split('T')[0] : 'N/A',
     }));
 
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Team Members');
-    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+    return await exportToExcelBuffer('Team Members', rows);
   }
 }
 

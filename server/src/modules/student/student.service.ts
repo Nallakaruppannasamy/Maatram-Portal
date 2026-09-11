@@ -92,7 +92,7 @@ import {
   NotificationType,
 } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import * as XLSX from 'xlsx';
+import { exportToExcelBuffer, exportAoaToExcelBuffer, parseExcelBuffer } from '@/utils/excel';
 
 // Strict status transition map
 const ALLOWED_TRANSITIONS: Record<StudentStatus, StudentStatus[]> = {
@@ -622,20 +622,7 @@ result.push(current.trim());
     actorId: string,
     actorRole: AuditActorRole
   ): Promise<any> {
-    let workbook: XLSX.WorkBook;
-    try {
-      workbook = XLSX.read(fileBuffer, { type: 'buffer' });
-    } catch (err: any) {
-      throw ApiError.badRequest('Invalid Excel or CSV file structure');
-    }
-
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json<any>(worksheet, { defval: '' });
-
-    if (rows.length === 0) {
-      throw ApiError.badRequest('The uploaded file is empty');
-    }
+    const rows = await parseExcelBuffer(fileBuffer);
 
     // Normalize keys to find the required columns case-insensitively and space-insensitively
     const normalizedRows: NormalizedStudentRow[] = rows.map((row, idx) => {
@@ -744,11 +731,7 @@ result.push(current.trim());
       'Failure Reason': err.error,
     }));
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Import Errors');
-
-    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    return await exportToExcelBuffer('Import Errors', data);
   }
 
   /**
@@ -1003,11 +986,7 @@ result.push(current.trim());
       });
     }
 
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
-
-    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+    return await exportToExcelBuffer('Students', rows);
   }
 
   /**
@@ -1018,18 +997,7 @@ result.push(current.trim());
     const sampleRow = [['John Doe', '2024CS001', 'johndoe@example.com', '15/08/2004']];
     const data = [...headers, ...sampleRow];
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(data);
-
-    ws['!cols'] = [
-      { wch: 25 }, // Student Name
-      { wch: 20 }, // Register Number
-      { wch: 30 }, // Email
-      { wch: 20 }, // Date of Birth
-    ];
-
-    XLSX.utils.book_append_sheet(wb, ws, 'Student Template');
-    return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+    return await exportAoaToExcelBuffer('Student Template', data);
   }
 
   /**

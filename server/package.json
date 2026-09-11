@@ -59,7 +59,7 @@
     "tsc-alias": "^1.8.8",
     "typescript": "5.4.3",
     "winston": "^3.12.0",
-    "xlsx": "^0.18.5",
+    "exceljs": "^4.4.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

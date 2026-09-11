@@ -16,12 +16,20 @@ export const removeAccessToken = (): void => {
   localStorage.removeItem(TOKEN_KEY)
 }
 
+/**
+ * SEC-009 Migration:
+ * Refresh tokens are stored strictly in HttpOnly, Secure cookies by the server.
+ * JavaScript CANNOT and MUST NOT access or store refresh tokens in localStorage,
+ * sessionStorage, or client-side state.
+ */
 export const getRefreshToken = (): string | null => {
-  return localStorage.getItem(REFRESH_TOKEN_KEY)
+  return null
 }
 
-export const setRefreshToken = (token: string): void => {
-  localStorage.setItem(REFRESH_TOKEN_KEY, token)
+export const setRefreshToken = (_token?: string): void => {
+  // No-op: Refresh token is strictly managed via HttpOnly cookies
+  // Ensure any stale legacy token in localStorage is purged
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
 }
 
 export const removeRefreshToken = (): void => {

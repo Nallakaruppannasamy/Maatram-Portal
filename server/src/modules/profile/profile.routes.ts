@@ -37,12 +37,14 @@ router.get('/colleges', profileController.getColleges);
 router.get('/degrees', profileController.getDegrees);
 router.get('/departments', profileController.getDepartments);
 
+import { uploadLimiter } from '@/common/middleware/rateLimiter';
+
 // Profile fetch & update routes
 router.get('/', profileController.get);
 router.put('/', validate(updateProfileValidator), profileController.update);
 
 // Profile image upload route
-router.post('/upload', upload.single('file'), profileController.uploadImage);
+router.post('/upload', uploadLimiter, upload.single('file'), profileController.uploadImage);
 
 // Skill CRUD routes
 router.post('/skills', profileController.addSkill);

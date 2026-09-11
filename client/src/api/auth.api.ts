@@ -20,11 +20,11 @@ export const authApi = {
   },
 
   refresh: async (
-    refreshToken: string
+    refreshToken?: string
   ): Promise<ApiResponse<{ accessToken: string; refreshToken?: string; newRefreshToken?: string }>> => {
     const res = await apiInstance.post<
       ApiResponse<{ accessToken: string; refreshToken?: string; newRefreshToken?: string }>
-    >(API_ROUTES.AUTH.REFRESH, { refreshToken })
+    >(API_ROUTES.AUTH.REFRESH, refreshToken ? { refreshToken } : {})
     return res.data
   },
 
