@@ -242,13 +242,26 @@ export class StudentService {
   }
 
   /**
-   * Retrieves a student by ID.
+   * Retrieves a student by ID, strictly enforcing zone isolation for Zone Incharges.
    */
-  async getStudentById(id: string): Promise<StudentWithRelations> {
+  async getStudentById(
+    id: string,
+    requesterRole?: string,
+    requesterZoneId?: string
+  ): Promise<StudentWithRelations> {
     const student = await studentRepository.findById(id);
     if (!student) {
       throw ApiError.notFound(`Student with ID ${id} not found`);
     }
+
+    if (requesterRole === 'zone') {
+      if (!requesterZoneId || student.zoneId !== requesterZoneId) {
+        throw ApiError.forbidden(
+          'Access denied: You can only view student profiles within your assigned zone'
+        );
+      }
+    }
+
     return {
       ...student,
       fullName: this.computeFullName(student.firstName, student.middleName, student.lastName),
@@ -457,7 +470,6 @@ export class StudentService {
             role: student.user.role,
             isFirstLogin: student.user.isFirstLogin,
             isActive: student.user.isActive,
-            tempPassword: student.user.tempPassword,
             organizationId: student.user.organizationId,
             zoneId: student.user.zoneId,
             createdAt: student.user.createdAt,
@@ -819,7 +831,6 @@ result.push(current.trim());
         'Student Name',
         'Register No.',
         'Email Address',
-        'Temp Password',
         'Import Date',
         'Account Status',
         'Lifecycle Status',
@@ -839,7 +850,6 @@ result.push(current.trim());
           this.formatCsvValue(fullName || student.user?.email || ''),
           this.formatCsvValue(student.registrationNumber || ''),
           this.formatCsvValue(student.user?.email || ''),
-          this.formatCsvValue(student.user?.tempPassword || 'Set by user'),
           this.formatCsvValue(importDate),
           this.formatCsvValue(accountStatusLabel),
           this.formatCsvValue(rawStatus),
@@ -967,7 +977,6 @@ result.push(current.trim());
           'Student Name': fullName || s.user?.email || '',
           'Register No.': s.registrationNumber || '',
           'Email Address': s.user?.email || '',
-          'Temp Password': s.user?.tempPassword || 'Set by user',
           'Import Date': importDate,
           'Account Status': accountStatusLabel,
           'Lifecycle Status': rawStatus,

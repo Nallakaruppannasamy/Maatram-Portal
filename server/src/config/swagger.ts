@@ -59,5 +59,20 @@ const swaggerDocument = {
 };
 
 export const setupSwagger = (app: Express): void => {
+  if (env.NODE_ENV === 'production') {
+    app.all('/api-docs*', (_req, res) => {
+      res.status(404).json({
+        success: false,
+        message: 'API documentation is disabled in production',
+      });
+    });
+    return;
+  }
+
+  app.get('/api-docs/swagger.json', (_req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.json(swaggerDocument);
+  });
+
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 };

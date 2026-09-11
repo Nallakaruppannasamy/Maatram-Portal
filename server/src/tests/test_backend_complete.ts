@@ -27,8 +27,9 @@ const testResults: { name: string; status: 'PASSED' | 'FAILED'; error?: string }
 
 // Track email notifications captured from mock service
 let lastSentEmailBody = '';
-mockNotificationService.sendEmail = async (payload) => {
+mockNotificationService.sendEmail = async (payload): Promise<any> => {
   lastSentEmailBody = payload.body;
+  return { success: true, messageId: 'mock-123' };
 };
 
 /**

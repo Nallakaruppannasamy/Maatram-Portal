@@ -21,8 +21,9 @@ const bootstrap = async () => {
   await verifyMailConnection();
 
   const server = app.listen(PORT, '0.0.0.0', () => {
-    logger.info(`✨ Server listening on 0.0.0.0:${PORT} in ${env.NODE_ENV} mode.`);
-    logger.info(`📄 Swagger Documentation available at /api-docs`);
+    if (env.NODE_ENV !== 'production') {
+      logger.info(`📄 Swagger Documentation available at /api-docs`);
+    }
   });
 
   // Graceful shutdown handler

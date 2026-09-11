@@ -8,6 +8,8 @@ server/prisma/*.db-journal
 scratch/
 server/scratch/
 client/scratch/
+uploads/
+server/uploads/
 
 # Ignore Stitch design folder and UI images
 # design/

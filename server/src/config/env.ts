@@ -10,7 +10,7 @@ const envSchema = z.object({
     .default('5000'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   API_VERSION: z.string().default('v1'),
-  FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+  FRONTEND_URL: z.string().default('http://localhost:5173'),
 
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   DIRECT_URL: z.string().min(1, 'DIRECT_URL is required'),

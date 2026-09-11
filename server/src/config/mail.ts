@@ -3,7 +3,7 @@
  * @description Transporter configuration for SMTP email service using Nodemailer.
  */
 
-import nodemailer from 'nodemailer';
+import nodemailer, { TransportOptions } from 'nodemailer';
 import dns from 'dns';
 import { env } from '@/config/env';
 import { logger } from '@/config/logger';
@@ -40,7 +40,7 @@ export const transporter = nodemailer.createTransport({
   connectionTimeout: 10000,
   greetingTimeout: 10000,
   socketTimeout: 15000,
-} as nodemailer.TransportOptions);
+} as TransportOptions);
 
 /**
  * Verifies connection status with the active email provider.

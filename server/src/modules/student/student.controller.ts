@@ -36,11 +36,20 @@ export class StudentController {
   });
 
   /**
-   * Retrieves a student profile by ID.
+   * Retrieves a student profile by ID, strictly enforcing zone isolation.
    */
   getStudentById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    const student = await studentService.getStudentById(id);
+    const requesterRole = req.user!.role;
+    const requesterId = req.user!.userId;
+    let assignedZoneId = req.user!.zoneId;
+
+    if (requesterRole === 'zone') {
+      const resolvedZoneId = await zoneService.getAssignedZoneIdForUser(requesterId);
+      assignedZoneId = resolvedZoneId || assignedZoneId;
+    }
+
+    const student = await studentService.getStudentById(id, requesterRole, assignedZoneId);
 
     ResponseFormatter.success(res, student, 'Student profile retrieved successfully');
   });
@@ -52,7 +61,12 @@ export class StudentController {
     const { id } = req.params;
     const requesterId = req.user!.userId;
     const requesterRole = req.user!.role;
-    const requesterZoneId = req.user!.zoneId;
+    let requesterZoneId = req.user!.zoneId;
+
+    if (requesterRole === 'zone') {
+      const resolvedZoneId = await zoneService.getAssignedZoneIdForUser(requesterId);
+      requesterZoneId = resolvedZoneId || requesterZoneId;
+    }
 
     const data = await studentService.getStudentResume(id, requesterId, requesterRole, requesterZoneId);
     ResponseFormatter.success(res, data, 'Resume data retrieved successfully');

@@ -13,6 +13,21 @@ import {
   StudentWithRelations,
 } from './student.types';
 
+export const SAFE_STUDENT_USER_SELECT = {
+  id: true,
+  email: true,
+  registerNumber: true,
+  employeeId: true,
+  role: true,
+  isFirstLogin: true,
+  isActive: true,
+  lastLoginAt: true,
+  organizationId: true,
+  zoneId: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
 export class StudentRepository {
   /**
    * Checks if a registration number already exists (excluding a specific student ID if updating).
@@ -47,7 +62,7 @@ export class StudentRepository {
     return prisma.student.findUnique({
       where: { id },
       include: {
-        user: true,
+        user: { select: SAFE_STUDENT_USER_SELECT },
         organization: true,
         zone: true,
         college: true,
@@ -69,7 +84,7 @@ export class StudentRepository {
         ],
       },
       include: {
-        user: true,
+        user: { select: SAFE_STUDENT_USER_SELECT },
         organization: true,
         zone: true,
         college: true,
@@ -178,7 +193,7 @@ export class StudentRepository {
       const loaded = await tx.student.findUnique({
         where: { id: student.id },
         include: {
-          user: true,
+          user: { select: SAFE_STUDENT_USER_SELECT },
           organization: true,
           zone: true,
           college: true,
@@ -261,7 +276,7 @@ export class StudentRepository {
       const loaded = await tx.student.findUnique({
         where: { id: student.id },
         include: {
-          user: true,
+          user: { select: SAFE_STUDENT_USER_SELECT },
           organization: true,
           zone: true,
           college: true,
@@ -299,7 +314,7 @@ export class StudentRepository {
       const loaded = await tx.student.findUnique({
         where: { id: student.id },
         include: {
-          user: true,
+          user: { select: SAFE_STUDENT_USER_SELECT },
           organization: true,
           zone: true,
           college: true,
@@ -320,7 +335,7 @@ export class StudentRepository {
       where: { id },
       data: { isSpoc },
       include: {
-        user: true,
+        user: { select: SAFE_STUDENT_USER_SELECT },
         organization: true,
         zone: true,
         college: true,
@@ -501,7 +516,7 @@ export class StudentRepository {
       take,
       orderBy: orderBy as never,
       include: {
-        user: true,
+        user: { select: SAFE_STUDENT_USER_SELECT },
         organization: true,
         zone: true,
         college: true,
@@ -534,7 +549,7 @@ export class StudentRepository {
       where: where as never,
       orderBy: orderBy as never,
       include: {
-        user: true,
+        user: { select: SAFE_STUDENT_USER_SELECT },
         organization: true,
         zone: true,
         college: true,
@@ -603,7 +618,7 @@ export class StudentRepository {
       const loaded = await tx.student.findUnique({
         where: { id: student.id },
         include: {
-          user: true,
+          user: { select: SAFE_STUDENT_USER_SELECT },
           organization: true,
           zone: true,
           college: true,
@@ -697,7 +712,7 @@ export class StudentRepository {
         const loadedStudents = await tx.student.findMany({
           where: { id: { in: createdStudentIds } },
           include: {
-            user: true,
+            user: { select: SAFE_STUDENT_USER_SELECT },
             organization: true,
             zone: true,
             college: true,

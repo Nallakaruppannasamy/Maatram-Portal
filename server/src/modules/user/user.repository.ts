@@ -7,9 +7,27 @@ import { prisma } from '@/config/database';
 import { Prisma } from '@prisma/client';
 import { CreateUserDTO, UpdateUserDTO } from './user.types';
 
+export const SAFE_USER_SELECT = {
+  id: true,
+  email: true,
+  registerNumber: true,
+  employeeId: true,
+  role: true,
+  isFirstLogin: true,
+  isActive: true,
+  lastLoginAt: true,
+  organizationId: true,
+  zoneId: true,
+  createdAt: true,
+  updatedAt: true,
+  userProfile: true,
+  organization: true,
+  zone: true,
+} as const;
+
 export class UserRepository {
   /**
-   * Creates a User and UserProfile inside a transaction.
+   * Creates a User and UserProfile inside a transaction without exposing credentials.
    */
   async create(
     data: CreateUserDTO,
@@ -34,16 +52,12 @@ export class UserRepository {
           },
         },
       },
-      include: {
-        userProfile: true,
-        organization: true,
-        zone: true,
-      },
+      select: SAFE_USER_SELECT,
     });
   }
 
   /**
-   * Updates user and profile fields.
+   * Updates user and profile fields without returning credentials.
    */
   async update(
     id: string,
@@ -67,40 +81,30 @@ export class UserRepository {
           },
         },
       },
-      include: {
-        userProfile: true,
-        organization: true,
-        zone: true,
-      },
+      select: SAFE_USER_SELECT,
     });
   }
 
   /**
-   * Retrieves a user by ID with relations.
+   * Retrieves a user by ID with relations, strictly excluding credentials.
    */
   async findById(id: string) {
     return prisma.user.findUnique({
       where: { id },
-      include: {
-        userProfile: true,
-        organization: true,
-        zone: true,
+      select: {
+        ...SAFE_USER_SELECT,
         student: true,
       },
     });
   }
 
   /**
-   * Retrieves a user by email.
+   * Retrieves a user by email, strictly excluding credentials.
    */
   async findByEmail(email: string) {
     return prisma.user.findFirst({
       where: { email: { equals: email, mode: 'insensitive' } },
-      include: {
-        userProfile: true,
-        organization: true,
-        zone: true,
-      },
+      select: SAFE_USER_SELECT,
     });
   }
 
@@ -131,7 +135,7 @@ export class UserRepository {
   }
 
   /**
-   * Lists users matching filters and search queries.
+   * Lists users matching filters and search queries, strictly excluding credentials.
    */
   async list(
     where: Prisma.UserWhereInput,
@@ -144,11 +148,7 @@ export class UserRepository {
       skip,
       take,
       orderBy,
-      include: {
-        userProfile: true,
-        organization: true,
-        zone: true,
-      },
+      select: SAFE_USER_SELECT,
     });
   }
 

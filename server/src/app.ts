@@ -50,22 +50,29 @@ const globalLimiter = rateLimit({
 // 3. Security & Optimization Middlewares
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
-const allowedOrigins = [
-  ...env.FRONTEND_URL.split(',').map((u) => u.trim().replace(/\/+$/, '')),
-  'https://maatram-portal.onrender.com',
-  'http://localhost:3000',
-  'http://localhost:5173',
-];
+const configuredOrigins = env.FRONTEND_URL.split(',')
+  .map((u) => u.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
+const devOrigins =
+  env.NODE_ENV !== 'production'
+    ? ['http://localhost:3000', 'http://localhost:5173']
+    : [];
+
+const allowedOrigins = Array.from(
+  new Set([
+    ...configuredOrigins,
+    'https://maatram-portal.onrender.com',
+    ...devOrigins,
+  ])
+);
 
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
       const normalizedOrigin = origin.replace(/\/+$/, '');
-      const isAllowed =
-        allowedOrigins.includes(normalizedOrigin) ||
-        /^https:\/\/.*\.onrender\.com$/.test(normalizedOrigin) ||
-        /^https:\/\/.*\.vercel\.app$/.test(normalizedOrigin);
+      const isAllowed = allowedOrigins.includes(normalizedOrigin);
       if (isAllowed) {
         callback(null, true);
       } else {
@@ -112,8 +119,9 @@ app.use('/api/v1/volunteers', volunteerRouter);
 app.use('/api/v1/audit-logs', auditRouter);
 app.use('/api/v1/analytics', analyticsRouter);
 
-// Serve uploads folder statically
-app.use('/uploads', express.static(uploadsDir));
+// Serve uploads folder through secure handler enforcing auth, BOLA, traversal protection, and indexing prevention
+import { secureUploadsHandler } from '@/common/middleware/secureUploads';
+app.use('/uploads', secureUploadsHandler);
 
 // Academic metadata direct routes (for frontend flexibility)
 import { profileController } from '@/modules/profile/profile.controller';
