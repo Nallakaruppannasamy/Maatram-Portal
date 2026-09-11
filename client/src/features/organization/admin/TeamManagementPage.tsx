@@ -13,6 +13,7 @@ import {
   MapPin,
   ToggleLeft,
   ToggleRight,
+  Download,
   X,
 } from 'lucide-react'
 import { userApi } from '@/api/user.api'
@@ -255,6 +256,26 @@ export const TeamManagementPage: React.FC = () => {
     setPage(1)
   }
 
+  const handleExportTeam = async () => {
+    try {
+      const blob = await userApi.exportToExcel({
+        role: roleFilter === 'all' ? undefined : roleFilter,
+        search: searchFilter || undefined,
+      })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Team_Management_${Date.now()}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+      notify.success('Team directory exported to Excel successfully')
+    } catch {
+      notify.error('Failed to export team directory data')
+    }
+  }
+
   const totalMembers = stats?.totalMembers || 0
   const superAdmins = stats?.superAdmins || 0
   const zoneIncharges = stats?.zoneIncharges || 0
@@ -294,13 +315,23 @@ export const TeamManagementPage: React.FC = () => {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => refetchTeam()}
-            className="p-3 bg-[#FCF8FA] hover:bg-[#F0EDEE] text-[#76777d] hover:text-[#D4AF37] rounded-xl border border-[#E5E7EB] cursor-pointer transition-all"
-            title="Refresh Directory"
-          >
-            <RefreshCw size={15} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportTeam}
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-[#FCF8FA] text-[#111827] hover:text-[#D4AF37] rounded-xl border border-[#E5E7EB] font-bold text-xs cursor-pointer transition-all"
+              title="Export Full Filtered Dataset"
+            >
+              <Download size={14} className="text-[#D4AF37]" />
+              <span>Export to Excel</span>
+            </button>
+            <button
+              onClick={() => refetchTeam()}
+              className="p-2.5 bg-[#FCF8FA] hover:bg-[#F0EDEE] text-[#76777d] hover:text-[#D4AF37] rounded-xl border border-[#E5E7EB] cursor-pointer transition-all"
+              title="Refresh Directory"
+            >
+              <RefreshCw size={15} />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -3,7 +3,7 @@
  * @description Service layer containing business logic for Volunteer Management.
  */
 
-import { VolunteerProfileStatus, AuditActorRole, VolunteerCategory, VolunteerStatus } from '@prisma/client';
+import { VolunteerProfileStatus, AuditActorRole, VolunteerCategory, VolunteerStatus, NotificationType } from '@prisma/client';
 import { ApiError } from '@/common/exceptions/apiError';
 import { createAuditLog } from '@/utils/audit';
 import { parseQueryParams, buildPaginationMeta, QueryParams } from '@/utils/query-helper';
@@ -18,6 +18,7 @@ import {
 } from './volunteer.types';
 import { prisma } from '@/config/database';
 import { zoneService } from '../zone/zone.service';
+import * as XLSX from 'xlsx';
 
 // ─── Status Transition State Machine ─────────────────────────────────────────
 
@@ -309,7 +310,7 @@ class VolunteerService {
             }),
           };
         }
-      } else if (actorRole === 'admin' && queryParams.zoneId) {
+      } else if (actorRole === 'admin' && queryParams.zoneId && queryParams.zoneId !== 'All' && queryParams.zoneId !== 'all') {
         zoneId = String(queryParams.zoneId);
       }
 
@@ -319,6 +320,7 @@ class VolunteerService {
         search: queryParams.search as string,
         status: lowerStatus && lowerStatus !== 'all' ? lowerStatus : undefined,
         category: queryParams.category as string,
+        collegeId: queryParams.collegeId as string,
         studentId,
         zoneId,
       });
@@ -419,6 +421,23 @@ class VolunteerService {
       count: countValue,
       imageUrl: data.imageUrl || null,
     });
+
+    // Notify the student's assigned Zone Incharge
+    const zone = await prisma.zone.findUnique({
+      where: { id: student.zoneId },
+      select: { inchargeId: true, name: true },
+    });
+
+    if (zone?.inchargeId) {
+      await prisma.notification.create({
+        data: {
+          recipientId: zone.inchargeId,
+          title: 'New Volunteering Activity Submitted',
+          message: `Scholar ${student.firstName} ${student.lastName} submitted a new volunteering log "${data.title.trim()}" in ${zone.name}. Requires review/action.`,
+          type: NotificationType.pending,
+        },
+      }).catch((e) => logger.warn(`Failed to notify zone incharge: ${e.message}`));
+    }
 
     await createAuditLog({
       actorId,
@@ -571,6 +590,79 @@ class VolunteerService {
     });
 
     return updated;
+  }
+
+  /**
+   * Exports all filtered volunteering logs to an Excel file buffer.
+   */
+  async exportVolunteeringLogs(
+    queryParams: QueryParams,
+    actorId?: string,
+    actorRole?: string
+  ): Promise<Buffer> {
+    let studentId: string | undefined = undefined;
+    let zoneId: string | undefined = undefined;
+
+    if (actorRole === 'student' && actorId) {
+      const student = await prisma.student.findUnique({ where: { userId: actorId } });
+      if (!student) throw ApiError.notFound('Student profile not found');
+      studentId = student.id;
+    } else if (actorRole === 'zone' && actorId) {
+      const assignedZoneId = await zoneService.getAssignedZoneIdForUser(actorId);
+      if (assignedZoneId) {
+        zoneId = assignedZoneId;
+      } else {
+        const emptyWb = XLSX.utils.book_new();
+        const emptyWs = XLSX.utils.json_to_sheet([]);
+        XLSX.utils.book_append_sheet(emptyWb, emptyWs, 'Volunteering Logs');
+        return XLSX.write(emptyWb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+      }
+    } else if (actorRole === 'admin' && queryParams.zoneId && queryParams.zoneId !== 'All' && queryParams.zoneId !== 'all') {
+      zoneId = String(queryParams.zoneId);
+    }
+
+    const rawStatus = queryParams.status ? String(queryParams.status).trim().toLowerCase() : undefined;
+
+    const items = await volunteerRepository.exportSubmissions({
+      search: queryParams.search as string,
+      status: rawStatus && rawStatus !== 'all' ? rawStatus : undefined,
+      category: queryParams.category as string,
+      collegeId: queryParams.collegeId as string,
+      studentId,
+      zoneId,
+    });
+
+    const rows = items.map((sub) => {
+      const studentFullName = sub.student
+        ? [sub.student.firstName, sub.student.middleName, sub.student.lastName].filter(Boolean).join(' ')
+        : 'N/A';
+      const reviewerName = sub.reviewer?.userProfile?.fullName || sub.reviewer?.email || 'N/A';
+      const eventDateStr = sub.eventDate ? new Date(sub.eventDate).toISOString().split('T')[0] : 'N/A';
+      const createdAtStr = sub.createdAt ? new Date(sub.createdAt).toISOString().split('T')[0] : 'N/A';
+
+      return {
+        'Submission Code': sub.submissionCode || 'N/A',
+        'Student Name': studentFullName,
+        'Register Number': sub.student?.registrationNumber || 'N/A',
+        College: sub.student?.college?.name || 'N/A',
+        Zone: sub.zone?.name || 'N/A',
+        Category: sub.category || 'N/A',
+        Title: sub.title || 'N/A',
+        Description: sub.description || 'N/A',
+        'Event Date': eventDateStr,
+        Count: sub.count ?? 'N/A',
+        Points: sub.points || 0,
+        Status: (sub.status || 'PENDING').toUpperCase(),
+        'Reviewer Name': reviewerName,
+        'Reviewer Comment': sub.reviewerComment || '',
+        'Submitted At': createdAtStr,
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Volunteering Logs');
+    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
   }
 }
 

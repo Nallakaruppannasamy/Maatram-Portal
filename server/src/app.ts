@@ -9,15 +9,22 @@ import { requestLogger } from '@/common/middleware/requestLogger';
 import { errorHandler } from '@/common/middleware/error';
 import { setupSwagger } from '@/config/swagger';
 import { checkDatabaseConnection } from '@/config/database';
-import { verifyMailConnection } from '@/config/mail';
+import { verifyMailConnection, isResendActive } from '@/config/mail';
 
 import { configureCloudinary } from '@/config/cloudinary';
 import { ResponseFormatter } from '@/common/responses/formatter';
 import { ApiError } from '@/common/exceptions/apiError';
 import path from 'path';
 import fs from 'fs';
+import { requestContextMiddleware } from '@/common/middleware/requestContext';
 
 const app: Express = express();
+
+// Trust the immediate 1st-hop reverse proxy (Render load balancer) for safe req.ip resolution
+app.set('trust proxy', 1);
+
+// Mount Request Context Store for client IP, User-Agent, and tracing
+app.use(requestContextMiddleware);
 
 // Ensure uploads directory exists on startup
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -42,9 +49,29 @@ const globalLimiter = rateLimit({
 
 // 3. Security & Optimization Middlewares
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+
+const allowedOrigins = [
+  ...env.FRONTEND_URL.split(',').map((u) => u.trim().replace(/\/+$/, '')),
+  'https://maatram-portal.onrender.com',
+  'http://localhost:3000',
+  'http://localhost:5173',
+];
+
 app.use(
   cors({
-    origin: [env.FRONTEND_URL, 'http://localhost:3000', 'http://localhost:5173'],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const normalizedOrigin = origin.replace(/\/+$/, '');
+      const isAllowed =
+        allowedOrigins.includes(normalizedOrigin) ||
+        /^https:\/\/.*\.onrender\.com$/.test(normalizedOrigin) ||
+        /^https:\/\/.*\.vercel\.app$/.test(normalizedOrigin);
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-refresh-token'],
@@ -73,6 +100,7 @@ import profileRouter from '@/modules/profile/profile.routes';
 import studentRouter from '@/modules/student/student.routes';
 import volunteerRouter from '@/modules/volunteer/volunteer.routes';
 import auditRouter from '@/modules/audit/audit.routes';
+import analyticsRouter from '@/modules/analytics/analytics.routes';
 
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/organizations', organizationRouter);
@@ -82,6 +110,7 @@ app.use('/api/v1/profile', profileRouter);
 app.use('/api/v1/students', studentRouter);
 app.use('/api/v1/volunteers', volunteerRouter);
 app.use('/api/v1/audit-logs', auditRouter);
+app.use('/api/v1/analytics', analyticsRouter);
 
 // Serve uploads folder statically
 app.use('/uploads', express.static(uploadsDir));
@@ -125,9 +154,13 @@ app.get('/health/mail', async (req: Request, res: Response, next: NextFunction) 
   try {
     const isMailConnected = await verifyMailConnection();
     if (!isMailConnected) {
-      throw ApiError.internal('Mail server connection check failed');
+      throw ApiError.internal('Mail service connection check failed');
     }
-    ResponseFormatter.success(res, { connected: true }, 'Mail server connection is healthy');
+    ResponseFormatter.success(
+      res,
+      { provider: isResendActive() ? 'resend' : 'smtp', connected: true },
+      'Mail service is healthy'
+    );
   } catch (error) {
     next(error);
   }

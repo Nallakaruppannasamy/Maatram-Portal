@@ -17,6 +17,7 @@ router.use(requireAuth);
 
 // Read-only endpoints accessible to both admins and zone incharges
 router.get('/', requireRole('admin', 'zone'), userController.list);
+router.get('/export', requireRole('admin', 'zone'), userController.export);
 router.get('/:id', requireRole('admin', 'zone'), userController.getOne);
 
 // Write endpoints restricted to admins only

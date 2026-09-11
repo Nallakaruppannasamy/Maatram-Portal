@@ -63,15 +63,30 @@ router.put(
 );
 router.patch(
   '/:id/status',
-  requireRole('admin'),
+  requireRole('admin', 'zone'),
   validate(changeStudentStatusSchema),
   studentController.changeStatus
+);
+router.post(
+  '/bulk-deactivate',
+  requireRole('admin', 'zone'),
+  studentController.bulkDeactivate
 );
 router.post(
   '/import',
   requireRole('admin'),
   upload.single('file'),
   studentController.importStudents
+);
+router.get(
+  '/imports/:id',
+  requireRole('admin'),
+  studentController.getImportStatus
+);
+router.get(
+  '/imports/:id/errors/export',
+  requireRole('admin'),
+  studentController.exportImportErrors
 );
 
 export default router;

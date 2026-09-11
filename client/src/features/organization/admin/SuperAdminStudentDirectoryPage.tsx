@@ -10,7 +10,6 @@ import {
   X,
   Download,
   Users,
-  MapPin,
   LucideIcon,
   ArrowUpDown,
   ArrowUp,
@@ -18,9 +17,15 @@ import {
   Star,
   ToggleLeft,
   ToggleRight,
+  CheckSquare,
+  Square,
+  FileText,
+  UserX,
+  Loader2,
 } from 'lucide-react'
 import { TableLoader } from '@/components/ui/TableLoader'
 import { Avatar } from '@/components/ui/Avatar'
+import { Button } from '@/components/ui/Button'
 import { studentApi } from '@/api/student.api'
 import { zoneApi } from '@/api/zone.api'
 import { profileApi } from '@/api/profile.api'
@@ -65,15 +70,26 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
   const [collegeFilter, setCollegeFilter] = useState<string>('All')
   const [zoneFilter, setZoneFilter] = useState<string>('All')
   const [academicYearFilter, setAcademicYearFilter] = useState<string>('All')
+  const [streamFilter, setStreamFilter] = useState<string>('All')
+  const [accountStatusFilter, setAccountStatusFilter] = useState<string>('All')
   const [spocFilter, setSpocFilter] = useState<'All' | 'SPOC Only' | 'Non-SPOC'>('All')
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [showExportMenu, setShowExportMenu] = useState<boolean>(false)
   const [sortBy, setSortBy] = useState<string>('')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [pendingSpocId, setPendingSpocId] = useState<string | null>(null)
+  const [pendingStatusId, setPendingStatusId] = useState<string | null>(null)
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([])
   const exportMenuRef = useRef<HTMLDivElement>(null)
 
   const debouncedSearch = useDebounce(searchTerm, 400)
+  const PAGE_LIMIT = 50
+
+  // Reset page and selection when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+    setSelectedStudentIds([])
+  }, [debouncedSearch, zoneFilter, collegeFilter, academicYearFilter, streamFilter, accountStatusFilter, spocFilter])
 
   // Fetch Master Data
   const { data: zonesRes } = useQuery({
@@ -97,6 +113,8 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
       zoneFilter,
       collegeFilter,
       academicYearFilter,
+      streamFilter,
+      accountStatusFilter,
       spocFilter,
       sortBy,
       sortOrder,
@@ -105,10 +123,12 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
       studentApi.list({
         search: debouncedSearch,
         page: currentPage,
-        limit: 10,
+        limit: PAGE_LIMIT,
         zoneId: zoneFilter !== 'All' ? zoneFilter : undefined,
         collegeId: collegeFilter !== 'All' ? collegeFilter : undefined,
         academicYear: academicYearFilter !== 'All' ? academicYearFilter : undefined,
+        stream: streamFilter !== 'All' ? streamFilter : undefined,
+        accountStatus: accountStatusFilter !== 'All' ? accountStatusFilter.toLowerCase() : undefined,
         isSpoc: spocFilter === 'All' ? undefined : spocFilter === 'SPOC Only',
         sortBy: sortBy || undefined,
         sortOrder: sortBy ? sortOrder : undefined,
@@ -138,6 +158,41 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
     },
   })
 
+  // Account Status Toggle Mutation
+  const toggleStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => {
+      setPendingStatusId(id)
+      return studentApi.changeStatus(id, status)
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+      notify.success(
+        variables.status === 'active'
+          ? 'Student account activated successfully'
+          : 'Student account deactivated successfully'
+      )
+    },
+    onError: (err: any) => {
+      notify.error(err.response?.data?.message || 'Failed to update account status')
+    },
+    onSettled: () => {
+      setPendingStatusId(null)
+    },
+  })
+
+  // Bulk Deactivate Mutation
+  const bulkDeactivateMutation = useMutation({
+    mutationFn: (ids: string[]) => studentApi.bulkDeactivate(ids),
+    onSuccess: (res) => {
+      notify.success(`Successfully deactivated ${res.data?.count || selectedStudentIds.length} students`)
+      setSelectedStudentIds([])
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+    },
+    onError: (err: any) => {
+      notify.error(err.response?.data?.message || 'Failed to deactivate selected students')
+    },
+  })
+
   // Sorting Handler
   const handleSort = (field: string) => {
     if (sortBy === field) {
@@ -158,10 +213,51 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
     )
   }
 
-  // Export File (Backend Powered, respects pagination/sorting/filtering)
-  const handleExport = async (format: 'csv' | 'xlsx') => {
-    if (students.length === 0) return notify.info('No student records found to export.')
+  // Bulk Selection Handlers
+  const handleSelectAllOnPage = () => {
+    const pageIds = students.map((s) => s.id)
+    const allSelected = pageIds.every((id) => selectedStudentIds.includes(id))
+    if (allSelected) {
+      setSelectedStudentIds((prev) => prev.filter((id) => !pageIds.includes(id)))
+    } else {
+      setSelectedStudentIds((prev) => Array.from(new Set([...prev, ...pageIds])))
+    }
+  }
 
+  const handleToggleStudent = (id: string) => {
+    setSelectedStudentIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    )
+  }
+
+  // Bulk Actions
+  const handleBulkOpenCV = () => {
+    if (selectedStudentIds.length === 0) return
+    selectedStudentIds.forEach((id) => {
+      const link = document.createElement('a')
+      link.href = `/resume/${id}`
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    })
+    notify.info(`Opened ${selectedStudentIds.length} resume tab(s)`)
+  }
+
+  const handleBulkDeactivate = () => {
+    if (selectedStudentIds.length === 0) return
+    if (
+      window.confirm(
+        `Are you sure you want to deactivate ${selectedStudentIds.length} selected student(s)? They will be moved to Archived Students.`
+      )
+    ) {
+      bulkDeactivateMutation.mutate(selectedStudentIds)
+    }
+  }
+
+  // Export File (Backend Powered, exports ENTIRE filtered dataset with no pagination)
+  const handleExport = async (format: 'csv' | 'xlsx') => {
     try {
       const blob = await studentApi.exportCSV({
         format,
@@ -171,9 +267,9 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
         zoneId: zoneFilter !== 'All' ? zoneFilter : undefined,
         collegeId: collegeFilter !== 'All' ? collegeFilter : undefined,
         academicYear: academicYearFilter !== 'All' ? academicYearFilter : undefined,
+        stream: streamFilter !== 'All' ? streamFilter : undefined,
+        accountStatus: accountStatusFilter !== 'All' ? accountStatusFilter.toLowerCase() : undefined,
         isSpoc: spocFilter === 'All' ? undefined : spocFilter === 'SPOC Only',
-        page: currentPage,
-        limit: 10,
       })
 
       const url = window.URL.createObjectURL(blob)
@@ -184,7 +280,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
       a.click()
       a.remove()
       window.URL.revokeObjectURL(url)
-      notify.success(`Exported table data as ${format.toUpperCase()}`)
+      notify.success(`Exported complete filtered dataset as ${format.toUpperCase()}`)
     } catch {
       notify.error('Failed to export student directory data.')
     }
@@ -200,6 +296,9 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  const isPageAllSelected =
+    students.length > 0 && students.every((s) => selectedStudentIds.includes(s.id))
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
@@ -220,7 +319,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
               className="flex items-center gap-2 bg-blue-900 hover:bg-blue-950 text-white px-4 py-2 rounded-lg font-medium text-sm transition shadow-sm cursor-pointer"
             >
               <Download size={16} />
-              <span>Export</span>
+              <span>Export Full Dataset</span>
               <ChevronDown size={14} />
             </button>
 
@@ -234,13 +333,13 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                     onClick={() => handleExport('xlsx')}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
                   >
-                    Export Current Table (Excel)
+                    Export to Excel (.xlsx)
                   </button>
                   <button
                     onClick={() => handleExport('csv')}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
                   >
-                    Export Current Table (CSV)
+                    Export to CSV (.csv)
                   </button>
                 </div>
               </div>
@@ -274,25 +373,42 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
           <div className="relative grow">
             <input
               type="text"
-              placeholder="Search by student name or registration code..."
+              placeholder="Search by student name, registration code, department..."
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value)
-                setCurrentPage(1)
-              }}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none"
             />
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
 
           <div className="flex flex-wrap gap-2.5">
+            {/* Stream Filter */}
+            <select
+              value={streamFilter}
+              onChange={(e) => setStreamFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none"
+            >
+              <option value="All">All Streams</option>
+              <option value="Arts & Science">Arts & Science</option>
+              <option value="Engineering">Engineering</option>
+              <option value="Nursing">Nursing</option>
+            </select>
+
+            {/* Account Status Filter */}
+            <select
+              value={accountStatusFilter}
+              onChange={(e) => setAccountStatusFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none"
+            >
+              <option value="All">All Account Statuses</option>
+              <option value="active">Active</option>
+              <option value="deactivated">Deactivated</option>
+            </select>
+
             {/* SPOC Filter */}
             <select
               value={spocFilter}
-              onChange={(e) => {
-                setSpocFilter(e.target.value as any)
-                setCurrentPage(1)
-              }}
+              onChange={(e) => setSpocFilter(e.target.value as any)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none"
             >
               <option value="All">All SPOC Status</option>
@@ -303,10 +419,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
             {/* Zone Filter */}
             <select
               value={zoneFilter}
-              onChange={(e) => {
-                setZoneFilter(e.target.value)
-                setCurrentPage(1)
-              }}
+              onChange={(e) => setZoneFilter(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none"
             >
               <option value="All">All Zones</option>
@@ -320,10 +433,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
             {/* College Filter */}
             <select
               value={collegeFilter}
-              onChange={(e) => {
-                setCollegeFilter(e.target.value)
-                setCurrentPage(1)
-              }}
+              onChange={(e) => setCollegeFilter(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none max-w-xs"
             >
               <option value="All">All Colleges</option>
@@ -337,10 +447,7 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
             {/* Academic Year Filter */}
             <select
               value={academicYearFilter}
-              onChange={(e) => {
-                setAcademicYearFilter(e.target.value)
-                setCurrentPage(1)
-              }}
+              onChange={(e) => setAcademicYearFilter(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-900 outline-none"
             >
               <option value="All">All Academic Years</option>
@@ -353,6 +460,8 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
             {(zoneFilter !== 'All' ||
               collegeFilter !== 'All' ||
               academicYearFilter !== 'All' ||
+              streamFilter !== 'All' ||
+              accountStatusFilter !== 'All' ||
               spocFilter !== 'All' ||
               searchTerm ||
               sortBy) && (
@@ -361,6 +470,8 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                   setZoneFilter('All')
                   setCollegeFilter('All')
                   setAcademicYearFilter('All')
+                  setStreamFilter('All')
+                  setAccountStatusFilter('All')
                   setSpocFilter('All')
                   setSearchTerm('')
                   setSortBy('')
@@ -375,10 +486,51 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Bulk Actions Floating Bar */}
+        {selectedStudentIds.length > 0 && (
+          <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-xs text-blue-900">
+                {selectedStudentIds.length} student(s) selected
+              </span>
+              <button
+                onClick={() => setSelectedStudentIds([])}
+                className="text-xs text-blue-600 hover:underline cursor-pointer"
+              >
+                Deselect All
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkOpenCV}
+                className="bg-white border-blue-300 text-blue-900 hover:bg-blue-100 flex items-center gap-1.5 text-xs"
+              >
+                <FileText size={14} /> Open CV / Resume ({selectedStudentIds.length})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkDeactivate}
+                disabled={bulkDeactivateMutation.isPending}
+                className="bg-white border-rose-300 text-rose-700 hover:bg-rose-50 flex items-center gap-1.5 text-xs"
+              >
+                {bulkDeactivateMutation.isPending ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <UserX size={14} />
+                )}
+                Deactivate Selected
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Table Container */}
         <div className="grow">
           {isLoading ? (
-            <TableLoader rows={6} columns={10} />
+            <TableLoader rows={10} columns={14} />
           ) : students.length === 0 ? (
             <p className="text-center py-12 text-gray-400 font-medium">
               {spocFilter === 'SPOC Only'
@@ -390,6 +542,15 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-3 py-3 text-center w-10">
+                      <input
+                        type="checkbox"
+                        checked={isPageAllSelected}
+                        onChange={handleSelectAllOnPage}
+                        className="rounded border-gray-300 text-blue-900 focus:ring-blue-900 cursor-pointer"
+                        title="Select/Deselect all on this page"
+                      />
+                    </th>
                     <th className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-12 text-center">
                       S. No.
                     </th>
@@ -407,6 +568,15 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                       onClick={() => handleSort('name')}
                     >
                       Name {renderSortIndicator('name')}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      Stream
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      Degree
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      Department
                     </th>
                     <th
                       className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
@@ -436,12 +606,13 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                       SPOC
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                      Status
+                      Account Status
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200 text-xs">
                   {students.map((student, index) => {
+                    const isSelected = selectedStudentIds.includes(student.id)
                     const regNo = safeString(
                       student.registrationNumber || student.user?.regNumber || student.id,
                       'UNASSIGNED'
@@ -450,6 +621,9 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                       student.fullName || student.user?.fullName || student.user?.email,
                       'Scholar Student'
                     )
+                    const stream = safeString((student as any).stream, 'N/A')
+                    const degree = safeString((student as any).degree || (student as any).program?.name || (student as any).course, 'N/A')
+                    const dept = safeString((student as any).departmentName || (student as any).department?.name || (student as any).department, 'N/A')
                     const college = safeString(student.college?.name || student.collegeName, 'Maatram College')
                     const zone = safeString(student.zone?.name || (student as any).zoneName, 'N/A')
                     const batch = safeString(student.batch, '2024-2028')
@@ -463,21 +637,32 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                       return `${y}th Year`
                     }
                     const academicYearLabel = getYearLabel(student.academicYear)
-                    const status = student.status || 'ACTIVE'
+                    const isUserActive = (student.user?.isActive !== false) && (student.status !== 'DEACTIVATED')
                     const isSpocActive = !!student.isSpoc
-                    const isRowPending = toggleSpocMutation.isPending && pendingSpocId === student.id
+                    const isRowSpocPending = toggleSpocMutation.isPending && pendingSpocId === student.id
+                    const isRowStatusPending = toggleStatusMutation.isPending && pendingStatusId === student.id
 
                     return (
                       <tr
                         key={student.id}
                         className={`transition-colors ${
-                          isSpocActive
-                            ? 'bg-amber-50/40 hover:bg-amber-50/70 border-l-4 border-l-[#D4AF37]'
+                          isSelected
+                            ? 'bg-blue-50/70'
+                            : isSpocActive
+                            ? 'bg-amber-50/40 hover:bg-amber-50/70'
                             : 'hover:bg-gray-50'
                         }`}
                       >
+                        <td className="px-3 py-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleStudent(student.id)}
+                            className="rounded border-gray-300 text-blue-900 focus:ring-blue-900 cursor-pointer"
+                          />
+                        </td>
                         <td className="px-3 py-4 whitespace-nowrap text-gray-500 font-medium text-center">
-                          {(currentPage - 1) * 10 + index + 1}
+                          {(currentPage - 1) * PAGE_LIMIT + index + 1}
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap text-center">
                           <Avatar
@@ -506,6 +691,13 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                             )}
                           </div>
                         </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-gray-700">
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-800">
+                            {stream}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-gray-700">{degree}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-gray-700">{dept}</td>
                         <td className="px-4 py-4 whitespace-nowrap text-gray-700">{college}</td>
                         <td className="px-4 py-4 whitespace-nowrap text-gray-600">{zone}</td>
                         <td className="px-4 py-4 whitespace-nowrap text-gray-600">{batch}</td>
@@ -521,12 +713,12 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                                 isSpoc: !isSpocActive,
                               })
                             }
-                            disabled={isRowPending}
+                            disabled={isRowSpocPending}
                             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer select-none ${
                               isSpocActive
                                 ? 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200'
                                 : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                            } ${isRowPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            } ${isRowSpocPending ? 'opacity-50 cursor-not-allowed' : ''}`}
                             title={isSpocActive ? 'Click to unmark SPOC' : 'Click to mark as SPOC'}
                           >
                             {isSpocActive ? (
@@ -543,15 +735,34 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
                           </button>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              status === 'ACTIVE'
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-amber-50 text-amber-700'
-                            }`}
+                          <button
+                            type="button"
+                            disabled={isRowStatusPending}
+                            onClick={() =>
+                              toggleStatusMutation.mutate({
+                                id: student.id,
+                                status: isUserActive ? 'deactivated' : 'active',
+                              })
+                            }
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
+                              isUserActive
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                            } ${isRowStatusPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            title={isUserActive ? 'Click to deactivate account' : 'Click to activate account'}
                           >
-                            {status}
-                          </span>
+                            {isUserActive ? (
+                              <>
+                                <ToggleRight className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Active</span>
+                              </>
+                            ) : (
+                              <>
+                                <ToggleLeft className="w-3.5 h-3.5 text-rose-600" />
+                                <span>Deactivated</span>
+                              </>
+                            )}
+                          </button>
                         </td>
                       </tr>
                     )
@@ -565,8 +776,8 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
         {/* Pagination Controls */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
           <p className="text-xs text-gray-500">
-            Showing {(meta.page - 1) * 10 + 1} to{' '}
-            {Math.min(meta.page * 10, meta.total)} of {meta.total} students
+            Showing {(meta.page - 1) * PAGE_LIMIT + 1} to{' '}
+            {Math.min(meta.page * PAGE_LIMIT, meta.total)} of {meta.total} students (Max {PAGE_LIMIT} per page)
           </p>
 
           <div className="flex items-center gap-1">
@@ -613,3 +824,4 @@ export const SuperAdminStudentDirectoryPage: React.FC = () => {
     </div>
   )
 }
+export default SuperAdminStudentDirectoryPage

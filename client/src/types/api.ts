@@ -42,7 +42,8 @@ export interface AuthUser {
   lastName?: string
   rollNumber?: string
   zoneName?: string
-  profilePhotoUrl?: string
+  profilePhotoUrl?: string | null
+  profileImage?: string | null
   isActive?: boolean
   isFirstLogin?: boolean
   isFirstTimeUser?: boolean
@@ -52,6 +53,7 @@ export interface AuthUser {
   profile?: Profile
   fullName?: string
   name?: string
+  mobile?: string | null
   regNumber?: string
   registrationNumber?: string
   employeeId?: string

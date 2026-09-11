@@ -106,6 +106,14 @@ export const changeVolunteerStatusSchema = z.object({
   }),
 });
 
+export const ALLOWED_STUDENT_VOLUNTEER_CATEGORIES = [
+  'PHYSICAL_VERIFICATION',
+  'TELE_VERIFICATION',
+  'SCHOOL_VISIT',
+  'OFFLINE_PANEL_VOLUNTEERING',
+  'OTHER_OFFLINE_EVENT_VOLUNTEERING',
+] as const;
+
 export const createVolunteerSubmissionSchema = z.object({
   body: z.object({
     title: z
@@ -113,8 +121,11 @@ export const createVolunteerSubmissionSchema = z.object({
       .trim()
       .min(3, 'Activity title must be at least 3 characters')
       .max(200, 'Activity title must not exceed 200 characters'),
-    category: z.nativeEnum(VolunteerCategory, {
-      errorMap: () => ({ message: 'Invalid volunteer activity category' }),
+    category: z.enum(ALLOWED_STUDENT_VOLUNTEER_CATEGORIES, {
+      errorMap: () => ({
+        message:
+          'Invalid volunteer activity category. Allowed categories: Physical Verification, Tele Verification, School Visit, Offline Event, Others.',
+      }),
     }),
     description: z
       .string({ required_error: 'Description is required' })

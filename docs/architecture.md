@@ -129,17 +129,19 @@ sequenceDiagram
 | Feature / Action | Super Admin (`admin`) | Zone Incharge (`zone`) | Student (`student`) | Public |
 |---|:---:|:---:|:---:|:---:|
 | **Authentication & Profile** | Global | Zone Scope | Own Account | Login Only |
-| **Student Provisioning (CSV Import / Manual)** | Full Control | None | None | None |
+| **Executive Dashboard & Analytics** | Global Executive View | Assigned Zone View | None | None |
+| **Student Provisioning (Excel Import / Manual)** | Full Control | None | None | None |
 | **Active Student Directory** | Global (All Zones) | Assigned Zone(s) Only | None | None |
-| **Archived Students Directory** | Allowed (Global) | 403 Forbidden | 403 Forbidden | None |
+| **Archived Students Directory** | Allowed (Global) | Assigned Zone Only (`/zone/archived-students`) | 403 Forbidden | None |
 | **SPOC Status Toggle** | Global | Assigned Zone(s) Only | 403 Forbidden | None |
-| **Volunteering Submission Review** | Read Only | Approve / Reject in Zone | None | None |
+| **Volunteering Submission Review** | Read Only & Global Logs | Approve / Reject in Zone | None | None |
 | **Submit Volunteering Logs** | None | None | Own Logs | None |
 | **Resume Builder & Preview** | View Any | View in Zone | Edit & View Own | Public Resume Viewer |
 | **Organization Hierarchy & Zones** | Full CRUD | View Assigned | None | None |
 | **Team Management & User Status** | Full CRUD | None | None | None |
 | **Audit Logs** | Global View | None | None | None |
-| **Excel / CSV Exports** | Global (Active & Archive) | Zone Scoped (Active) | None | None |
+| **Excel / CSV Exports** | Global (Full Filtered Dataset) | Zone Scoped (Full Filtered Dataset) | None | None |
+| **Notification Center** | None (Decoupled) | Zone Activity Alerts | Personal & SPOC Alerts | None |
 
 ---
 

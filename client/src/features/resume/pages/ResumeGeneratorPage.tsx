@@ -83,7 +83,7 @@ export const ResumeGeneratorPage = () => {
         </div>
         <div className="flex items-center gap-3">
           <Button variant="gold" size="md" icon={<Printer className="w-4 h-4" />} onClick={handlePrint}>
-            Print / Save PDF
+            Print Resume
           </Button>
         </div>
       </div>

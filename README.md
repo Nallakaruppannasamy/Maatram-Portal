@@ -6,14 +6,16 @@ An enterprise-grade, production-ready Student & Volunteer Management System (SVM
 
 ## 🚀 Key Features
 
-*   **Centralized Student Registry:** Build complete profile portfolios for students including contact information, academic records, skills, projects, achievements, and certifications.
-*   **Hierarchical Organization Management:** Manage organizational trees spanning Zones, Colleges, Departments, Programs, and Batches.
-*   **Volunteer Verification Workflow:** Student submission of volunteer hours with file proof uploads, followed by a multi-stage approval workflow (Pending, Approved, Rejected, Revision) for Zone Incharges.
+*   **Executive Dashboards & Analytics:** Comprehensive executive dashboards for Super Admin and Zone Incharges with 9-metric overview statistics, 5-category distribution bar charts, multi-metric monthly volunteering trends, cohort distribution cards, regional performance highlights, and Top 5 Volunteering Scholar portrait cards.
+*   **Centralized Student Registry & Academic Portfolio:** Complete profile portfolios for students including Stream (`Arts & Science`, `Engineering`, `Nursing`), auto-computed Cumulative CGPA from semester GPAs, contact information, skills, projects, achievements, and certifications.
+*   **Hierarchical Organization Governance:** Manage multi-tier organizational trees spanning Zones, Colleges, Departments, Programs, and Batches with strict zone-level data isolation.
+*   **Student Directory & Bulk Actions:** Fast, searchable student directory with single/multi/select-all checkboxes, bulk account deactivation, CV/resume review, 50-row pagination, and filter-aware complete dataset Excel exports.
+*   **Archived Students Management:** Dedicated archived student directory for both Super Admin (global) and Zone Incharges (assigned zone) to inspect inactive, suspended, or graduated scholars.
+*   **Volunteer Verification Workflow:** Student submission of volunteer hours and counts across 5 standard categories with proof uploads, followed by Zone Incharge verification and real-time activity auditing.
+*   **Filter-Aware Excel Exports:** High-performance exports without pagination limits for Student Provisioning, Student Directory, Team Management, and Volunteering Logs.
+*   **Automated Notification Engine:** Targeted transactional alerts including instant student notification upon SPOC assignment and Zone Incharge notification upon new volunteering log submissions.
 *   **Automatic Resume Generation:** Async generation of professional PDF resumes from verified student profile data using Puppeteer, equipped with a QR verification code.
-*   **Analytics Engine:** Role-based dashboard widgets displaying participation, cumulative volunteer hours, growth metrics, and compliance trends.
-*   **Bulk Student Enrollment:** Excel parsing with validation, duplicate detection, and automated credentials dispatch via a background job queue.
 *   **Audit Logging:** Detailed system-wide audit logs capturing every state change with actor profiles and field diffs.
-*   **Notification Engine:** Seamless delivery of transactional emails and real-time in-app alerts.
 
 ---
 

@@ -36,37 +36,41 @@ export const AppLayout = () => {
   }
 
   return (
-    <div className="h-screen w-full bg-[#FCF8FA] flex overflow-hidden">
+    <div className="h-screen w-full bg-[#FCF8FA] flex overflow-hidden print:h-auto print:overflow-visible print:bg-white">
       {/* Sidebar Navigation */}
-      <Sidebar
-        activeRole={activeRole}
-        user={
-          user
-            ? {
-                name: user.fullName || user.name || (user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.email),
-                regNumber: user.regNumber || user.registrationNumber || user.rollNumber,
-                avatarUrl:
-                  (user as any)?.avatarUrl ||
-                  user?.profilePhotoUrl ||
-                  (user as any)?.profileImage ||
-                  (user as any)?.profile?.profileImage ||
-                  (user as any)?.userProfile?.profileImage ||
-                  (user as any)?.student?.profileImage,
-              }
-            : undefined
-        }
-        onLogout={handleLogout}
-      />
+      <div className="no-print print:hidden">
+        <Sidebar
+          activeRole={activeRole}
+          user={
+            user
+              ? {
+                  name: user.fullName || user.name || (user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.email),
+                  regNumber: user.regNumber || user.registrationNumber || user.rollNumber,
+                  avatarUrl:
+                    (user as any)?.avatarUrl ||
+                    user?.profilePhotoUrl ||
+                    (user as any)?.profileImage ||
+                    (user as any)?.profile?.profileImage ||
+                    (user as any)?.userProfile?.profileImage ||
+                    (user as any)?.student?.profileImage,
+                }
+              : undefined
+          }
+          onLogout={handleLogout}
+        />
+      </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden print:h-auto print:overflow-visible print:w-full">
         {/* Sticky Top Header */}
-        <Header activeRole={activeRole} user={user} onLogout={handleLogout} onRoleChange={handleRoleChange} />
+        <div className="no-print print:hidden">
+          <Header activeRole={activeRole} user={user} onLogout={handleLogout} onRoleChange={handleRoleChange} />
+        </div>
 
         {/* Scrollable Viewport */}
         <main
           id="main-content"
-          className="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl w-full mx-auto focus:outline-none"
+          className="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl w-full mx-auto focus:outline-none print:p-0 print:m-0 print:overflow-visible print:max-w-none print:w-full"
           tabIndex={-1}
         >
           <ErrorBoundary>

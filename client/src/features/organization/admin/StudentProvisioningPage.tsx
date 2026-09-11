@@ -5,14 +5,13 @@ import {
   UploadCloud,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Eye,
   EyeOff,
   Search,
   Loader2,
   Plus,
   Download,
-  ToggleLeft,
-  ToggleRight,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -20,7 +19,6 @@ import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { studentApi } from '@/api/student.api'
-import { userApi } from '@/api/user.api'
 import { notify } from '@/utils/toast'
 import { useDebounce } from '@/hooks/useDebounce'
 
@@ -34,11 +32,12 @@ interface ImportSummary {
 
 export const StudentProvisioningPage: React.FC = () => {
   const queryClient = useQueryClient()
-  const [fileUploaded, setFileUploaded] = useState(false)
-  const [importSummary, setImportSummary] = useState<ImportSummary | null>(null)
-  const [importErrors, setImportErrors] = useState<{ row: number; error: string }[]>([])
+  const [activeImportId, setActiveImportId] = useState<string | null>(null)
+  const [uploadFileName, setUploadFileName] = useState<string>('')
   const [isDragging, setIsDragging] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [accountStatusFilter, setAccountStatusFilter] = useState<'all' | 'active' | 'deactivated'>('all')
+  const [lifecycleStatusFilter, setLifecycleStatusFilter] = useState<'all' | 'activated' | 'pending_first_login'>('all')
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
 
   // Pagination states
@@ -57,55 +56,63 @@ export const StudentProvisioningPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const debouncedSearch = useDebounce(searchQuery, 400)
 
-  // Reset page to 1 when search changes
+  // Reset page to 1 when filters change
   React.useEffect(() => {
     setPage(1)
-  }, [debouncedSearch])
+  }, [debouncedSearch, accountStatusFilter, lifecycleStatusFilter])
 
   const { data: studentsRes, isLoading: loadingList } = useQuery({
-    queryKey: ['students', 'provisioning', debouncedSearch, page],
-    queryFn: () => studentApi.list({ search: debouncedSearch, page, limit, view: 'provisioning' }),
+    queryKey: ['students', 'provisioning', debouncedSearch, accountStatusFilter, lifecycleStatusFilter, page],
+    queryFn: () =>
+      studentApi.list({
+        search: debouncedSearch,
+        accountStatus: accountStatusFilter !== 'all' ? accountStatusFilter : undefined,
+        lifecycleStatus: lifecycleStatusFilter !== 'all' ? lifecycleStatusFilter : undefined,
+        page,
+        limit,
+        view: 'provisioning',
+      }),
   })
 
   const students = studentsRes?.data || []
   const meta = studentsRes?.meta || studentsRes?.pagination || { total: 0, totalPages: 1 }
 
+  // Live polling for active import job
+  const { data: importStatusRes } = useQuery({
+    queryKey: ['import-status', activeImportId],
+    queryFn: () => studentApi.getImportStatus(activeImportId!),
+    enabled: !!activeImportId,
+    refetchInterval: (query) => {
+      const status = query.state.data?.data?.status
+      if (status === 'COMPLETED' || status === 'COMPLETED_WITH_ERRORS' || status === 'FAILED') {
+        return false
+      }
+      return 1000
+    },
+  })
+
+  const liveJob = importStatusRes?.data
+
+  // Automatically invalidate student list query when import finishes
+  React.useEffect(() => {
+    if (liveJob?.status === 'COMPLETED' || liveJob?.status === 'COMPLETED_WITH_ERRORS') {
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+    }
+  }, [liveJob?.status, queryClient])
+
   const importMutation = useMutation({
     mutationFn: (file: File) => studentApi.importCSV(file),
     onSuccess: (res, file) => {
-      if (res.success) {
-        const report = res.data || {}
-        setImportSummary({
-          totalRows: report.totalRows || report.successCount || 0,
-          successCount: report.successCount || 0,
-          duplicateCount: report.duplicateCount || 0,
-          errorCount: report.errorCount || 0,
-          fileName: file.name,
-        })
-        setImportErrors([])
-        setFileUploaded(true)
-        notify.success(`Successfully imported ${report.successCount || 0} student records!`)
-        queryClient.invalidateQueries({ queryKey: ['students'] })
+      if (res.success && res.data?.importId) {
+        setActiveImportId(res.data.importId)
+        setUploadFileName(file.name)
+        notify.info(`Import started for ${file.name}. Processing in background...`)
       } else {
         notify.error(res.message || 'Roster import failed.')
       }
     },
     onError: (err: any) => {
-      const errorData = err?.response?.data
-      if (errorData?.data?.errors) {
-        setImportErrors(errorData.data.errors)
-        setImportSummary({
-          totalRows: errorData.data.totalRows || 0,
-          successCount: 0,
-          duplicateCount: errorData.data.duplicateCount || 0,
-          errorCount: errorData.data.errorCount || 0,
-          fileName: 'Import File',
-        })
-        setFileUploaded(false)
-        notify.error('Import failed with validation errors. Review the report below.')
-      } else {
-        notify.error(err?.response?.data?.message || err?.message || 'Roster import failed.')
-      }
+      notify.error(err?.response?.data?.message || err?.message || 'Roster upload failed.')
     },
   })
 
@@ -123,18 +130,6 @@ export const StudentProvisioningPage: React.FC = () => {
     },
     onError: (err: any) => {
       notify.error(err?.response?.data?.message || err?.message || 'Error provisioning student.')
-    },
-  })
-
-  const toggleActiveMutation = useMutation({
-    mutationFn: ({ userId, active }: { userId: string; active: boolean }) =>
-      active ? userApi.activate(userId) : userApi.deactivate(userId),
-    onSuccess: (_, variables) => {
-      notify.success(`Student account ${variables.active ? 'activated' : 'deactivated'} successfully!`)
-      queryClient.invalidateQueries({ queryKey: ['students'] })
-    },
-    onError: (err: any) => {
-      notify.error(err?.response?.data?.message || err?.message || 'Failed to update account status.')
     },
   })
 
@@ -161,11 +156,11 @@ export const StudentProvisioningPage: React.FC = () => {
 
   const handleExportProvisioning = async () => {
     try {
-      // Export current provisioning table (respecting search, sorting, and pagination)
+      // Export entire filtered dataset (no pagination params)
       const blob = await studentApi.exportCSV({
         search: debouncedSearch,
-        page,
-        limit,
+        accountStatus: accountStatusFilter !== 'all' ? accountStatusFilter : undefined,
+        lifecycleStatus: lifecycleStatusFilter !== 'all' ? lifecycleStatusFilter : undefined,
         format: 'xlsx',
         view: 'provisioning',
       })
@@ -176,14 +171,36 @@ export const StudentProvisioningPage: React.FC = () => {
       )
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', `Maatram_Student_Roster_${Date.now()}.xlsx`)
+      link.setAttribute('download', `Maatram_Student_Provisioning_${Date.now()}.xlsx`)
       document.body.appendChild(link)
       link.click()
       link.remove()
       window.URL.revokeObjectURL(url)
-      notify.success('Student roster exported successfully')
+      notify.success('Student provisioning dataset exported successfully')
     } catch {
-      notify.error('Failed to export student roster.')
+      notify.error('Failed to export student provisioning dataset.')
+    }
+  }
+
+  const handleDownloadErrors = async () => {
+    if (!activeImportId) return
+    try {
+      const blob = await studentApi.exportImportErrors(activeImportId)
+      const url = window.URL.createObjectURL(
+        new Blob([blob], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+      )
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `Import_Errors_${activeImportId.slice(0, 8)}.xlsx`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+      notify.success('Error report downloaded successfully')
+    } catch {
+      notify.error('Failed to download error report.')
     }
   }
 
@@ -193,9 +210,6 @@ export const StudentProvisioningPage: React.FC = () => {
       return
     }
 
-    setImportSummary(null)
-    setImportErrors([])
-    setFileUploaded(false)
     importMutation.mutate(file)
   }
 
@@ -320,7 +334,7 @@ export const StudentProvisioningPage: React.FC = () => {
           className="hidden"
         />
 
-        {!fileUploaded && importErrors.length === 0 ? (
+        {!activeImportId ? (
           <div className="space-y-6 text-center">
             <div
               onClick={() => !importMutation.isPending && fileInputRef.current?.click()}
@@ -338,10 +352,10 @@ export const StudentProvisioningPage: React.FC = () => {
                   <Loader2 className="w-10 h-10 text-[#D4AF37] animate-spin" />
                   <div>
                     <p className="text-sm font-bold text-[#111827]">
-                      Processing Roster & Syncing Database...
+                      Uploading & Initializing Import...
                     </p>
                     <p className="text-xs text-[#76777d]">
-                      Validating file rows transactionally
+                      Starting background batch processing engine
                     </p>
                   </div>
                 </div>
@@ -362,22 +376,78 @@ export const StudentProvisioningPage: React.FC = () => {
               )}
             </div>
           </div>
-        ) : fileUploaded ? (
-          <div className="space-y-4 p-5 bg-emerald-50/80 rounded-2xl border border-emerald-200/80 transition-all">
+        ) : liveJob?.status === 'PROCESSING' ? (
+          <div className="space-y-6 p-6 bg-amber-50/60 rounded-2xl border border-amber-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Loader2 className="w-6 h-6 text-[#D4AF37] animate-spin shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-[#111827]">
+                    Importing Student Roster in Background...
+                  </h4>
+                  <p className="text-xs text-[#76777d]">
+                    File: <span className="font-semibold text-[#111827]">{uploadFileName || liveJob.fileName}</span>
+                  </p>
+                </div>
+              </div>
+              <Badge variant="pending" className="text-xs uppercase tracking-wide self-start sm:self-auto">
+                Processing ({liveJob.percentage || 0}%)
+              </Badge>
+            </div>
+
+            {/* Live Progress Bar */}
+            <div className="space-y-2">
+              <div className="w-full bg-amber-200/60 rounded-full h-3 overflow-hidden">
+                <div
+                  className="bg-[#D4AF37] h-full transition-all duration-500 rounded-full"
+                  style={{ width: `${Math.max(5, liveJob.percentage || 0)}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs font-semibold text-[#45464c]">
+                <span>Processed: {liveJob.processedRows || 0} of {liveJob.totalRows || 0} rows</span>
+                <span>Success: {liveJob.successfulRows || 0} | Failed: {liveJob.failedRows || 0}</span>
+              </div>
+            </div>
+
+            {/* Live error preview if any errors happen during processing */}
+            {liveJob.errors && liveJob.errors.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-amber-200">
+                <p className="text-xs font-bold text-red-700 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Encountered {liveJob.errors.length} row warning(s):
+                </p>
+                <div className="max-h-36 overflow-y-auto rounded-xl border border-red-200 bg-white divide-y divide-red-100">
+                  {liveJob.errors.slice(0, 10).map((err: any, i: number) => (
+                    <div key={i} className="px-3 py-1.5 text-[11px] text-red-700 flex justify-between gap-3">
+                      <span className="font-semibold shrink-0">Row {err.row}:</span>
+                      <span className="truncate">{err.error}</span>
+                    </div>
+                  ))}
+                  {liveJob.errors.length > 10 && (
+                    <div className="px-3 py-1.5 text-[11px] text-red-600 font-medium text-center bg-red-50/50">
+                      + {liveJob.errors.length - 10} more rows
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : liveJob?.status === 'COMPLETED' ? (
+          <div className="space-y-4 p-6 bg-emerald-50/80 rounded-2xl border border-emerald-200/80 transition-all">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3 text-emerald-900">
                 <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-bold">
-                      Roster Imported Successfully! ({importSummary?.successCount || 0} Records Created)
+                      Roster Imported Successfully! ({liveJob.successfulRows || 0} Records Created)
                     </p>
                     <Badge variant="approved" className="text-[10px]">
-                      {importSummary?.fileName || 'Roster.xlsx'}
+                      {uploadFileName || liveJob.fileName || 'Roster.xlsx'}
                     </Badge>
                   </div>
                   <p className="text-xs text-emerald-800 mt-0.5">
-                    Welcome credential emails have been sent to all registered students.
+                    All accounts created. Credentials emails have been queued in the background.
                   </p>
                 </div>
               </div>
@@ -385,9 +455,8 @@ export const StudentProvisioningPage: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setFileUploaded(false)
-                  setImportSummary(null)
-                  setImportErrors([])
+                  setActiveImportId(null)
+                  setUploadFileName('')
                 }}
                 className="bg-white border-emerald-200 text-emerald-800 hover:bg-emerald-100/50 shrink-0"
               >
@@ -395,36 +464,96 @@ export const StudentProvisioningPage: React.FC = () => {
               </Button>
             </div>
           </div>
+        ) : liveJob?.status === 'COMPLETED_WITH_ERRORS' ? (
+          <div className="space-y-4 p-6 bg-amber-50 rounded-2xl border border-amber-200 transition-all">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200 pb-4">
+              <div className="flex items-start gap-3 text-amber-900">
+                <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold">
+                    Import Completed with Warnings ({liveJob.successfulRows || 0} Created, {liveJob.failedRows || 0} Failed)
+                  </p>
+                  <p className="text-xs text-amber-800 mt-0.5">
+                    Valid rows were provisioned successfully. Failed rows can be reviewed or downloaded below.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadErrors}
+                  className="bg-white border-amber-300 text-amber-900 hover:bg-amber-100 flex items-center gap-1.5 text-xs"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Failed Rows
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setActiveImportId(null)
+                    setUploadFileName('')
+                  }}
+                  className="bg-white border-amber-300 text-amber-900 hover:bg-amber-100 text-xs"
+                >
+                  Upload Another Roster
+                </Button>
+              </div>
+            </div>
+
+            {/* Error Rows Table */}
+            <div className="max-h-60 overflow-y-auto rounded-xl border border-amber-200 bg-white divide-y divide-amber-100">
+              {liveJob.errors?.map((err: any, i: number) => (
+                <div key={i} className="px-4 py-2.5 flex justify-between gap-4 text-xs text-amber-900">
+                  <span className="font-semibold shrink-0">Row {err.row} ({err.regNumber || err.email || 'Record'}):</span>
+                  <span className="text-left w-full text-red-600">{err.error}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         ) : (
-          /* Detailed Row Validation Failures display */
-          <div className="space-y-4 p-5 bg-red-50 rounded-2xl border border-red-200 transition-all">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-red-200 pb-3">
+          /* Entire Import Failed */
+          <div className="space-y-4 p-6 bg-red-50 rounded-2xl border border-red-200 transition-all">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-red-200 pb-4">
               <div className="flex items-start gap-3 text-red-900">
                 <AlertCircle className="w-6 h-6 text-red-600 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-bold">
-                    Import Failed! ({importSummary?.errorCount || 0} Row Errors Found)
+                    Import Failed! ({liveJob?.failedRows || liveJob?.totalRows || 0} Errors)
                   </p>
                   <p className="text-xs text-red-800 mt-0.5">
-                    The entire sheet upload was rolled back. Correct the errors below and try again.
+                    No student records could be provisioned. Correct the errors below and try again.
                   </p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setFileUploaded(false)
-                  setImportSummary(null)
-                  setImportErrors([])
-                }}
-                className="bg-white border-red-200 text-red-800 hover:bg-red-100/50 shrink-0"
-              >
-                Reset Upload
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                {liveJob?.errors && liveJob.errors.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadErrors}
+                    className="bg-white border-red-300 text-red-900 hover:bg-red-100 flex items-center gap-1.5 text-xs"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download Error Report
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setActiveImportId(null)
+                    setUploadFileName('')
+                  }}
+                  className="bg-white border-red-200 text-red-800 hover:bg-red-100/50 text-xs"
+                >
+                  Reset Upload
+                </Button>
+              </div>
             </div>
             <div className="max-h-60 overflow-y-auto rounded-xl border border-red-200 bg-white divide-y divide-red-100">
-              {importErrors.map((err, i) => (
+              {liveJob?.errors?.map((err: any, i: number) => (
                 <div key={i} className="px-4 py-2.5 flex justify-between gap-4 text-xs text-red-700">
                   <span className="font-semibold shrink-0">Row {err.row}:</span>
                   <span className="text-left w-full">{err.error}</span>
@@ -437,7 +566,7 @@ export const StudentProvisioningPage: React.FC = () => {
 
       {/* Account Activation Directory Table */}
       <Card className="border border-[#E5E7EB] bg-white rounded-2xl overflow-hidden shadow-xs">
-        <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E5E7EB] pb-5">
+        <CardHeader className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#E5E7EB] pb-5">
           <div>
             <CardTitle className="text-lg font-extrabold text-[#111827]">
               Account Activation Directory
@@ -447,8 +576,8 @@ export const StudentProvisioningPage: React.FC = () => {
             </CardDescription>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <div className="relative w-full sm:w-64">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative w-full sm:w-56">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#76777d]" />
               <input
                 type="text"
@@ -458,6 +587,29 @@ export const StudentProvisioningPage: React.FC = () => {
                 className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#FCF8FA] border border-[#E5E7EB] rounded-xl focus:outline-none focus:border-[#D4AF37] transition-all"
               />
             </div>
+
+            {/* Account Status Filter */}
+            <select
+              value={accountStatusFilter}
+              onChange={(e) => setAccountStatusFilter(e.target.value as any)}
+              className="px-3 py-1.5 text-xs bg-[#FCF8FA] border border-[#E5E7EB] rounded-xl text-[#111827] focus:outline-none focus:border-[#D4AF37] cursor-pointer"
+            >
+              <option value="all">All Account Statuses</option>
+              <option value="active">Active</option>
+              <option value="deactivated">Deactivated</option>
+            </select>
+
+            {/* Lifecycle Status Filter */}
+            <select
+              value={lifecycleStatusFilter}
+              onChange={(e) => setLifecycleStatusFilter(e.target.value as any)}
+              className="px-3 py-1.5 text-xs bg-[#FCF8FA] border border-[#E5E7EB] rounded-xl text-[#111827] focus:outline-none focus:border-[#D4AF37] cursor-pointer"
+            >
+              <option value="all">All Lifecycle Statuses</option>
+              <option value="activated">Activated</option>
+              <option value="pending_first_login">Pending First Login</option>
+            </select>
+
             <Badge variant="gold" className="shrink-0 font-bold px-3 py-1">
               {meta.total} Accounts Found
             </Badge>
@@ -494,7 +646,6 @@ export const StudentProvisioningPage: React.FC = () => {
                     const isFirstLogin = student.user?.isFirstLogin ?? student.isFirstLogin ?? (student.accountStatus === 'pending_first_login')
                     const statusInfo = formatLifecycleStatus(isFirstLogin, student.accountStatus || student.user?.accountStatus)
                     const isUserActive = student.user?.isActive !== false
-                    const targetUserId = student.userId || student.user?.id
 
                     return (
                       <tr key={student.id} className="hover:bg-[#FCF8FA]/80 transition-colors">
@@ -522,38 +673,15 @@ export const StudentProvisioningPage: React.FC = () => {
                         </td>
                         <td className="py-3.5 px-4 text-[#76777d]">{formatDate(student.createdAt)}</td>
                         <td className="py-3.5 px-4">
-                          <button
-                            type="button"
-                            disabled={toggleActiveMutation.isPending || !targetUserId}
-                            onClick={() => {
-                              if (!targetUserId) {
-                                notify.error('User record ID not found for student')
-                                return
-                              }
-                              toggleActiveMutation.mutate({
-                                userId: targetUserId,
-                                active: !isUserActive,
-                              })
-                            }}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${
                               isUserActive
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                                : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : 'bg-rose-50 text-rose-700 border-rose-200'
                             }`}
-                            title={isUserActive ? 'Click to deactivate account' : 'Click to activate account'}
                           >
-                            {isUserActive ? (
-                              <>
-                                <ToggleRight className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Active</span>
-                              </>
-                            ) : (
-                              <>
-                                <ToggleLeft className="w-3.5 h-3.5 text-rose-600" />
-                                <span>Deactivated</span>
-                              </>
-                            )}
-                          </button>
+                            {isUserActive ? 'Active' : 'Deactivated'}
+                          </span>
                         </td>
                         <td className="py-3.5 px-4">
                           <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>

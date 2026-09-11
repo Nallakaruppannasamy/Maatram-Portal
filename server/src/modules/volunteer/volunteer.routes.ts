@@ -61,15 +61,19 @@ const validateChangeStatus = (req: any, res: any, next: any) => {
 router.post('/upload', requireRole('admin', 'zone', 'student'), (req, res, next) => {
   upload.single('file')(req, res, async (err) => {
     if (err) {
+      const message =
+        err.code === 'LIMIT_FILE_SIZE'
+          ? 'File size must not exceed 5 MB'
+          : err.message || 'Invalid upload file';
       return res.status(400).json({
         success: false,
-        message: err.message,
+        message,
       });
     }
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: 'No file uploaded',
+        message: 'No file uploaded. Please select an image file.',
       });
     }
     try {
@@ -88,6 +92,7 @@ router.post('/upload', requireRole('admin', 'zone', 'student'), (req, res, next)
 });
 
 // ─── Read Endpoints (admin, zone managers, and students) ─────────────────────
+router.get('/export', requireRole('admin', 'zone'), volunteerController.exportVolunteeringLogs);
 router.get('/', requireRole('admin', 'zone', 'student'), volunteerController.listVolunteers);
 router.get('/logs', requireRole('admin', 'zone'), volunteerController.listVolunteers);
 router.get('/:id', requireRole('admin', 'zone', 'student'), volunteerController.getVolunteerOrSubmissionById);

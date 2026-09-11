@@ -4,5 +4,14 @@
   "workspaces": [
     "client",
     "server"
-  ]
+  ],
+  "scripts": {
+    "build:server": "npm run build --workspace server",
+    "start:server": "npm run start --workspace server",
+    "build:client": "npm run build --workspace client"
+  },
+  "devDependencies": {
+    "@prisma/client": "^5.22.0",
+    "prisma": "^5.22.0"
+  }
 }

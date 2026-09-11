@@ -9,6 +9,7 @@ import { logger } from '@/config/logger';
 import { studentRepository } from './student.repository';
 import { notificationService } from '@/utils/notification';
 import { env } from '@/config/env';
+import { importJobManager, NormalizedStudentRow } from './import-job.manager';
 
 /**
  * Parses date of birth supporting multiple formats (YYYY-MM-DD, DD/MM/YYYY, or Excel serial numbers)
@@ -88,6 +89,7 @@ import {
   ImportStatus,
   Student,
   AccountStatus,
+  NotificationType,
 } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import * as XLSX from 'xlsx';
@@ -120,6 +122,30 @@ export class StudentService {
    */
   async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, 12);
+  }
+
+  /**
+   * Retrieves or automatically provisions the default MTM-ORG organization.
+   */
+  private async getOrCreateDefaultOrganization() {
+    let org = await prisma.organization.findUnique({ where: { code: 'MTM-ORG' } });
+    if (!org) {
+      org = await prisma.organization.findFirst({ where: { isActive: true } });
+    }
+    if (!org) {
+      org = await prisma.organization.upsert({
+        where: { code: 'MTM-ORG' },
+        update: {},
+        create: {
+          name: 'Maatram Educational and Charitable Trust',
+          code: 'MTM-ORG',
+          description: 'Headquarters organization for Maatram Educational and Charitable Trust',
+          isActive: true,
+        },
+      });
+      logger.info('🏢 Default Organization (MTM-ORG) initialized in database.');
+    }
+    return org;
   }
 
   /**
@@ -373,6 +399,8 @@ export class StudentService {
       collegeId: queryParams.collegeId as string,
       departmentId: queryParams.departmentId as string,
       status: queryParams.status as StudentStatus,
+      stream: queryParams.stream as string,
+      accountStatus: queryParams.accountStatus as string,
       batch: queryParams.batch as string,
       academicYear: queryParams.academicYear as string,
     };
@@ -387,10 +415,10 @@ export class StudentService {
       }
     }
 
-    // Handle active vs archived scope and enforce Super Admin RBAC on archived queries
+    // Handle active vs archived scope and enforce role access
     if (queryParams.scope === 'archived') {
-      if (actorRole && actorRole !== 'admin') {
-        throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+      if (actorRole && actorRole !== 'admin' && actorRole !== 'zone') {
+        throw ApiError.forbidden('Access denied: Unauthorized access to archived student records');
       }
       options.scope = 'archived';
       options.isActive = false;
@@ -407,8 +435,8 @@ export class StudentService {
         options.isActive = true;
       } else if (queryParams.isActive === 'false' || queryParams.isActive === '0') {
         options.isActive = false;
-        if (actorRole && actorRole !== 'admin') {
-          throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+        if (actorRole && actorRole !== 'admin' && actorRole !== 'zone') {
+          throw ApiError.forbidden('Access denied: Unauthorized access to archived student records');
         }
       }
     }
@@ -437,9 +465,14 @@ export class StudentService {
           }
         : undefined;
 
+      const degree = student.program?.name || student.course || 'N/A';
+      const departmentName = student.department?.name || 'N/A';
+
       return {
         ...student,
         user: safeUser,
+        degree,
+        departmentName,
         isFirstLogin: student.user?.isFirstLogin ?? (student.accountStatus === 'pending_first_login'),
         fullName: this.computeFullName(student.firstName, student.middleName, student.lastName),
       };
@@ -501,17 +534,49 @@ export class StudentService {
       targetEntityType: 'student',
       targetEntityId: updated.id,
       targetLabel: fullName,
-      details: `Student ${fullName} (${updated.registrationNumber}) was ${isSpoc ? 'marked as' : 'unmarked from'} SPOC by actor ${actorId}`,
+      details: isSpoc ? `Assigned SPOC status to student ${fullName}` : `Removed SPOC status from student ${fullName}`,
     });
 
-    logger.info(
-      `[STUDENT_SPOC_UPDATED] SPOC status for ${fullName} set to ${isSpoc} by actor ${actorId}`
-    );
+    // Student notification on SPOC assignment
+    if (isSpoc && updated.user?.id) {
+      await prisma.notification.create({
+        data: {
+          recipientId: updated.user.id,
+          title: 'SPOC Assignment Notice',
+          message: 'Congratulations! You have been assigned as a Student SPOC for your institution.',
+          type: NotificationType.info,
+        },
+      }).catch((e) => logger.warn(`Failed to create SPOC notification: ${e.message}`));
+    }
 
     return {
       ...updated,
       fullName,
     };
+  }
+
+  /**
+   * Bulk deactivates students.
+   */
+  async bulkDeactivate(
+    studentIds: string[],
+    zoneId: string | undefined,
+    actorId: string,
+    actorRole: AuditActorRole
+  ): Promise<{ count: number }> {
+    const result = await studentRepository.bulkDeactivate(studentIds, zoneId);
+
+    await createAuditLog({
+      actorId,
+      actorRole,
+      action: 'STUDENTS_BULK_DEACTIVATED',
+      targetEntityType: 'student',
+      targetEntityId: studentIds[0] || 'bulk',
+      targetLabel: `${result.count} students`,
+      details: `Bulk deactivation of ${result.count} student accounts by ${actorRole} ${actorId}`,
+    });
+
+    return result;
   }
 
   /**
@@ -537,8 +602,7 @@ result.push(current.trim());
   }
 
   /**
-   * Performs high-performance transactional bulk Excel/CSV import.
-   * If any row validation or database operation fails, the entire import is rolled back.
+   * Initiates an asynchronous batch Excel/CSV student import with immediate short-lived HTTP response.
    */
   async importStudents(
     fileBuffer: Buffer,
@@ -546,14 +610,6 @@ result.push(current.trim());
     actorId: string,
     actorRole: AuditActorRole
   ): Promise<any> {
-    const report = {
-      totalRows: 0,
-      successCount: 0,
-      duplicateCount: 0,
-      errorCount: 0,
-      errors: [] as { row: number; error: string }[],
-    };
-
     let workbook: XLSX.WorkBook;
     try {
       workbook = XLSX.read(fileBuffer, { type: 'buffer' });
@@ -569,11 +625,9 @@ result.push(current.trim());
       throw ApiError.badRequest('The uploaded file is empty');
     }
 
-    report.totalRows = rows.length;
-
     // Normalize keys to find the required columns case-insensitively and space-insensitively
-    const normalizedRows = rows.map((row) => {
-      const normalized: any = {};
+    const normalizedRows: NormalizedStudentRow[] = rows.map((row, idx) => {
+      const normalized: any = { rawRowNumber: idx + 2 };
       for (const [key, val] of Object.entries(row)) {
         const cleanKey = key.trim().toLowerCase().replace(/\s+/g, '');
         if (cleanKey === 'studentname' || cleanKey === 'fullname' || cleanKey === 'name') {
@@ -613,27 +667,10 @@ result.push(current.trim());
       );
     }
 
-    // Get default organization (MTM-ORG)
-    const org = await prisma.organization.findUnique({ where: { code: 'MTM-ORG' } });
-    if (!org) {
-      throw ApiError.internal('Default organization (MTM-ORG) not found in database');
-    }
+    // Get or auto-provision default organization (MTM-ORG)
+    const org = await this.getOrCreateDefaultOrganization();
 
-    // Load existing emails and registration numbers for fast lookup
-    const allEmails = new Set(
-      (await prisma.user.findMany({ select: { email: true } })).map((u) => u.email?.toLowerCase())
-    );
-    const allRegNums = new Set(
-      (await prisma.student.findMany({ select: { registrationNumber: true } })).map((s) =>
-        s.registrationNumber.toUpperCase()
-      )
-    );
-
-    const localEmails = new Set<string>();
-    const localRegNums = new Set<string>();
-    const recordsToCreate: any[] = [];
-
-    // Create record in EnrollmentImport table in database
+    // Create database enrollment_imports record
     const dbImport = await prisma.enrollmentImport.create({
       data: {
         importedById: actorId,
@@ -646,205 +683,60 @@ result.push(current.trim());
       },
     });
 
-    // ─── VALIDATION PHASE ────────────────────────────────────────────────────
-    for (let idx = 0; idx < normalizedRows.length; idx++) {
-      const row = normalizedRows[idx];
-      const rowNum = idx + 2; // Offset for 1-based index and header
-      const rowErrors: string[] = [];
+    // Initialize Job in memory manager
+    const initialJobState = importJobManager.createJob({
+      importId: dbImport.id,
+      fileName,
+      importedById: actorId,
+      totalRows: rows.length,
+    });
 
-      if (!row.name) rowErrors.push('Missing Student Name');
-      if (!row.registrationNumber) rowErrors.push('Missing Register Number');
-      if (!row.email) rowErrors.push('Missing Email');
-      if (!row.dateOfBirth) rowErrors.push('Missing Date Of Birth');
+    // Start background processing asynchronously
+    importJobManager.startProcessing({
+      importId: dbImport.id,
+      organizationId: org.id,
+      rows: normalizedRows,
+      actorId,
+      actorRole,
+    });
 
-      if (rowErrors.length > 0) {
-        report.errorCount++;
-        report.errors.push({ row: rowNum, error: rowErrors.join(', ') });
-        continue;
-      }
+    logger.info(`[STUDENT_IMPORT_STARTED] Initiated asynchronous import job ${dbImport.id} for "${fileName}" (${rows.length} rows)`);
 
-      // Validate email format
-      if (!/^\S+@\S+\.\S+$/.test(row.email)) {
-        rowErrors.push(`Invalid email format: "${row.email}"`);
-      }
+    return initialJobState;
+  }
 
-      // Parse DOB date
-      const dob = parseExcelDate(row.dateOfBirth);
-      if (!dob) {
-        rowErrors.push(`Invalid date format for Date of Birth: "${row.dateOfBirth}"`);
-      }
+  /**
+   * Retrieves live progress or completed report of an import job.
+   */
+  async getImportStatus(importId: string) {
+    const job = await importJobManager.getJob(importId);
+    if (!job) {
+      throw ApiError.notFound('Import job not found');
+    }
+    return job;
+  }
 
-      const emailLower = row.email.toLowerCase();
-      const regUpper = row.registrationNumber.toUpperCase();
-
-      // Check duplicates in DB
-      if (allEmails.has(emailLower)) {
-        rowErrors.push(`Duplicate Email in database: "${row.email}"`);
-      }
-      if (allRegNums.has(regUpper)) {
-        rowErrors.push(`Duplicate Register Number in database: "${row.registrationNumber}"`);
-      }
-
-      // Check local duplicates in this file
-      if (localEmails.has(emailLower)) {
-        rowErrors.push(`Duplicate Email inside the file: "${row.email}"`);
-      }
-      if (localRegNums.has(regUpper)) {
-        rowErrors.push(`Duplicate Register Number inside the file: "${row.registrationNumber}"`);
-      }
-
-      if (rowErrors.length > 0) {
-        report.errorCount++;
-        report.errors.push({ row: rowNum, error: rowErrors.join(', ') });
-        continue;
-      }
-
-      // Add to local uniqueness tracking
-      localEmails.add(emailLower);
-      localRegNums.add(regUpper);
-
-      // Names parsing
-      const parts = row.name.split(/\s+/);
-      const firstName = parts[0] || '';
-      const lastName = parts.slice(1).join(' ') || '.';
-
-      // DOB Temporary password
-      const tempPassword = formatDobAsPassword(dob!);
-      const tempPasswordHashed = await bcrypt.hash(tempPassword, 10);
-
-      recordsToCreate.push({
-        firstName,
-        lastName,
-        registrationNumber: regUpper,
-        email: emailLower,
-        dateOfBirth: dob!,
-        tempPasswordHashed,
-        tempPassword,
-        organizationId: org.id,
-      });
+  /**
+   * Exports an Excel report of failed rows for an import job.
+   */
+  async exportImportErrors(importId: string): Promise<Buffer> {
+    const job = await importJobManager.getJob(importId);
+    if (!job) {
+      throw ApiError.notFound('Import job not found');
     }
 
-    // ─── COMMIT PHASE ────────────────────────────────────────────────────────
-    if (report.errorCount > 0) {
-      // Update database import status to failed
-      await prisma.enrollmentImport.update({
-        where: { id: dbImport.id },
-        data: {
-          errorCount: report.errorCount,
-          duplicateCount: report.duplicateCount,
-          status: ImportStatus.failed,
-        },
-      });
-      logger.warn(
-        `[STUDENT_IMPORT_FAILED] Import "${fileName}" failed validation check with ${report.errorCount} errors`
-      );
-      return report;
-    }
+    const data = (job.errors || []).map((err) => ({
+      'Row Number': err.row,
+      'Register Number': err.regNumber || 'N/A',
+      'Email Address': err.email || 'N/A',
+      'Failure Reason': err.error,
+    }));
 
-    try {
-      // Execute the bulk insert inside the transaction
-      const createdStudents = await studentRepository.provisionStudentsBulk(recordsToCreate);
-      report.successCount = createdStudents.length;
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Import Errors');
 
-      // Update database status to completed
-      await prisma.enrollmentImport.update({
-        where: { id: dbImport.id },
-        data: {
-          successCount: report.successCount,
-          status: ImportStatus.completed,
-        },
-      });
-
-      // Audit Log for import success
-      await createAuditLog({
-        actorId,
-        actorRole,
-        action: STUDENT_AUDIT_ACTIONS.STUDENT_IMPORTED,
-        targetEntityType: 'enrollment_import',
-        targetEntityId: dbImport.id,
-        targetLabel: fileName,
-        details: `Successfully imported ${report.successCount} student profiles from file: ${fileName}`,
-      });
-
-      // Send Welcome Emails & Log Audit trail for individual students in background
-      for (const record of recordsToCreate) {
-        const studentName = `${record.firstName} ${record.lastName === '.' ? '' : record.lastName}`.trim();
-        const createdStudent = createdStudents.find((s) => s.registrationNumber === record.registrationNumber);
-        const studentId = createdStudent?.id || '';
-
-        // Audit Log for individual creation
-        await createAuditLog({
-          actorId,
-          actorRole,
-          action: 'STUDENT_CREATED',
-          targetEntityType: 'student',
-          targetEntityId: studentId,
-          targetLabel: studentName,
-          details: `Student account provisioned via bulk import: regNumber=${record.registrationNumber}, email=${record.email}`,
-        });
-
-        // Welcome Email
-        const portalUrl = env.FRONTEND_URL || 'http://localhost:5173';
-        const emailPayload = {
-          to: record.email,
-          subject: 'Welcome to Maatram Foundation - Your Student Account Credentials',
-          body: `Dear ${studentName},\n\nWelcome to Maatram Foundation! Your student account has been successfully provisioned.\n\nPortal URL: ${portalUrl}\nRegistration Number: ${record.registrationNumber}\nTemporary Password: ${record.tempPassword}\n\nInstructions:\n1. Log in to the portal using your credentials.\n2. You will be prompted to change your temporary password on your first login.\n3. Complete your profile fields to activate your account.\n\nBest regards,\nMaatram Foundation Team`,
-          html: `
-            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 600px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 12px; padding: 24px;">
-              <h2 style="color: #D4AF37; margin-bottom: 16px;">Welcome to Maatram Foundation</h2>
-              <p>Dear <strong>${studentName}</strong>,</p>
-              <p>Welcome to Maatram Foundation! Your student account has been successfully provisioned.</p>
-              <div style="background-color: #FCF8FA; border-left: 4px solid #D4AF37; padding: 16px; margin: 20px 0; border-radius: 4px;">
-                <h3 style="margin-top: 0; color: #111827;">Portal Credentials</h3>
-                <p><strong>Portal URL:</strong> <a href="${portalUrl}" style="color: #D4AF37; text-decoration: none;">${portalUrl}</a></p>
-                <p><strong>Registration Number:</strong> <code style="font-family: monospace; font-size: 14px; font-weight: bold;">${record.registrationNumber}</code></p>
-                <p><strong>Temporary Password:</strong> <code style="font-family: monospace; font-size: 14px; font-weight: bold; color: #D4AF37;">${record.tempPassword}</code></p>
-              </div>
-              <h3 style="color: #111827;">Next Steps</h3>
-              <ol style="font-size: 14px; color: #45464c;">
-                <li>Log in using the temporary credentials.</li>
-                <li>Change your temporary password.</li>
-                <li>Fill out your personal, academic, address details in the Student Profile.</li>
-              </ol>
-              <p style="font-size: 12px; color: #76777d; margin-top: 24px;">This is an automated message. Please do not reply directly to this email.</p>
-            </div>
-          `,
-        };
-
-        await notificationService.sendEmail(emailPayload);
-
-        // Audit Log for email sent
-        await createAuditLog({
-          actorId,
-          actorRole,
-          action: 'WELCOME_EMAIL_SENT',
-          targetEntityType: 'student',
-          targetEntityId: studentId,
-          targetLabel: studentName,
-          details: `Credentials welcome email sent to ${record.email}`,
-        });
-      }
-
-      logger.info(
-        `[STUDENT_IMPORTED] Successfully imported ${report.successCount} students from ${fileName} by actor ${actorId}`
-      );
-      return report;
-    } catch (dbError: unknown) {
-      await prisma.enrollmentImport.update({
-        where: { id: dbImport.id },
-        data: {
-          status: ImportStatus.failed,
-          errorCount: report.totalRows,
-        },
-      });
-      logger.error(
-        `[STUDENT_IMPORT_ROLLBACK] DB Transaction rollback during import of ${fileName}. Reason:`,
-        dbError
-      );
-      throw ApiError.internal(
-        `Import transaction failed and was rolled back: ${(dbError as Error).message}`
-      );
-    }
+    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
   }
 
   /**
@@ -877,6 +769,8 @@ result.push(current.trim());
       collegeId: queryParams.collegeId as string,
       departmentId: queryParams.departmentId as string,
       status: queryParams.status as StudentStatus,
+      stream: queryParams.stream as string,
+      accountStatus: queryParams.accountStatus as string,
       batch: queryParams.batch as string,
       academicYear: queryParams.academicYear as string,
     };
@@ -891,10 +785,9 @@ result.push(current.trim());
       }
     }
 
-    // Handle active vs archived scope and enforce Super Admin RBAC on archived queries
     if (queryParams.scope === 'archived') {
-      if (actorRole && actorRole !== 'admin') {
-        throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+      if (actorRole && actorRole !== 'admin' && actorRole !== 'zone') {
+        throw ApiError.forbidden('Access denied: Unauthorized access to archived student records');
       }
       options.scope = 'archived';
       options.isActive = false;
@@ -911,23 +804,15 @@ result.push(current.trim());
         options.isActive = true;
       } else if (queryParams.isActive === 'false' || queryParams.isActive === '0') {
         options.isActive = false;
-        if (actorRole && actorRole !== 'admin') {
-          throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+        if (actorRole && actorRole !== 'admin' && actorRole !== 'zone') {
+          throw ApiError.forbidden('Access denied: Unauthorized access to archived student records');
         }
       }
     }
 
     const { orderBy } = parseQueryParams(options, 'registrationNumber');
-    
-    let students: StudentWithRelations[];
-    if (queryParams.page !== undefined && queryParams.limit !== undefined) {
-      const page = parseInt(String(queryParams.page), 10) || 1;
-      const limit = parseInt(String(queryParams.limit), 10) || 10;
-      const skip = (page - 1) * limit;
-      students = await studentRepository.listStudents(options, skip, limit, orderBy);
-    } else {
-      students = await studentRepository.exportStudents(options, orderBy);
-    }
+    // Exports must always export the entire filtered dataset
+    const students = await studentRepository.exportStudents(options, orderBy);
 
     if (queryParams.view === 'provisioning') {
       const headers = [
@@ -936,6 +821,7 @@ result.push(current.trim());
         'Email Address',
         'Temp Password',
         'Import Date',
+        'Account Status',
         'Lifecycle Status',
       ];
       const lines = [headers.join(',')];
@@ -947,6 +833,7 @@ result.push(current.trim());
         );
         const importDate = student.user?.createdAt ? student.user.createdAt.toISOString().split('T')[0] : 'N/A';
         const rawStatus = (student.user as any)?.accountStatus || student.accountStatus || 'pending_first_login';
+        const accountStatusLabel = student.user?.isActive === false ? 'DEACTIVATED' : 'ACTIVE';
 
         const row = [
           this.formatCsvValue(fullName || student.user?.email || ''),
@@ -954,6 +841,7 @@ result.push(current.trim());
           this.formatCsvValue(student.user?.email || ''),
           this.formatCsvValue(student.user?.tempPassword || 'Set by user'),
           this.formatCsvValue(importDate),
+          this.formatCsvValue(accountStatusLabel),
           this.formatCsvValue(rawStatus),
         ];
         lines.push(row.join(','));
@@ -965,11 +853,15 @@ result.push(current.trim());
       'Register Number',
       'Name',
       'College Name',
+      'Stream',
+      'Degree',
+      'Department',
       'Zone',
       'Batch',
       'CGPA',
       'SPOC',
-      'Status',
+      'Account Status',
+      'Lifecycle Status',
     ];
 
     const lines = [headers.join(',')];
@@ -981,17 +873,21 @@ result.push(current.trim());
         student.lastName
       );
 
-      const statusLabel = student.user?.isActive === false ? 'DEACTIVATED' : (student.status || 'ACTIVE');
+      const accountStatusLabel = student.user?.isActive === false ? 'DEACTIVATED' : 'ACTIVE';
 
       const row = [
         this.formatCsvValue(student.registrationNumber || 'UNASSIGNED'),
         this.formatCsvValue(fullName || 'Scholar Student'),
-        this.formatCsvValue(student.college?.name || 'Maatram College'),
+        this.formatCsvValue(student.college?.name || 'N/A'),
+        this.formatCsvValue(student.stream || 'N/A'),
+        this.formatCsvValue(student.program?.name || student.course || 'N/A'),
+        this.formatCsvValue(student.department?.name || 'N/A'),
         this.formatCsvValue(student.zone?.name || 'N/A'),
-        this.formatCsvValue(student.batch || '2024-2028'),
+        this.formatCsvValue(student.batch || 'N/A'),
         this.formatCsvValue(student.cgpa ? Number(student.cgpa).toFixed(2) : 'N/A'),
         this.formatCsvValue(student.isSpoc ? 'Yes' : 'No'),
-        this.formatCsvValue(statusLabel),
+        this.formatCsvValue(accountStatusLabel),
+        this.formatCsvValue(student.status || 'ACTIVE'),
       ];
 
       lines.push(row.join(','));
@@ -1013,6 +909,8 @@ result.push(current.trim());
       collegeId: queryParams.collegeId as string,
       departmentId: queryParams.departmentId as string,
       status: queryParams.status as StudentStatus,
+      stream: queryParams.stream as string,
+      accountStatus: queryParams.accountStatus as string,
       batch: queryParams.batch as string,
       academicYear: queryParams.academicYear as string,
     };
@@ -1027,10 +925,10 @@ result.push(current.trim());
       }
     }
 
-    // Handle active vs archived scope and enforce Super Admin RBAC on archived queries
+    // Handle active vs archived scope and enforce role access
     if (queryParams.scope === 'archived') {
-      if (actorRole && actorRole !== 'admin') {
-        throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+      if (actorRole && actorRole !== 'admin' && actorRole !== 'zone') {
+        throw ApiError.forbidden('Access denied: Unauthorized access to archived student records');
       }
       options.scope = 'archived';
       options.isActive = false;
@@ -1047,23 +945,15 @@ result.push(current.trim());
         options.isActive = true;
       } else if (queryParams.isActive === 'false' || queryParams.isActive === '0') {
         options.isActive = false;
-        if (actorRole && actorRole !== 'admin') {
-          throw ApiError.forbidden('Access denied: Only Super Admin can access archived student records');
+        if (actorRole && actorRole !== 'admin' && actorRole !== 'zone') {
+          throw ApiError.forbidden('Access denied: Unauthorized access to archived student records');
         }
       }
     }
 
     const { orderBy } = parseQueryParams(options, 'registrationNumber');
-    
-    let students: StudentWithRelations[];
-    if (queryParams.page !== undefined && queryParams.limit !== undefined) {
-      const page = parseInt(String(queryParams.page), 10) || 1;
-      const limit = parseInt(String(queryParams.limit), 10) || 10;
-      const skip = (page - 1) * limit;
-      students = await studentRepository.listStudents(options, skip, limit, orderBy);
-    } else {
-      students = await studentRepository.exportStudents(options, orderBy);
-    }
+    // Export entire filtered dataset
+    const students = await studentRepository.exportStudents(options, orderBy);
 
     let rows: Record<string, any>[];
     if (queryParams.view === 'provisioning') {
@@ -1071,6 +961,7 @@ result.push(current.trim());
         const fullName = this.computeFullName(s.firstName, s.middleName, s.lastName);
         const importDate = s.user?.createdAt ? s.user.createdAt.toISOString().split('T')[0] : 'N/A';
         const rawStatus = (s.user as any)?.accountStatus || s.accountStatus || 'pending_first_login';
+        const accountStatusLabel = s.user?.isActive === false ? 'DEACTIVATED' : 'ACTIVE';
 
         return {
           'Student Name': fullName || s.user?.email || '',
@@ -1078,22 +969,27 @@ result.push(current.trim());
           'Email Address': s.user?.email || '',
           'Temp Password': s.user?.tempPassword || 'Set by user',
           'Import Date': importDate,
+          'Account Status': accountStatusLabel,
           'Lifecycle Status': rawStatus,
         };
       });
     } else {
       rows = students.map((s) => {
         const fullName = this.computeFullName(s.firstName, s.middleName, s.lastName);
-        const statusLabel = s.user?.isActive === false ? 'DEACTIVATED' : (s.status || 'ACTIVE');
+        const accountStatusLabel = s.user?.isActive === false ? 'DEACTIVATED' : 'ACTIVE';
         return {
           'Register Number': s.registrationNumber || 'UNASSIGNED',
           Name: fullName || 'Scholar Student',
-          'College Name': s.college?.name || 'Maatram College',
+          'College Name': s.college?.name || 'N/A',
+          Stream: s.stream || 'N/A',
+          Degree: s.program?.name || s.course || 'N/A',
+          Department: s.department?.name || 'N/A',
           Zone: s.zone?.name || 'N/A',
-          Batch: s.batch || '2024-2028',
+          Batch: s.batch || 'N/A',
           CGPA: s.cgpa ? Number(s.cgpa).toFixed(2) : 'N/A',
           SPOC: s.isSpoc ? 'Yes' : 'No',
-          Status: statusLabel,
+          'Account Status': accountStatusLabel,
+          'Lifecycle Status': s.status || 'ACTIVE',
         };
       });
     }
@@ -1157,10 +1053,8 @@ result.push(current.trim());
       throw ApiError.badRequest(`Register Number "${registrationNumber}" is already registered`);
     }
 
-    const org = await prisma.organization.findUnique({ where: { code: 'MTM-ORG' } });
-    if (!org) {
-      throw ApiError.internal('Default organization (MTM-ORG) not found in database');
-    }
+    // Get or auto-provision default organization (MTM-ORG)
+    const org = await this.getOrCreateDefaultOrganization();
 
     // DOB Temporary password
     const tempPassword = formatDobAsPassword(dob);
@@ -1195,8 +1089,8 @@ result.push(current.trim());
     });
 
     // Send credentials email
-    const portalUrl = env.FRONTEND_URL || 'http://localhost:5173';
-    await notificationService.sendEmail({
+    const portalUrl = env.FRONTEND_URL || 'https://maatram-portal.onrender.com';
+    const emailResult = await notificationService.sendEmail({
       to: emailLower,
       subject: 'Welcome to Maatram Foundation - Your Student Account Credentials',
       body: `Dear ${fullStudentName},\n\nWelcome to Maatram Foundation! Your student account has been successfully provisioned.\n\nPortal URL: ${portalUrl}\nRegistration Number: ${regUpper}\nTemporary Password: ${tempPassword}\n\nInstructions:\n1. Log in to the portal using your credentials.\n2. You will be prompted to change your temporary password on your first login.\n3. Complete your profile fields to activate your account.\n\nBest regards,\nMaatram Foundation Team`,
@@ -1222,15 +1116,27 @@ result.push(current.trim());
       `,
     });
 
-    await createAuditLog({
-      actorId,
-      actorRole,
-      action: 'WELCOME_EMAIL_SENT',
-      targetEntityType: 'student',
-      targetEntityId: student.id,
-      targetLabel: fullStudentName,
-      details: `Credentials welcome email sent to ${emailLower}`,
-    });
+    if (emailResult.success) {
+      await createAuditLog({
+        actorId,
+        actorRole,
+        action: 'WELCOME_EMAIL_SENT',
+        targetEntityType: 'student',
+        targetEntityId: student.id,
+        targetLabel: fullStudentName,
+        details: `Credentials welcome email sent to ${emailLower}`,
+      });
+    } else {
+      await createAuditLog({
+        actorId,
+        actorRole,
+        action: 'WELCOME_EMAIL_FAILED',
+        targetEntityType: 'student',
+        targetEntityId: student.id,
+        targetLabel: fullStudentName,
+        details: `Credentials email delivery failed: ${emailResult.error || 'Unknown error'}`,
+      });
+    }
 
     return student;
   }

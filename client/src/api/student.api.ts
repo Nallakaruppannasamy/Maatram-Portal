@@ -28,6 +28,13 @@ export const studentApi = {
     return res.data
   },
 
+  bulkDeactivate: async (studentIds: string[]): Promise<ApiResponse<{ count: number }>> => {
+    const res = await apiInstance.post<ApiResponse<{ count: number }>>(API_ROUTES.STUDENTS.BULK_DEACTIVATE, {
+      studentIds,
+    })
+    return res.data
+  },
+
   updateSpoc: async (id: string, isSpoc: boolean): Promise<ApiResponse<Student>> => {
     const res = await apiInstance.patch<ApiResponse<Student>>(API_ROUTES.STUDENTS.SPOC(id), { isSpoc })
     return res.data
@@ -38,6 +45,18 @@ export const studentApi = {
     formData.append('file', file)
     const res = await apiInstance.post<ApiResponse<any>>(API_ROUTES.STUDENTS.IMPORT, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return res.data
+  },
+
+  getImportStatus: async (importId: string): Promise<ApiResponse<any>> => {
+    const res = await apiInstance.get<ApiResponse<any>>(API_ROUTES.STUDENTS.IMPORT_STATUS(importId))
+    return res.data
+  },
+
+  exportImportErrors: async (importId: string): Promise<Blob> => {
+    const res = await apiInstance.get(API_ROUTES.STUDENTS.IMPORT_ERRORS_EXPORT(importId), {
+      responseType: 'blob',
     })
     return res.data
   },

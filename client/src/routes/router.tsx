@@ -25,6 +25,7 @@ import { ResumeViewerPage } from '@/features/resume/pages/ResumeViewerPage'
 import { ZoneDashboardPage } from '@/features/dashboard/pages/ZoneDashboardPage'
 import { VolunteerApprovalPage } from '@/features/organization/incharge/VolunteerApprovalPage'
 import { ZoneStudentManagementPage } from '@/features/organization/incharge/ZoneStudentManagementPage'
+import { ZoneArchivedStudentsPage } from '@/features/organization/incharge/ZoneArchivedStudentsPage'
 import { AssignedCollegesPage } from '@/features/organization/incharge/AssignedCollegesPage'
 import { ZoneAnalyticsPage } from '@/features/analytics/pages/ZoneAnalyticsPage'
 import { ZoneProfilePage } from '@/features/organization/incharge/ZoneProfilePage'
@@ -41,6 +42,7 @@ import { OrganizationHierarchyPage } from '@/features/organization/admin/Organiz
 import { TeamManagementPage } from '@/features/organization/admin/TeamManagementPage'
 import { SuperAdminVolunteeringLogsPage } from '@/features/organization/admin/SuperAdminVolunteeringLogsPage'
 import { SuperAdminAnalyticsPage } from '@/features/analytics/pages/SuperAdminAnalyticsPage'
+import { AdminProfilePage } from '@/features/organization/admin/AdminProfilePage'
 import { AuditLogsPage } from '@/features/organization/pages/AuditLogsPage'
 
 // Shared Tools
@@ -145,6 +147,14 @@ export const router = createBrowserRouter([
         element: (
           <RoleGuard allowedRoles={[ROLES.ZONE, ROLES.ADMIN]}>
             <ZoneStudentManagementPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: '/zone/archived-students',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ZONE]}>
+            <ZoneArchivedStudentsPage />
           </RoleGuard>
         ),
       },
@@ -270,12 +280,20 @@ export const router = createBrowserRouter([
           </RoleGuard>
         ),
       },
+      {
+        path: '/admin/profile',
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+            <AdminProfilePage />
+          </RoleGuard>
+        ),
+      },
 
       // Shared System Tools
       {
         path: '/notifications',
         element: (
-          <RoleGuard allowedRoles={[ROLES.STUDENT, ROLES.ZONE, ROLES.ADMIN]}>
+          <RoleGuard allowedRoles={[ROLES.STUDENT, ROLES.ZONE]}>
             <NotificationsPage />
           </RoleGuard>
         ),

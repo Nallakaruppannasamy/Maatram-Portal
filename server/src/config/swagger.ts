@@ -11,8 +11,8 @@ const swaggerDocument = {
   },
   servers: [
     {
-      url: `http://localhost:${env.PORT}/api/${env.API_VERSION}`,
-      description: 'Local Development Server',
+      url: `/api/${env.API_VERSION}`,
+      description: 'Current Environment API Server',
     },
   ],
   components: {

@@ -112,6 +112,8 @@ export interface StudentQueryOptions {
   collegeId?: string;
   departmentId?: string;
   status?: StudentStatus;
+  stream?: string;
+  accountStatus?: string;
   batch?: string;
   academicYear?: string;
   isSpoc?: boolean;

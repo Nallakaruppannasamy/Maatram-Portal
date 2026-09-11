@@ -8,7 +8,6 @@ import { prisma } from '@/config/database';
 import { logger } from '@/config/logger';
 import { profileRepository } from './profile.repository';
 import { UpdateProfileDTO } from './profile.types';
-import { createAuditLog } from '@/utils/audit';
 import { AuditActorRole, UserProfile, Student } from '@prisma/client';
 
 export class ProfileService {
@@ -117,29 +116,12 @@ export class ProfileService {
         }
       }
 
-      const studentUpdated = await profileRepository.updateStudentProfile(userId, data);
-      updated = studentUpdated;
-      targetLabel = [studentUpdated.firstName, studentUpdated.middleName, studentUpdated.lastName]
-        .filter(Boolean)
-        .join(' ');
+      await profileRepository.updateStudentProfile(userId, data);
     } else {
-      const staffUpdated = await profileRepository.updateStaffProfile(userId, data);
-      updated = staffUpdated;
-      targetLabel = staffUpdated.fullName;
+      await profileRepository.updateStaffProfile(userId, data);
     }
 
-    // Record audit entry
-    await createAuditLog({
-      actorId: userId,
-      actorRole,
-      action: 'PROFILE_UPDATED',
-      targetEntityType: 'profile',
-      targetEntityId: userId,
-      targetLabel,
-      details: `User updated self-service profile details: mobile=${data.mobile || 'N/A'}`,
-    });
-
-    logger.info(`[PROFILE_UPDATED] Profile updated for user ID: ${userId}`);
+    logger.info(`[PROFILE_UPDATE] Profile updated for user ID: ${userId}`);
     return this.getProfile(userId, role);
   }
 

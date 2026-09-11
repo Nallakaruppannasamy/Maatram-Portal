@@ -60,7 +60,7 @@ export const ResumeViewerPage: React.FC = () => {
           <p className="text-[10px] text-gray-500">Official verified resume document from academic database.</p>
         </div>
         <Button variant="gold" size="sm" icon={<Printer className="w-4 h-4" />} onClick={handlePrint}>
-          Print / Save PDF
+          Print Resume
         </Button>
       </div>
 

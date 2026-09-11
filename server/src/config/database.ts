@@ -32,13 +32,36 @@ if (env.NODE_ENV !== 'production') {
   global.prisma = prisma;
 }
 
+export const ensureDefaultOrganization = async (): Promise<void> => {
+  try {
+    const existing = await prisma.organization.findFirst();
+    if (!existing) {
+      await prisma.organization.upsert({
+        where: { code: 'MTM-ORG' },
+        update: {},
+        create: {
+          name: 'Maatram Educational and Charitable Trust',
+          code: 'MTM-ORG',
+          description: 'Headquarters organization for Maatram Educational and Charitable Trust',
+          isActive: true,
+        },
+      });
+      logger.info('🏢 Default Organization (MTM-ORG) initialized in database.');
+    }
+  } catch (err) {
+    logger.warn(`⚠️ Could not verify default organization: ${(err as Error).message}`);
+  }
+};
+
 export const checkDatabaseConnection = async (): Promise<boolean> => {
   try {
     await prisma.$queryRaw`SELECT 1`;
     logger.info('🔌 Database connection established successfully via Prisma.');
+    await ensureDefaultOrganization();
     return true;
   } catch (error) {
     logger.error('❌ Database connection failed:', error);
     return false;
   }
 };
+
